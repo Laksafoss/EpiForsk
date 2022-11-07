@@ -10,6 +10,17 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 Imports: 
+    cowplot,
     dplyr,
+    ggplot2,
     magrittr,
-    rlang
+    rlang,
+    stringr,
+    tidyr
+Depends: 
+    R (>= 2.10)
+LazyData: true
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
