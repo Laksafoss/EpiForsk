@@ -33,8 +33,7 @@
 #' @export
 
 lms <- function(data, formula, grp_id, obs_id = NULL, trans_out = TRUE) {
-  require(tidyverse)
-  require(dtplyr)
+  library(data.table)
   grp_id <- rlang::ensym(grp_id)
   tryCatch(obs_id <- rlang::ensym(obs_id), error = function(e) e)
   if(length(formula) < 3) {rlang::abort("formula must have a LHS")}
@@ -64,7 +63,7 @@ lms <- function(data, formula, grp_id, obs_id = NULL, trans_out = TRUE) {
       dplyr::transmute(
         dplyr::across(
           seq_len(len),
-          ~ .x - mean(.x)
+          function(x) x - mean(x)
         )
       ) %>%
       tibble::as_tibble()
@@ -83,7 +82,7 @@ lms <- function(data, formula, grp_id, obs_id = NULL, trans_out = TRUE) {
         obs_id = .data[[!!obs_id]],
         dplyr::across(
           seq_len(len),
-          ~ .x - mean(.x)
+          function(x) x - mean(x)
         )
       ) %>%
       tibble::as_tibble() %>%
@@ -145,7 +144,8 @@ lms <- function(data, formula, grp_id, obs_id = NULL, trans_out = TRUE) {
   # OLS model fitting demeaned data
   mod <- lm(
     formula = formula(str_c(formula[[2]], "~ . - ", formula[[2]], " - 1")),
-    data = mod_data %>% dplyr::select(-c(obs_id, tidyselect::all_of(grp_id)))
+    data = mod_data %>%
+      dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id)))
   )
 
   # return OLS model, model matrix used, and outcome data used
