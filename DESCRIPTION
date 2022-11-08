@@ -12,11 +12,13 @@ RoxygenNote: 7.2.1
 Imports: 
     cowplot,
     dplyr,
+    dtplyr,
     ggplot2,
     magrittr,
     rlang,
     stringr,
-    tidyr
+    tidyr,
+    tidyselect
 Depends: 
     R (>= 2.10)
 LazyData: true
