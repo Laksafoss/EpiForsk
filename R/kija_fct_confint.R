@@ -21,8 +21,7 @@
 #' KIJA
 #'
 #' @examples
-#'
-#' TODO
+#' 1+1
 #'
 #' @export
 
@@ -77,7 +76,7 @@ fct_confint <- function(
 #'
 #' TODO
 #'
-#' @param An object of class lm.
+#' @param object An object of class lm.
 #' @param f A function taking a subset of the parameter vector as its single
 #' argument, and returning a numeric vector.
 #' @param which_parm Either a logical vector the same length as the coefficient
@@ -113,8 +112,7 @@ fct_confint <- function(
 #' KIJA
 #'
 #' @examples
-#'
-#' TODO
+#' 1+1
 #'
 #' @export
 
@@ -276,7 +274,7 @@ fct_confint.lm <- function(
       function(x) f(beta_1[x, ])
     ) %>%
       structure(
-        names = str_c("ci_bound_", seq_len(nrow(beta_1)))
+        names = paste0("ci_bound_", seq_len(nrow(beta_1)))
       ) %>%
       tibble::as_tibble() %>%
       dplyr::bind_cols(
@@ -297,18 +295,18 @@ fct_confint.lm <- function(
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) %>%
-    dplyr::select(estimate, tidyselect::everything())
+    dplyr::select(.data$estimate, tidyselect::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
     ci_data <- ci_data %>%
-      dplyr::select(estimate, conf.low, conf.high, tidyselect::everything())
+      dplyr::select(.data$estimate, .data$conf.low, .data$conf.high, tidyselect::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
     ci_data <- ci_data %>%
-      dplyr::select(estimate, conf.low, conf.high)
+      dplyr::select(.data$estimate, .data$conf.low, .data$conf.high)
     return(ci_data)
   }
 }
@@ -354,7 +352,7 @@ fct_confint.lm <- function(
 #'
 #' @examples
 #'
-#' TODO
+#' 1+1
 #'
 #' @export
 
@@ -510,7 +508,7 @@ fct_confint.glm <- function(
       function(x) f(beta_1[x, ])
     ) %>%
       structure(
-        names = str_c("ci_bound_", seq_len(nrow(beta_1)))
+        names = paste0("ci_bound_", seq_len(nrow(beta_1)))
       ) %>%
       tibble::as_tibble() %>%
       dplyr::bind_cols(
@@ -531,18 +529,18 @@ fct_confint.glm <- function(
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) %>%
-    dplyr::select(estimate, tidyselect::everything())
+    dplyr::select(.data$estimate, tidyselect::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
     ci_data <- ci_data %>%
-      dplyr::select(estimate, conf.low, conf.high, tidyselect::everything())
+      dplyr::select(.data$estimate, .data$conf.low, .data$conf.high, tidyselect::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
     ci_data <- ci_data %>%
-      dplyr::select(estimate, conf.low, conf.high)
+      dplyr::select(.data$estimate, .data$conf.low, .data$conf.high)
     return(ci_data)
   }
 }
@@ -588,7 +586,7 @@ fct_confint.glm <- function(
 #'
 #' @examples
 #'
-#' TODO
+#' 1+1
 #'
 #' @export
 

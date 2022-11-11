@@ -26,8 +26,7 @@
 #'
 #' @examples
 #'
-#' TODO
-#' @import data.table
+#' 1+1
 #'
 #' @export
 
