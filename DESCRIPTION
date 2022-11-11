@@ -11,16 +11,17 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 Imports: 
     cowplot,
+    data.table,
     dplyr,
-    dtplyr,
     ggplot2,
+    glue,
     magrittr,
     rlang,
     stringr,
+    tibble,
     tidyr,
     tidyselect,
 Depends: 
-    data.table,
     R (>= 2.10)
 LazyData: true
 Suggests: 
