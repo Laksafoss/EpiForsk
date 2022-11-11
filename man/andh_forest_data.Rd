@@ -9,9 +9,9 @@
 
 A data frame with 18 rows and 12 columns:
 \describe{
-\item{Type}{todo}
-\item{Indent}{todo}
-\item{Text}{todo}
+\item{type}{todo}
+\item{indent}{todo}
+\item{text}{todo}
 \item{A_est}{todo}
 \item{A_l}{todo}
 \item{A_u}{todo}
