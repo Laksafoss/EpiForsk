@@ -34,44 +34,6 @@ fct_confint <- function(
   UseMethod("fct_confint")
 }
 
-
-# confidence set based on 1-\alpha interval on parameter-vector
-# we use the function I_ns(X\beta), where I_ns only uses the parameters from
-# the natural spline.
-
-# object       list:    List with output from lm function for a spline model.
-# spline           ns:      The spline basis matrix used in the lm call.
-# ns_z_score_diff  tibble:  Tibble with two columns. The first with a sequence
-#                           of values of the spline covariate, the second with
-#                           the z_score_diff to the baseline.
-# spline2           ns:     If two splines are used either side of a point
-#                           spline_cut, spline2 is the spline with spline_cut
-#                           as the lower boundary knot and spline is the one
-#                           with reversed order.
-# spline_cut       double:  The intercept point for the spline model.
-# len              double:  Determines the interval around the MLE to sample
-#                           from when determining parameter vectors on the
-#                           boundary of the parameter confidence set.
-# n_grid          integer:  when par = "reduced", how many grid points to use
-#                           for each dimension. 0 to sample from uniform.
-# k               integer:  number of parameter values to sample from the
-#                           boundary of the parameter confidence set. If par =
-#                           reduced and n_grid > 0, k is unused.
-# alpha           double:   level of the confidence set. The function returns a
-#                           1-alpha confidence set for the spline curve.
-# drug_use        lgl:      TRUE if analysing drug use, where an extra column
-#                           is used to indicate any drug use during pregnancy.
-# mode            chr:      "a" for all, use all columns associated with the
-#                           spline. "ou" for only use, using only the column
-#                           associated with use of drug during pregnancy.
-# par             chr:      "all" to vary all parameters sampling from a uniform,
-#                           "reduced" to only use parameters associated with the
-#                           spline.
-# return          chr:      "all" to return all estimated confidence curves on
-#                           the boundary, "range" to only return the minimum and
-#                           maximum curves. standard is "range".
-
-
 #' Confidence set for functions of lm model parameters
 #'
 #' TODO
@@ -130,9 +92,6 @@ fct_confint.lm <- function(
     verbose = FALSE
 ) {
   if (parallel) {
-    require(parallel)
-    require(doParallel)
-    require(foreach)
     nCores <- min(
       parallel::detectCores(),
       n_cores
@@ -370,9 +329,6 @@ fct_confint.glm <- function(
     verbose = FALSE
 ) {
   if (parallel) {
-    require(parallel)
-    require(doParallel)
-    require(foreach)
     nCores <- min(
       parallel::detectCores(),
       n_cores
