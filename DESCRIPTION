@@ -12,15 +12,18 @@ RoxygenNote: 7.2.1
 Imports: 
     cowplot,
     data.table,
+    doParallel,
     dplyr,
+    foreach,
     ggplot2,
     glue,
     magrittr,
+    parallel,
     rlang,
     stringr,
     tibble,
     tidyr,
-    tidyselect,
+    tidyselect
 Depends: 
     R (>= 2.10)
 LazyData: true

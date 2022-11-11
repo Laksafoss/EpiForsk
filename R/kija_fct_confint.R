@@ -4,15 +4,16 @@
 #'
 #' @param object A fitted model object.
 #' @param f A function taking the parameter vector as its single argument, and
-#' returning a numeric vector.
+#'   returning a numeric vector.
 #' @param which_parm Either a logical vector the same length as the coefficient
-#' vector, with TRUE indicating a coefficient is used by f, or an integer vector
-#' with the indices of the coefficients used by f.
+#'   vector, with `TRUE` indicating a coefficient is used by f, or an integer
+#'   vector with the indices of the coefficients used by f.
 #' @param level The confidence level required.
 #' @param ... Additional argument(s) passed to methods.
 #'
-#' @returns
-#' A tibble with columns estimate, conf.low, and conf.high.
+#' @returns A tibble with columns estimate, conf.low, and conf.high or if
+#'   return_beta is `TRUE`, a list with the tibble and the beta values on the
+#'   boundary used to calculate the confidence limits.
 #'
 #' @details
 #' TODO
@@ -29,52 +30,30 @@ fct_confint <- function(
     object,
     f,
     which_parm = rep(TRUE, length(coef(object))),
-    level = 0.95, ...
+    level = 0.95,
+    ...
 ) {
   UseMethod("fct_confint")
 }
 
-#' Confidence set for functions of lm model parameters
-#'
-#' TODO
-#'
-#' @param object An object of class lm.
-#' @param f A function taking a subset of the parameter vector as its single
-#' argument, and returning a numeric vector.
-#' @param which_parm Either a logical vector the same length as the coefficient
-#' vector, with TRUE indicating a coefficient is used by f, or an integer vector
-#' with the indices of the coefficients used by f.
-#' @param level The confidence level required.
+#' @rdname fct_confint
 #' @param len numeric, the radius of the sphere or box used to define directions
-#' in which to look for boundary points of the parameter confidence set.
-#' @param n_grid Either NULL or an integer vector of length 1 or the number of
-#' TRUE/indices in which_parm. Specifies the number of grid points in each
-#' dimension of a grid with endpoints defined by len. If NULL or 0L, will
-#' instead sample k points uniformly on a sphere.
-#' @param k If n_grid is NULL or 0L, the number of points to sample uniformly
-#' from a sphere.
-#' @param parallel Logical, if TRUE parallel computing is used when solving for
-#' points on the boundary of the parameter confidence set.
+#'   in which to look for boundary points of the parameter confidence set.
+#' @param n_grid Either `NULL` or an integer vector of length 1 or the number of
+#'   `TRUE`/indices in which_parm. Specifies the number of grid points in
+#'   each dimension of a grid with endpoints defined by len. If `NULL` or `0L`,
+#'   will instead sample k points uniformly on a sphere.
+#' @param k If n_grid is `NULL` or `0L`, the number of points to sample
+#'   uniformly from a sphere.
+#' @param parallel Logical, if `TRUE` parallel computing is used when solving
+#'   for points on the boundary of the parameter confidence set.
 #' @param n_cores An integer specifying the number of threads to use for
-#' parallel computing.
-#' @param return_beta Logical, if TRUE returns both the confidence limits and
-#' the parameter values used from the boundary of the parameter confidence set.
-#' @param verbose Logical, if TRUE prints information about the number of points
-#' on the boundary used to calculate the confidence limits.
-#'
-#' @returns
-#' A tibble with columns estimate, conf.low, and conf.high or if return_beta is
-#' TRUE, a list with the tibble and the beta values on the boundary used to
-#' calculate the confidence limits.
-#'
-#' @details
-#' TODO
-#'
-#' # Author(s)
-#' KIJA
-#'
-#' @examples
-#' 1+1
+#'   parallel computing.
+#' @param return_beta Logical, if `TRUE` returns both the confidence limits and
+#'   the parameter values used from the boundary of the parameter confidence
+#'   set.
+#' @param verbose Logical, if `TRUE` prints information about the number of
+#'   points on the boundary used to calculate the confidence limits.
 #'
 #' @export
 
@@ -89,7 +68,8 @@ fct_confint.lm <- function(
     parallel = FALSE,
     n_cores = 10,
     return_beta = FALSE,
-    verbose = FALSE
+    verbose = FALSE,
+    ...
 ) {
   if (parallel) {
     nCores <- min(
@@ -97,7 +77,7 @@ fct_confint.lm <- function(
       n_cores
     )
     cluster <- parallel::makeCluster(nCores)
-    doParallel::registerDoParallel(cluster)
+    registerDoParallel(cluster)
     on.exit(parallel::stopCluster(cluster))
   }
   # convert which_parm to a logical vector
@@ -135,12 +115,12 @@ fct_confint.lm <- function(
   if (is.null(n_grid) || any(n_grid) == 0L) {
     # create k point uniformly on a sum(which_parm)-dimensional sphere
     delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
-    norm <- apply(delta, 1, function(x) sqrt(sum(x^2)))
+    norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
     delta <- t(delta / rep(norm / len, ncol(delta)))
     rownames(delta) <- names(beta_hat)[which_parm]
   } else if (!rlang::is_integer(n_grid)) {
     rlang::abort("n_grid must be an integer vector.")
-  } else if (!(length(n_grid) %in% c(1L, sum(which_parm)))) {
+  } else if (!(match(length(n_grid), c(1L, sum(which_parm))))) {
     rlang::abort(glue::glue("n_grid must have length 1 or {sum(which_parm)}."))
   } else {
     # create sum(which_parm)-dimensional grid with n_grid points in each direction
@@ -150,7 +130,7 @@ fct_confint.lm <- function(
       ))
     } else if(length(n_grid) == sum(which_parm)) {
       delta <- as.matrix(expand.grid(
-        lapply(n_grid, function(x) seq(-len, len, length.out = x))
+        lapply(n_grid, function(y) seq(-len, len, length.out = y))
       ))
     } else {
       rlang::abort(glue::glue("n_grid must be length 1 or {sum(which_parm)}"))
@@ -172,13 +152,17 @@ fct_confint.lm <- function(
   xtx_inv <- W * solve(crossprod(X))
   xtx_red <- solve(xtx_inv[which_parm, which_parm])
   if(parallel) {
-    fn <- function(y) t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
-    a <- foreach::`%dopar%`(foreach::foreach(y = seq_len(ncol(delta))), fn(y))
+    fn <- function(y) {
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+    }
+    a <- foreach(y = seq_len(ncol(delta))) %dopar% fn(y)
     a <- unlist(a)
   } else {
     a <- vapply(
       seq_len(ncol(delta)),
-      function(y) t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE],
+      function(y) {
+        t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+      },
       double(1L)
     )
   }
@@ -270,49 +254,7 @@ fct_confint.lm <- function(
   }
 }
 
-#' Confidence set for functions of glm model parameters
-#'
-#' TODO
-#'
-#' @param object An object of class glm.
-#' @param f A function taking a subset of the parameter vector as its single
-#' argument, and returning a numeric vector.
-#' @param which_parm Either a logical vector the same length as the coefficient
-#' vector, with TRUE indicating a coefficient is used by f, or an integer vector
-#' with the indices of the coefficients used by f.
-#' @param level The confidence level required.
-#' @param len numeric, the radius of the sphere or box used to define directions
-#' in which to look for boundary points of the parameter confidence set.
-#' @param n_grid Either NULL or an integer vector of length 1 or the number of
-#' TRUE/indices in which_parm. Specifies the number of grid points in each
-#' dimension of a grid with endpoints defined by len. If NULL or 0L, will
-#' instead sample k points uniformly on a sphere.
-#' @param k If n_grid is NULL or 0L, the number of points to sample uniformly
-#' from a sphere.
-#' @param parallel Logical, if TRUE parallel computing is used when solving for
-#' points on the boundary of the parameter confidence set.
-#' @param n_cores An integer specifying the number of threads to use for
-#' parallel computing.
-#' @param return_beta Logical, if TRUE returns both the confidence limits and
-#' the parameter values used from the boundary of the parameter confidence set.
-#' @param verbose Logical, if TRUE prints information about the number of points
-#' on the boundary used to calculate the confidence limits.
-#'
-#' @returns
-#' A tibble with columns estimate, conf.low, and conf.high or if return_beta is
-#' TRUE, a list with the tibble and the beta values on the boundary used to
-#' calculate the confidence limits.
-#'
-#' @details
-#' TODO
-#'
-#' # Author(s)
-#' KIJA
-#'
-#' @examples
-#'
-#' 1+1
-#'
+#' @rdname fct_confint
 #' @export
 
 fct_confint.glm <- function(
@@ -326,7 +268,8 @@ fct_confint.glm <- function(
     parallel = FALSE,
     n_cores = 10,
     return_beta = FALSE,
-    verbose = FALSE
+    verbose = FALSE,
+    ...
 ) {
   if (parallel) {
     nCores <- min(
@@ -334,7 +277,7 @@ fct_confint.glm <- function(
       n_cores
     )
     cluster <- parallel::makeCluster(nCores)
-    doParallel::registerDoParallel(cluster)
+    registerDoParallel(cluster)
     on.exit(parallel::stopCluster(cluster))
   }
   # convert which_parm to a logical vector
@@ -403,13 +346,17 @@ fct_confint.glm <- function(
   xtx_inv <- solve(crossprod(X * sqrt(W)))
   xtx_red <- solve(xtx_inv[which_parm, which_parm])
   if(parallel) {
-    fn <- function(y) t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
-    a <- foreach::`%dopar%`(foreach::foreach(y = seq_len(ncol(delta))), fn(y))
+    fn <- function(y) {
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+    }
+    a <- a <- foreach(y = seq_len(ncol(delta))) %dopar% fn(y)
     a <- unlist(a)
   } else {
     a <- vapply(
       seq_len(ncol(delta)),
-      function(y) t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE],
+      function(y) {
+        t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+      },
       double(1L)
     )
   }
@@ -501,49 +448,7 @@ fct_confint.glm <- function(
   }
 }
 
-#' Confidence set for functions of lms model parameters
-#'
-#' TODO
-#'
-#' @param object An object of class lms.
-#' @param f A function taking a subset of the parameter vector as its single
-#' argument, and returning a numeric vector.
-#' @param which_parm Either a logical vector the same length as the coefficient
-#' vector, with TRUE indicating a coefficient is used by f, or an integer vector
-#' with the indices of the coefficients used by f.
-#' @param level The confidence level required.
-#' @param len numeric, the radius of the sphere or box used to define directions
-#' in which to look for boundary points of the parameter confidence set.
-#' @param n_grid Either NULL or an integer vector of length 1 or the number of
-#' TRUE/indices in which_parm. Specifies the number of grid points in each
-#' dimension of a grid with endpoints defined by len. If NULL or 0L, will
-#' instead sample k points uniformly on a sphere.
-#' @param k If n_grid is NULL or 0L, the number of points to sample uniformly
-#' from a sphere.
-#' @param parallel Logical, if TRUE parallel computing is used when solving for
-#' points on the boundary of the parameter confidence set.
-#' @param n_cores An integer specifying the number of threads to use for
-#' parallel computing.
-#' @param return_beta Logical, if TRUE returns both the confidence limits and
-#' the parameter values used from the boundary of the parameter confidence set.
-#' @param verbose Logical, if TRUE prints information about the number of points
-#' on the boundary used to calculate the confidence limits.
-#'
-#' @returns
-#' A tibble with columns estimate, conf.low, and conf.high or if return_beta is
-#' TRUE, a list with the tibble and the beta values on the boundary used to
-#' calculate the confidence limits.
-#'
-#' @details
-#' TODO
-#'
-#' # Author(s)
-#' KIJA
-#'
-#' @examples
-#'
-#' 1+1
-#'
+#' @rdname fct_confint
 #' @export
 
 fct_confint.lms <- function(
@@ -557,7 +462,20 @@ fct_confint.lms <- function(
     parallel = FALSE,
     n_cores = 10,
     return_beta = FALSE,
-    verbose = FALSE
+    verbose = FALSE,
+    ...
 ) {
 
+}
+
+#' @rdname fct_confint
+#' @export
+fct_confint.default <- function(
+    object,
+    f,
+    which_parm = rep(TRUE, length(coef(object))),
+    level = 0.95,
+    ...
+) {
+  rlang::abort("Class is not supported. Object must have class lm, glm or lms.")
 }

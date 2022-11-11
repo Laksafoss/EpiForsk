@@ -2,9 +2,66 @@
 % Please edit documentation in R/kija_fct_confint.R
 \name{fct_confint}
 \alias{fct_confint}
+\alias{fct_confint.lm}
+\alias{fct_confint.glm}
+\alias{fct_confint.lms}
+\alias{fct_confint.default}
 \title{Confidence set for functions of model parameters}
 \usage{
 fct_confint(
+  object,
+  f,
+  which_parm = rep(TRUE, length(coef(object))),
+  level = 0.95,
+  ...
+)
+
+\method{fct_confint}{lm}(
+  object,
+  f,
+  which_parm = rep(TRUE, length(coef(object))),
+  level = 0.95,
+  len = 0.1,
+  n_grid = 0L,
+  k = 1000L,
+  parallel = FALSE,
+  n_cores = 10,
+  return_beta = FALSE,
+  verbose = FALSE,
+  ...
+)
+
+\method{fct_confint}{glm}(
+  object,
+  f,
+  which_parm = rep(TRUE, length(coef(object))),
+  level = 0.95,
+  len = 0.1,
+  n_grid = 0L,
+  k = 1000L,
+  parallel = FALSE,
+  n_cores = 10,
+  return_beta = FALSE,
+  verbose = FALSE,
+  ...
+)
+
+\method{fct_confint}{lms}(
+  object,
+  f,
+  which_parm = rep(TRUE, length(coef(object))),
+  level = 0.95,
+  len = 0.1,
+  n_grid = 0L,
+  k = 1000L,
+  parallel = FALSE,
+  n_cores = 10,
+  return_beta = FALSE,
+  verbose = FALSE,
+  ...
+)
+
+\method{fct_confint}{default}(
   object,
   f,
   which_parm = rep(TRUE, length(coef(object))),
@@ -19,15 +76,41 @@ fct_confint(
 returning a numeric vector.}
 
 \item{which_parm}{Either a logical vector the same length as the coefficient
-vector, with TRUE indicating a coefficient is used by f, or an integer vector
-with the indices of the coefficients used by f.}
+vector, with \code{TRUE} indicating a coefficient is used by f, or an integer
+vector with the indices of the coefficients used by f.}
 
 \item{level}{The confidence level required.}
 
 \item{...}{Additional argument(s) passed to methods.}
+
+\item{len}{numeric, the radius of the sphere or box used to define directions
+in which to look for boundary points of the parameter confidence set.}
+
+\item{n_grid}{Either \code{NULL} or an integer vector of length 1 or the number of
+\code{TRUE}/indices in which_parm. Specifies the number of grid points in
+each dimension of a grid with endpoints defined by len. If \code{NULL} or \code{0L},
+will instead sample k points uniformly on a sphere.}
+
+\item{k}{If n_grid is \code{NULL} or \code{0L}, the number of points to sample
+uniformly from a sphere.}
+
+\item{parallel}{Logical, if \code{TRUE} parallel computing is used when solving
+for points on the boundary of the parameter confidence set.}
+
+\item{n_cores}{An integer specifying the number of threads to use for
+parallel computing.}
+
+\item{return_beta}{Logical, if \code{TRUE} returns both the confidence limits and
+the parameter values used from the boundary of the parameter confidence
+set.}
+
+\item{verbose}{Logical, if \code{TRUE} prints information about the number of
+points on the boundary used to calculate the confidence limits.}
 }
 \value{
-A tibble with columns estimate, conf.low, and conf.high.
+A tibble with columns estimate, conf.low, and conf.high or if
+return_beta is \code{TRUE}, a list with the tibble and the beta values on the
+boundary used to calculate the confidence limits.
 }
 \description{
 TODO

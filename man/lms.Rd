@@ -4,14 +4,13 @@
 \alias{lms}
 \title{Wrapper around lm for sibling design}
 \usage{
-lms(data, formula, grp_id, obs_id = NULL, ...)
+lms(formula, data, grp_id, obs_id = NULL, ...)
 }
 \arguments{
+\item{formula}{A formula, used to create a model matrix with demeaned columns.}
+
 \item{data}{A data frame, data frame extension (e.g. a tibble), or a lazy
 data frame (e.g. from dbplyr or dtplyr).}
-
-\item{formula}{A formula, used to create the model matrix, whose columns are
-demeaned.}
 
 \item{grp_id}{<\code{\link[=dplyr_data_masking]{data-masking}}> One unquoted expression
 naming the id variable in data defining the groups to demean,
@@ -24,7 +23,7 @@ expression naming an id variable to keep track of the input data order.}
 }
 \value{
 A list with class (lms, lm). Contains the output from lm applied to
-demeaned data according to formula and the original data and provided
+demeaned data according to formula, the original data, and the provided
 formula.
 }
 \description{
@@ -39,6 +38,22 @@ KIJA
 
 \examples{
 
-1+1
+sib_id <- sample(2000, 10000, replace = TRUE)
+sib_out <- rnorm(2000)
+x1 <- rnorm(10000)
+x2 <- rnorm(10000) + sib_out[sib_id] + x1
+y <- rnorm(10000, 1, 0.5) + 2 * sib_out[sib_id] - x1 + 2 * x2
+data <- data.frame(
+x1 = x1,
+x2 = x2,
+y = y,
+sib_id = sib_id,
+obs_id = 1:10000
+)
+mod_lm <- lm(y ~ x1 + x2, data)
+mod_lms <- lms(y ~ x1 + x2 - 1, data, sib_id, obs_id)
+summary(mod_lm)
+summary(mod_lms)
+print(mod_lms)
 
 }

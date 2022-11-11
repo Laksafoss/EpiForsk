@@ -2,10 +2,9 @@
 #'
 #' Fits a linear model using demeaned data. Useful for sibling design.
 #'
+#' @param formula A formula, used to create a model matrix with demeaned columns.
 #' @param data A data frame, data frame extension (e.g. a tibble), or a lazy
 #' data frame (e.g. from dbplyr or dtplyr).
-#' @param formula A formula, used to create the model matrix, whose columns are
-#' demeaned.
 #' @param grp_id <[`data-masking`][dplyr_data_masking]> One unquoted expression
 #' naming the id variable in data defining the groups to demean,
 #' e.g. sibling groups.
@@ -15,7 +14,7 @@
 #'
 #' @returns
 #' A list with class (lms, lm). Contains the output from lm applied to
-#' demeaned data according to formula and the original data and provided
+#' demeaned data according to formula, the original data, and the provided
 #' formula.
 #'
 #' @details
@@ -26,11 +25,27 @@
 #'
 #' @examples
 #'
-#' 1+1
+#' sib_id <- sample(2000, 10000, replace = TRUE)
+#' sib_out <- rnorm(2000)
+#' x1 <- rnorm(10000)
+#' x2 <- rnorm(10000) + sib_out[sib_id] + x1
+#' y <- rnorm(10000, 1, 0.5) + 2 * sib_out[sib_id] - x1 + 2 * x2
+#' data <- data.frame(
+#' x1 = x1,
+#' x2 = x2,
+#' y = y,
+#' sib_id = sib_id,
+#' obs_id = 1:10000
+#' )
+#' mod_lm <- lm(y ~ x1 + x2, data)
+#' mod_lms <- lms(y ~ x1 + x2 - 1, data, sib_id, obs_id)
+#' summary(mod_lm)
+#' summary(mod_lms)
+#' print(mod_lms)
 #'
 #' @export
 
-lms <- function (data, formula, grp_id, obs_id = NULL, ...)
+lms <- function (formula, data, grp_id, obs_id = NULL, ...)
 {
   grp_id <- rlang::ensym(grp_id)
   tryCatch(obs_id <- rlang::ensym(obs_id), error = function(e) e)
