@@ -11,6 +11,7 @@
 #' e.g. sibling groups.
 #' @param obs_id <[`data-masking`][dplyr_data_masking]> Optional, One unquoted
 #' expression naming an id variable to keep track of the input data order.
+#' @param ... Additional arguments to be passed to \link[stats]{lm}().
 #'
 #' @returns
 #' A list with class (lms, lm). Contains the output from lm applied to
@@ -26,14 +27,12 @@
 #' @examples
 #'
 #' TODO
+#' @import data.table
 #'
-#' @importFrom rlang .data
-#' @importFrom rlang :=
 #' @export
 
-lms <- function (data, formula, grp_id, obs_id = NULL)
+lms <- function (data, formula, grp_id, obs_id = NULL, ...)
 {
-  library(data.table)
   grp_id <- rlang::ensym(grp_id)
   tryCatch(obs_id <- rlang::ensym(obs_id), error = function(e) e)
   if (length(formula) < 3) rlang::abort("formula must have a LHS")
@@ -68,16 +67,17 @@ lms <- function (data, formula, grp_id, obs_id = NULL)
           )
         },
         paste0(
+          "`",
           names(model_matrix_trans)[
             seq_len(length(model_matrix_trans) - 1 - !is.null(obs_id))
           ],
-          " = (function(x) x - mean(x))(",
+          "` = (function(x) x - mean(x))(`",
           names(model_matrix_trans)[
             seq_len(length(model_matrix_trans) - 1 - !is.null(obs_id))
           ],
-          collapse = "), "
+          collapse = "`), "
         ),
-        ")), keyby = list(",
+        "`)), keyby = list(",
         grp_id,
         ")]"
       )
@@ -135,7 +135,8 @@ lms <- function (data, formula, grp_id, obs_id = NULL)
   mod <- lm(
     formula = formula(paste0(formula[[2]], "~ . - 1")),
     data = mod_data %>%
-      dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id)))
+      dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id))),
+    ...
   )
 
   # return enriched OLS model
