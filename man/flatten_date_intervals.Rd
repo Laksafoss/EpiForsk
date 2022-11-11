@@ -4,7 +4,7 @@
 \alias{flatten_date_intervals}
 \title{Flatten Date Intervals}
 \usage{
-flatten_date_intervals(data, id, in_date, out_date, lag = 0)
+flatten_date_intervals(data, id, in_date, out_date, status = NULL, lag = 0)
 }
 \arguments{
 \item{data}{A data frame, data frame extension (e.g. a tibble), or a lazy
@@ -18,6 +18,8 @@ naming the start date variable in data.}
 
 \item{out_date}{<\code{\link[=dplyr_data_masking]{data-masking}}> One unquoted
 expression naming the end date variable in data.}
+
+\item{status}{123}
 
 \item{lag}{A numeric, giving the number of days allowed between time
 intervals that should be collapsed into one.}
@@ -38,3 +40,24 @@ distinct.
 ADLS, EMTH & ASO
 }
 
+\examples{
+
+1+1
+# The flatten function works with both dates and numeric
+#dat <- data.frame(
+#    ID    = c(1, 1, 1, 2, 2, 3, 3, 4),
+#   START = c(1, 2, 5, 3, 6, 2, 3, 6),
+ #  END   = c(3, 3, 7, 4, 9, 3, 5, 8))
+#dat \%>\% flatten_date_intervals(ID, START, END)
+
+#dat <- data.frame(
+ #  ID    = c(1, 1, 1, 2, 2, 3, 3),
+  # START = as.Date(c("2012-02-15", "2005-12-13", "2006-01-24",
+ #                    "2002-03-14", "1997-02-27",
+  #                   2008-08-13", "1998-09-23")),
+ #  END   = as.Date(c("2012-06-03", "2007-02-05", "2006-08-22",
+  #                   "2005-02-26", "1999-04-16",
+ #                    "2008-08-22", "2015-01-29")))
+#dat \%>\% flatten_date_intervals(ID, START, END)
+
+}
