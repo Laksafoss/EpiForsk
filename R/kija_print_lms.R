@@ -18,14 +18,14 @@
 #'
 #' @examples
 #'
-#' TODO
+#' 1+1
 #'
 #' @export
 
 print.lms <- function (x, digits = max(3L, getOption("digits") - 3L), ...)
 {
   cat("\nNumber of observations: ", nrow(x$data),
-      "\nNumber of groups: ", nrow(x$grp_id %>% distinct()),
+      "\nNumber of groups: ", nrow(x$grp_id %>% dplyr::distinct()),
       "\n\n", sep = "")
   if (length(coef(x))) {
     cat("Coefficients:\n")

@@ -5,6 +5,7 @@
 #' @importFrom rlang .data
 #' @importFrom rlang :=
 #' @importFrom magrittr %>%
+#' @import stats
 "_PACKAGE"
 
 
@@ -16,3 +17,8 @@ malicious_compliance <- function() {
   cowplot::plot_grid(plotlist = list(p, p), ncol = 2)
   return(1)
 }
+
+globalVariables(c("y"))
+
+#' @export
+.datatable.aware = TRUE
