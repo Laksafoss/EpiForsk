@@ -1,25 +1,7 @@
-#' Print method for lms objects
-#'
-#' Prints information about an lms object.
-#'
-#' @param x The S3 object with class lms.
+#' @rdname lms
+#' @param x An S3 object with class lms.
 #' @param digits The number of significant digits to be passed to
 #' \link[base]{format}(\link[stats]{coef}(x), .) when \link[base]{print}()ing.
-#' @param ... Any additional arguments are ignored without warning.
-#'
-#' @returns
-#' Silently returns the input lms object.
-#'
-#' @details
-#' TODO
-#'
-#' # Author(s)
-#' KIJA
-#'
-#' @examples
-#'
-#' 1+1
-#'
 #' @export
 
 print.lms <- function (x, digits = max(3L, getOption("digits") - 3L), ...)

@@ -10,36 +10,54 @@
 #' e.g. sibling groups.
 #' @param obs_id <[`data-masking`][dplyr_data_masking]> Optional, One unquoted
 #' expression naming an id variable to keep track of the input data order.
-#' @param ... Additional arguments to be passed to \link[stats]{lm}().
+#' @param ... Additional arguments to be passed to \link[stats]{lm}(). In print,
+#' additional arguments are ignored without warning.
 #'
 #' @returns
-#' A list with class (lms, lm). Contains the output from lm applied to
-#' demeaned data according to formula, the original data, and the provided
+#' A list with class \code{c("lms", "lm")}. Contains the output from \code{lm} applied
+#' to demeaned data according to formula, the original data, and the provided
 #' formula.
 #'
-#' @details
-#' TODO
+#' @details \code{lms} estimates parameters in the linear model
+#' \deqn{y_{ij_i}=\alpha_i+x_{ij_i}^T\beta + \varepsilon_{ij_i}}{
+#' y_(ij_i)=\alpha_i+x_(ij_i)^T\beta + \varepsilon_(ij_i)}
+#' where \eqn{\alpha_i}{%\alpha_i} is a group (e.g. sibling group)
+#' specific intercept and \eqn{x_{ij_i}}{%x_(ij_i)} are covariate values for
+#' observation \eqn{j_i}{%j_i} in group i.
+#' \eqn{\varepsilon_{ij_i}\sim N(0, \sigma^2)}{%\varepsilon_(ij_i)~N(0, \sigma^2)}
+#' is a normally distributed error term. It is assumed that interest is in
+#' estimating the vector \eqn{\beta}{%\beta} while \eqn{\alpha_{ij_i}}{%\alpha_(ij_i)}
+#' are nuissance parameters. Estimation of \eqn{\beta} uses the mean deviation
+#' method, where
+#' \deqn{y_{ij_i}^{'}=y_{ij_i}-y_i}{y_(ij_i)^(')=y_(ij_i)-y_i}
+#' is regressed on
+#' \deqn{x_{ij_i}^{'}=x_{ij_i}-x_i.}{x_(ij_i)^(')=x_(ij_i)-x_i.}
+#' Here \eqn{y_i} and \eqn{x_i} refers to the mean of y and x in group i.
+#' \code{lms} can keep track of observations by providing a unique identifier column
+#' to \code{obs_id}. lms will return \code{obs_id} so it matches the order of
+#' observations in model.
 #'
 #' # Author(s)
 #' KIJA
 #'
 #' @examples
-#'
-#' sib_id <- sample(2000, 10000, replace = TRUE)
-#' sib_out <- rnorm(2000)
-#' x1 <- rnorm(10000)
-#' x2 <- rnorm(10000) + sib_out[sib_id] + x1
-#' y <- rnorm(10000, 1, 0.5) + 2 * sib_out[sib_id] - x1 + 2 * x2
+#' sib_id <- sample(200, 1000, replace = TRUE)
+#' sib_out <- rnorm(200)
+#' x1 <- rnorm(1000)
+#' x2 <- rnorm(1000) + sib_out[sib_id] + x1
+#' y <- rnorm(1000, 1, 0.5) + 2 * sib_out[sib_id] - x1 + 2 * x2
 #' data <- data.frame(
 #' x1 = x1,
 #' x2 = x2,
 #' y = y,
 #' sib_id = sib_id,
-#' obs_id = 1:10000
+#' obs_id = 1:1000
 #' )
-#' mod_lm <- lm(y ~ x1 + x2, data)
-#' mod_lms <- lms(y ~ x1 + x2 - 1, data, sib_id, obs_id)
+#' mod_lm <- lm(y ~ x1 + x2, data) # OLS model
+#' mod_lm_grp <- lm(y ~ x1 + x2 + factor(sib_id), data) # OLS with grp
+#' mod_lms <- lms(y ~ x1 + x2, data, sib_id, obs_id) # conditional model
 #' summary(mod_lm)
+#' coef(mod_lm_grp)[1:3]
 #' summary(mod_lms)
 #' print(mod_lms)
 #'
@@ -50,6 +68,8 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   grp_id <- rlang::ensym(grp_id)
   tryCatch(obs_id <- rlang::ensym(obs_id), error = function(e) e)
   if (length(formula) < 3) rlang::abort("formula must have a LHS")
+  # remove intercept
+  formula <- update.formula(formula, . ~ . - 1)
   # create model matrix from formula:
   model_matrix <- model.matrix(
     formula[-2],
