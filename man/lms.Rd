@@ -32,8 +32,8 @@ additional arguments are ignored without warning.}
 }
 \value{
 A list with class \code{c("lms", "lm")}. Contains the output from \code{lm} applied
-to demeaned data according to formula, the original data, and the provided
-formula.
+to demeaned data according to \code{formula}, as well as the original data and the
+provided formula.
 }
 \description{
 Fits a linear model using demeaned data. Useful for sibling design.
@@ -54,9 +54,11 @@ method, where
 is regressed on
 \deqn{x_{ij_i}^{'}=x_{ij_i}-x_i.}{x_(ij_i)^(')=x_(ij_i)-x_i.}
 Here \eqn{y_i} and \eqn{x_i} refers to the mean of y and x in group i.
-\code{lms} can keep track of observations by providing a unique identifier column
-to \code{obs_id}. lms will return \code{obs_id} so it matches the order of
-observations in model.
+\cr \code{lms} can keep track of observations by providing a unique identifier
+column to \code{obs_id}. \code{lms} will return \code{obs_id} so it matches the order of
+observations in model.\cr
+\code{lms} only supports syntactic covariate names. Using a non-syntactic name
+risks returning an error, e.g if names end in + or -.
 }
 \section{Author(s)}{
 KIJA

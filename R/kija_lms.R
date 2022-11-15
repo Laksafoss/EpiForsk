@@ -14,9 +14,9 @@
 #' additional arguments are ignored without warning.
 #'
 #' @returns
-#' A list with class \code{c("lms", "lm")}. Contains the output from \code{lm} applied
-#' to demeaned data according to formula, the original data, and the provided
-#' formula.
+#' A list with class `c("lms", "lm")`. Contains the output from `lm` applied
+#' to demeaned data according to `formula`, as well as the original data and the
+#' provided formula.
 #'
 #' @details \code{lms} estimates parameters in the linear model
 #' \deqn{y_{ij_i}=\alpha_i+x_{ij_i}^T\beta + \varepsilon_{ij_i}}{
@@ -33,9 +33,11 @@
 #' is regressed on
 #' \deqn{x_{ij_i}^{'}=x_{ij_i}-x_i.}{x_(ij_i)^(')=x_(ij_i)-x_i.}
 #' Here \eqn{y_i} and \eqn{x_i} refers to the mean of y and x in group i.
-#' \code{lms} can keep track of observations by providing a unique identifier column
-#' to \code{obs_id}. lms will return \code{obs_id} so it matches the order of
-#' observations in model.
+#' \cr `lms` can keep track of observations by providing a unique identifier
+#' column to `obs_id`. `lms` will return `obs_id` so it matches the order of
+#' observations in model.\cr
+#' `lms` only supports syntactic covariate names. Using a non-syntactic name
+#' risks returning an error, e.g if names end in + or -.
 #'
 #' # Author(s)
 #' KIJA
@@ -118,7 +120,6 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
     )
   )
   model_matrix_trans <- tibble::as_tibble(model_matrix_trans)
-
   # demean outcome by grp_id
   outcome_trans <- data.table::as.data.table(
     data %>%
@@ -172,7 +173,6 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
       dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id))),
     ...
   )
-
   # return enriched OLS model
   out <- c(
     unclass(mod),
