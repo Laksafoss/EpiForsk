@@ -5,6 +5,9 @@
 #' @importFrom rlang .data
 #' @importFrom rlang :=
 #' @importFrom magrittr %>%
+#' @importFrom foreach foreach
+#' @importFrom foreach %dopar%
+#' @importFrom doParallel registerDoParallel
 #' @import stats
 "_PACKAGE"
 

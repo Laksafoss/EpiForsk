@@ -2,39 +2,76 @@
 #'
 #' Fits a linear model using demeaned data. Useful for sibling design.
 #'
+#' @param formula A formula, used to create a model matrix with demeaned columns.
 #' @param data A data frame, data frame extension (e.g. a tibble), or a lazy
 #' data frame (e.g. from dbplyr or dtplyr).
-#' @param formula A formula, used to create the model matrix, whose columns are
-#' demeaned.
 #' @param grp_id <[`data-masking`][dplyr_data_masking]> One unquoted expression
 #' naming the id variable in data defining the groups to demean,
 #' e.g. sibling groups.
 #' @param obs_id <[`data-masking`][dplyr_data_masking]> Optional, One unquoted
 #' expression naming an id variable to keep track of the input data order.
-#' @param ... Additional arguments to be passed to \link[stats]{lm}().
+#' @param ... Additional arguments to be passed to \link[stats]{lm}(). In print,
+#' additional arguments are ignored without warning.
 #'
 #' @returns
-#' A list with class (lms, lm). Contains the output from lm applied to
-#' demeaned data according to formula and the original data and provided
-#' formula.
+#' A list with class `c("lms", "lm")`. Contains the output from `lm` applied
+#' to demeaned data according to `formula`, as well as the original data and the
+#' provided formula.
 #'
-#' @details
-#' TODO
+#' @details \code{lms} estimates parameters in the linear model
+#' \deqn{y_{ij_i}=\alpha_i+x_{ij_i}^T\beta + \varepsilon_{ij_i}}{
+#' y_(ij_i)=\alpha_i+x_(ij_i)^T\beta + \varepsilon_(ij_i)}
+#' where \eqn{\alpha_i}{%\alpha_i} is a group (e.g. sibling group)
+#' specific intercept and \eqn{x_{ij_i}}{%x_(ij_i)} are covariate values for
+#' observation \eqn{j_i}{%j_i} in group i.
+#' \eqn{\varepsilon_{ij_i}\sim N(0, \sigma^2)}{%\varepsilon_(ij_i)~N(0, \sigma^2)}
+#' is a normally distributed error term. It is assumed that interest is in
+#' estimating the vector \eqn{\beta}{%\beta} while \eqn{\alpha_{ij_i}}{%\alpha_(ij_i)}
+#' are nuissance parameters. Estimation of \eqn{\beta} uses the mean deviation
+#' method, where
+#' \deqn{y_{ij_i}^{'}=y_{ij_i}-y_i}{y_(ij_i)^(')=y_(ij_i)-y_i}
+#' is regressed on
+#' \deqn{x_{ij_i}^{'}=x_{ij_i}-x_i.}{x_(ij_i)^(')=x_(ij_i)-x_i.}
+#' Here \eqn{y_i} and \eqn{x_i} refers to the mean of y and x in group i.
+#' \cr `lms` can keep track of observations by providing a unique identifier
+#' column to `obs_id`. `lms` will return `obs_id` so it matches the order of
+#' observations in model.\cr
+#' `lms` only supports syntactic covariate names. Using a non-syntactic name
+#' risks returning an error, e.g if names end in + or -.
 #'
 #' # Author(s)
 #' KIJA
 #'
 #' @examples
-#'
-#' 1+1
+#' sib_id <- sample(200, 1000, replace = TRUE)
+#' sib_out <- rnorm(200)
+#' x1 <- rnorm(1000)
+#' x2 <- rnorm(1000) + sib_out[sib_id] + x1
+#' y <- rnorm(1000, 1, 0.5) + 2 * sib_out[sib_id] - x1 + 2 * x2
+#' data <- data.frame(
+#' x1 = x1,
+#' x2 = x2,
+#' y = y,
+#' sib_id = sib_id,
+#' obs_id = 1:1000
+#' )
+#' mod_lm <- lm(y ~ x1 + x2, data) # OLS model
+#' mod_lm_grp <- lm(y ~ x1 + x2 + factor(sib_id), data) # OLS with grp
+#' mod_lms <- lms(y ~ x1 + x2, data, sib_id, obs_id) # conditional model
+#' summary(mod_lm)
+#' coef(mod_lm_grp)[1:3]
+#' summary(mod_lms)
+#' print(mod_lms)
 #'
 #' @export
 
-lms <- function (data, formula, grp_id, obs_id = NULL, ...)
+lms <- function (formula, data, grp_id, obs_id = NULL, ...)
 {
   grp_id <- rlang::ensym(grp_id)
   tryCatch(obs_id <- rlang::ensym(obs_id), error = function(e) e)
   if (length(formula) < 3) rlang::abort("formula must have a LHS")
+  # remove intercept
+  formula <- update.formula(formula, . ~ . - 1)
   # create model matrix from formula:
   model_matrix <- model.matrix(
     formula[-2],
@@ -83,7 +120,6 @@ lms <- function (data, formula, grp_id, obs_id = NULL, ...)
     )
   )
   model_matrix_trans <- tibble::as_tibble(model_matrix_trans)
-
   # demean outcome by grp_id
   outcome_trans <- data.table::as.data.table(
     data %>%
@@ -137,7 +173,6 @@ lms <- function (data, formula, grp_id, obs_id = NULL, ...)
       dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id))),
     ...
   )
-
   # return enriched OLS model
   out <- c(
     unclass(mod),
