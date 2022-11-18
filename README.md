@@ -59,14 +59,14 @@ The package MUST be self-sufficient. This means that any data you wish to use
 in your examples should either be simulated in the example or made available as 
 a dummy data set withing the package. 
 
-In general we follow [Hadley's guide](https://r-pkgs.org/) for package writing,
+In general we follow [Hadley's guide](https://r-pkgs.org/){target="_blank"} for package writing,
 and this book contains a plethora of good advice. 
 
 
 ### Functions
 As the package must complie with the CRAN check rules all functions must have a 
 documentation. Moreover, we require that this documentation is made via 
-[Roxygen2](https://roxygen2.r-lib.org/index.html) and contains one or more 
+[Roxygen2](https://roxygen2.r-lib.org/index.html){target="_blank"} and contains one or more 
 examples. 
 
 ### Vignettes
