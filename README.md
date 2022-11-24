@@ -1,8 +1,7 @@
 # EpiForsk
-
 This package is a framework for sharing guides, examples, and functions here at 
 EpiForsk. It is primarily managed by ADLS and KIJA, but is intended to be a 
-collaborative effort and we encourage sharing your hard earned code snippets. 
+collaborative effort and we encourage sharing your hard earned code snippets.  
 
 ## Installation & Use
 To install the package write
@@ -19,7 +18,7 @@ Only on github so far. We hope to upload to CRAN soon :)
 
 ## What is already in the package
 The package is (hopefully) constantly under development, and to see all content
-currently avalible in the package use 
+currently available in the package use 
 
 ```{r}
 help(package = "EpiForsk")
@@ -30,9 +29,14 @@ There is a strict ban on any and all individual level information! Your code and
 examples should strive to be as general as possible to avoid project and person 
 specific information. 
 
-For the code to be usable by your colleagues it should strive to be stripped of 
-project specific details, allowing for generally transferable ideas to shine 
-through.
+Highly specialized code is allowed in the package, but we strongly encourage
+you to make it useful to your colleagues by striving to strip it of project
+specific details, allowing for generally transferable ideas to shine through.
+
+A high priority is to have the package hosted on CRAN, which imposes certain
+limitations on it. One such is its size, which is currently limited by CRAN at
+5 MB. As the popularity of this initiative (hopefully) grows, we may 
+reconsider what will be allowed in the package. 
 
 There are two main formats for contributing: 
 
@@ -43,31 +47,29 @@ and other blog/article style walkthroughs.
 
 ### Functions
 Functions automate common tasks the frequently occure in our daily work. These 
-will work as any other functions made avalible by other packages in R. However,
+will work as any other functions made available by other packages in R. However,
 the goal is not to make the sleakest, fastest and most efficient versions of
 these functionalities, but rather implement functionalities tailored to our 
 specific needs. 
 
-
 ## How to contribute
 We encourage you to write your contribution yourself. To get started, read the
 "contributing" vignette. If this is out of scope, you are welcome to contact 
-ADLS or KIJA and we talk about possible solutions.   
+ADLS or KIJA and we talk about possible solutions.
 
 ## Requirements for contributions
 The package MUST be self-sufficient. This means that any data you wish to use 
-in your examples should either be simulated in the example or made available as 
-a dummy data set withing the package. 
+in your examples should either be simulated in the example (prefered) or made 
+available as a dummy data set within the package (only if small).
 
-In general we follow [Hadley's guide](https://r-pkgs.org/){target="_blank"} for package writing,
+In general we follow [Hadley's guide](https://r-pkgs.org/) for package writing,
 and this book contains a plethora of good advice. 
 
-
 ### Functions
-As the package must complie with the CRAN check rules all functions must have a 
+As the package must comply with the CRAN check rules all functions must have a 
 documentation. Moreover, we require that this documentation is made via 
-[Roxygen2](https://roxygen2.r-lib.org/index.html){target="_blank"} and contains one or more 
+[Roxygen2](https://roxygen2.r-lib.org/index.html) and contains one or more 
 examples. 
 
 ### Vignettes
-So far we have no formal requirements for vignettes.
+So far we have no formal requirements for vignettes. 
