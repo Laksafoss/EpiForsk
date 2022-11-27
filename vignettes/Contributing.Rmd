@@ -29,8 +29,8 @@ when you change computer:
 a. Generate a personal access token (PAT) to allow R access to the GitHub API.
 b. fork-and-clone the EpiForsk repository to your work computer.
 
-The next steps descripe the workflow from begining work on a new contribution
-to that work being merged into the source repository:
+The next steps descripe the workflow from starting work on a new contribution
+to merging into the source repository:
 
 1. Create a new feature branch for developing your functions, vignettes, and other contributions.
 2. Commit your work to your local feature branch with a description of its contents.
@@ -42,8 +42,8 @@ to that work being merged into the source repository:
 To get your git credentials set up, follow these steps:
 
 1. Log into github.
-2. Run ```` usethis::create_github_token() ````. Alternatively, go to [github](https://github.com/settings/tokens), click on "generate new token", then fill out the form.
-3. Run ```` gitcreds::gitcreds_set() ```` to register the token in the local Git credential store.
+2. Run `usethis::create_github_token()`. Alternatively, go to [github](https://github.com/settings/tokens), click on "generate new token", then fill out the form.
+3. Run `gitcreds::gitcreds_set()` to register the token in the local Git credential store.
 4. Remember to regenerate and restore your PAT on the schedule set in step 2. The default period recommended by github is 1 month.
 
 For more details, you can read the usethis vignette [git-credentials](https://usethis.r-lib.org/articles/git-credentials.html).
@@ -56,7 +56,9 @@ usethis::create_from_github("https://github.com/Laksafoss/EpiForsk", fork = TRUE
 ```
 
 ## Contribution workflow
-When working on a contribution, do so on a seperate feature branch. It is best practice to never make commits to the default branch of a fork. To create your feature branch, run
+When working on a contribution, do so on a seperate feature branch. It is best
+practice to never make commits to the default branch of a fork. To create your 
+feature branch, run
 ```{r, eval=FALSE}
 usethis::pr_init("branch_name")
 ```
@@ -76,8 +78,8 @@ number, as this is used to reference the PR.
 At this point, a package maintainer will look at your PR, and they will either
 accept it or request changes. If changes are requested, work on resolving the
 issues. Any changes you make must be commited to your local branch, then pushed
-upstream using ```` usethis::pr_push() ````. If changes have been comitted by the 
-reviewer, you can pull these using ```` usethis::pr_pull() ````. 
+upstream using `usethis::pr_push()`. If changes have been comitted by the 
+reviewer, you can pull these using `usethis::pr_pull()`. 
 
 When all issues are resolved, the PR will be accepted and merged into the source
 repository. At this point, you should run 
