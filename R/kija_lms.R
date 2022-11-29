@@ -76,16 +76,16 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   model_matrix <- model.matrix(
     formula[-2],
     data = data
-  ) %>%
-    tibble::as_tibble() %>%
+  ) |>
+    tibble::as_tibble() |>
     dplyr::bind_cols(
-      data %>% dplyr::select({{ grp_id }})
+      data |> dplyr::select({{ grp_id }})
     )
   # add obs_id variable to model_matrix:
   if (!is.null(obs_id)) {
-    model_matrix <- model_matrix %>%
+    model_matrix <- model_matrix |>
       dplyr::bind_cols(
-        data %>% dplyr::select({{ obs_id }})
+        data |> dplyr::select({{ obs_id }})
       )
   }
   # demean data by grp_id
@@ -122,7 +122,7 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   model_matrix_trans <- tibble::as_tibble(model_matrix_trans)
   # demean outcome by grp_id
   outcome_trans <- data.table::as.data.table(
-    data %>%
+    data |>
       dplyr::select(
         !!formula[[2]],
         tidyselect::all_of(grp_id),
@@ -163,13 +163,13 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   } else {
     mod_data <- dplyr::bind_cols(
       model_matrix_trans,
-      outcome_trans %>% dplyr::select(-tidyselect::all_of(grp_id))
+      outcome_trans |> dplyr::select(-tidyselect::all_of(grp_id))
     )
   }
   # OLS model fitting demeaned data
   mod <- lm(
     formula = formula(paste0(formula[[2]], "~ . - 1")),
-    data = mod_data %>%
+    data = mod_data |>
       dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id))),
     ...
   )
@@ -196,7 +196,7 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
 print.lms <- function (x, digits = max(3L, getOption("digits") - 3L), ...)
 {
   cat("\nNumber of observations: ", nrow(x$data),
-      "\nNumber of groups: ", nrow(x$grp_id %>% dplyr::distinct()),
+      "\nNumber of groups: ", nrow(x$grp_id |> dplyr::distinct()),
       "\n\n", sep = "")
   if (length(coef(x))) {
     cat("Coefficients:\n")
