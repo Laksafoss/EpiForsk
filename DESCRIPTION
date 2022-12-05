@@ -17,7 +17,6 @@ Imports:
     foreach,
     ggplot2,
     glue,
-    magrittr,
     parallel,
     rlang,
     stringr,

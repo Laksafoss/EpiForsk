@@ -48,7 +48,7 @@ ADLS, EMTH & ASO
 #    ID    = c(1, 1, 1, 2, 2, 3, 3, 4),
 #   START = c(1, 2, 5, 3, 6, 2, 3, 6),
  #  END   = c(3, 3, 7, 4, 9, 3, 5, 8))
-#dat \%>\% flatten_date_intervals(ID, START, END)
+#dat |> flatten_date_intervals(ID, START, END)
 
 #dat <- data.frame(
  #  ID    = c(1, 1, 1, 2, 2, 3, 3),
@@ -58,6 +58,6 @@ ADLS, EMTH & ASO
  #  END   = as.Date(c("2012-06-03", "2007-02-05", "2006-08-22",
   #                   "2005-02-26", "1999-04-16",
  #                    "2008-08-22", "2015-01-29")))
-#dat \%>\% flatten_date_intervals(ID, START, END)
+#dat |> flatten_date_intervals(ID, START, END)
 
 }

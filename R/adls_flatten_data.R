@@ -34,7 +34,7 @@
 #'#    ID    = c(1, 1, 1, 2, 2, 3, 3, 4),
 #' #   START = c(1, 2, 5, 3, 6, 2, 3, 6),
 #'  #  END   = c(3, 3, 7, 4, 9, 3, 5, 8))
-#' #dat %>% flatten_date_intervals(ID, START, END)
+#' #dat |> flatten_date_intervals(ID, START, END)
 #'
 #' #dat <- data.frame(
 #'  #  ID    = c(1, 1, 1, 2, 2, 3, 3),
@@ -44,36 +44,36 @@
 #'  #  END   = as.Date(c("2012-06-03", "2007-02-05", "2006-08-22",
 #'   #                   "2005-02-26", "1999-04-16",
 #'  #                    "2008-08-22", "2015-01-29")))
-#' #dat %>% flatten_date_intervals(ID, START, END)
+#' #dat |> flatten_date_intervals(ID, START, END)
 #'
 #' @export
 flatten_date_intervals <- function(data, id, in_date, out_date, status = NULL, lag = 0) {
-  flat <- data %>%
+  flat <- data |>
     dplyr::mutate(.numeric_in_date = as.numeric({{ in_date }}),
-                  .numeric_out_date = as.numeric({{ out_date }})) %>%
-    dplyr::arrange(.data$.numeric_in_date, .data$.numeric_out_date) %>%
-    dplyr::group_by({{ id }}, {{ status }}) %>%
+                  .numeric_out_date = as.numeric({{ out_date }})) |>
+    dplyr::arrange(.data$.numeric_in_date, .data$.numeric_out_date) |>
+    dplyr::group_by({{ id }}, {{ status }}) |>
     dplyr::mutate(.internal_running_index = c(
       0,
       cumsum(dplyr::lead(.data$.numeric_in_date) >
-               cummax(.data$.numeric_out_date + lag))[-dplyr::n()])) %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by({{ id }}, {{ status }}, .data$.internal_running_index) %>%
+               cummax(.data$.numeric_out_date + lag))[-dplyr::n()])) |>
+    dplyr::ungroup() |>
+    dplyr::group_by({{ id }}, {{ status }}, .data$.internal_running_index) |>
     dplyr::summarize(.interval_IN_DATE = min({{ in_date }}),
                      .interval_OUT_DATE = max({{ out_date }}),
-                     .groups = "drop") %>%
-    dplyr::select(-.data$.internal_running_index) %>%
+                     .groups = "drop") |>
+    dplyr::select(-.data$.internal_running_index) |>
     dplyr::rename({{ in_date }} := .data$.interval_IN_DATE,
                   {{ out_date }} := .data$.interval_OUT_DATE)
-  if (lag == 0 | data %>% dplyr::select({{ status }}) %>% ncol == 0) {
+  if (lag == 0 | data |> dplyr::select({{ status }}) |> (\(x) ncol(x) == 0)()) {
     return(flat)
   }
-  flat %>%
+  flat |>
     dplyr::mutate(
       .short = ({{ out_date }} - {{ in_date }} < lag),
       .first = {{ in_date }} == stats::ave({{ in_date }}, {{ id }}, FUN = min),
-      .last = {{ out_date }} == stats::ave({{ out_date }}, {{ id }}, FUN = max)) %>%
-    dplyr::filter(!.data$.short | .data$.first | .data$.last) %>%
+      .last = {{ out_date }} == stats::ave({{ out_date }}, {{ id }}, FUN = max)) |>
+    dplyr::filter(!.data$.short | .data$.first | .data$.last) |>
     dplyr::select(-.data$.short, -.data$.first, -.data$.last)
 }
 

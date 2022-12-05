@@ -50,7 +50,7 @@
 #'   transformed parameter.\cr
 #'   To determine \eqn{C_{\beta}}, `fct_confint()` finds the boundary by taking
 #'   a number of points around \eqn{hat(\beta)} and projecting them onto the
-#'   boundary. Therefore, the confidence set of the tranformed parameter will
+#'   boundary. Therefore, the confidence set of the transformed parameter will
 #'   only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
 #'   of the confidence set for the transformed parameter.\cr
 #'   The points projected to the boundary are either laid out in a grid around
@@ -256,11 +256,11 @@ fct_confint.lm <- function(
     ci_data_1 <- lapply(
       seq_len(nrow(beta_1)),
       function(x) f(beta_1[x, ])
-    ) %>%
+    ) |>
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_1)))
-      ) %>%
-      tibble::as_tibble() %>%
+      ) |>
+      tibble::as_tibble() |>
       dplyr::bind_cols(
         tibble::tibble(
           estimate = f(beta_hat[which_parm])
@@ -271,25 +271,25 @@ fct_confint.lm <- function(
     ci_data_2 <- lapply(
       seq_len(nrow(beta_2)),
       function(x) f(beta_2[x, ])
-    ) %>%
+    ) |>
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
-      ) %>%
+      ) |>
       tibble::as_tibble()
   )
   # combine negative and positive solutions
-  ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) %>%
+  ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
     dplyr::select(.data$estimate, tidyselect::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
-    ci_data <- ci_data %>%
+    ci_data <- ci_data |>
       dplyr::select(.data$estimate, .data$conf.low, .data$conf.high, tidyselect::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
-    ci_data <- ci_data %>%
+    ci_data <- ci_data |>
       dplyr::select(.data$estimate, .data$conf.low, .data$conf.high)
     return(ci_data)
   }
@@ -450,11 +450,11 @@ fct_confint.glm <- function(
     ci_data_1 <- lapply(
       seq_len(nrow(beta_1)),
       function(x) f(beta_1[x, ])
-    ) %>%
+    ) |>
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_1)))
-      ) %>%
-      tibble::as_tibble() %>%
+      ) |>
+      tibble::as_tibble() |>
       dplyr::bind_cols(
         tibble::tibble(
           estimate = f(beta_hat[which_parm])
@@ -465,25 +465,25 @@ fct_confint.glm <- function(
     ci_data_2 <- lapply(
       seq_len(nrow(beta_2)),
       function(x) f(beta_2[x, ])
-    ) %>%
+    ) |>
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
-      ) %>%
+      ) |>
       tibble::as_tibble()
   )
   # combine negative and positive solutions
-  ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) %>%
+  ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
     dplyr::select(.data$estimate, tidyselect::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
-    ci_data <- ci_data %>%
+    ci_data <- ci_data |>
       dplyr::select(.data$estimate, .data$conf.low, .data$conf.high, tidyselect::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
-    ci_data <- ci_data %>%
+    ci_data <- ci_data |>
       dplyr::select(.data$estimate, .data$conf.low, .data$conf.high)
     return(ci_data)
   }
@@ -650,11 +650,11 @@ fct_confint.lms <- function(
     ci_data_1 <- lapply(
       seq_len(nrow(beta_1)),
       function(x) f(beta_1[x, ])
-    ) %>%
+    ) |>
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_1)))
-      ) %>%
-      tibble::as_tibble() %>%
+      ) |>
+      tibble::as_tibble() |>
       dplyr::bind_cols(
         tibble::tibble(
           estimate = f(beta_hat[which_parm])
@@ -665,25 +665,25 @@ fct_confint.lms <- function(
     ci_data_2 <- lapply(
       seq_len(nrow(beta_2)),
       function(x) f(beta_2[x, ])
-    ) %>%
+    ) |>
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
-      ) %>%
+      ) |>
       tibble::as_tibble()
   )
   # combine negative and positive solutions
-  ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) %>%
+  ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
     dplyr::select(.data$estimate, tidyselect::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
-    ci_data <- ci_data %>%
+    ci_data <- ci_data |>
       dplyr::select(.data$estimate, .data$conf.low, .data$conf.high, tidyselect::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
-    ci_data <- ci_data %>%
+    ci_data <- ci_data |>
       dplyr::select(.data$estimate, .data$conf.low, .data$conf.high)
     return(ci_data)
   }
