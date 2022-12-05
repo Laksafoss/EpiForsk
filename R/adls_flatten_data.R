@@ -23,7 +23,7 @@
 #' then intervals must be more then 'lag' time units apart to be considered
 #' distinct.
 #'
-#' # Author(s)
+#' @author
 #' ADLS, EMTH & ASO
 #'
 #' @examples

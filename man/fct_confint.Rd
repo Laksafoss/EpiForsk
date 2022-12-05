@@ -151,7 +151,7 @@ confidence set of \eqn{\beta} can be mapped to the confidence set of the
 transformed parameter.\cr
 To determine \eqn{C_{\beta}}, \code{fct_confint()} finds the boundary by taking
 a number of points around \eqn{hat(\beta)} and projecting them onto the
-boundary. Therefore, the confidence set of the tranformed parameter will
+boundary. Therefore, the confidence set of the transformed parameter will
 only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
 of the confidence set for the transformed parameter.\cr
 The points projected to the boundary are either laid out in a grid around
@@ -160,11 +160,10 @@ by \code{n_grid}, or uniformly at random on a hypersphere, with the number of
 points determined by \code{k}. The radius of the grid/sphere is determined by
 \code{len}.
 }
-\section{Author(s)}{
-KIJA
-}
-
 \examples{
 1+1
 
+}
+\author{
+KIJA
 }

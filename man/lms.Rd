@@ -60,10 +60,6 @@ observations in model.\cr
 \code{lms} only supports syntactic covariate names. Using a non-syntactic name
 risks returning an error, e.g if names end in + or -.
 }
-\section{Author(s)}{
-KIJA
-}
-
 \examples{
 sib_id <- sample(200, 1000, replace = TRUE)
 sib_out <- rnorm(200)
@@ -85,4 +81,7 @@ coef(mod_lm_grp)[1:3]
 summary(mod_lms)
 print(mod_lms)
 
+}
+\author{
+KIJA
 }

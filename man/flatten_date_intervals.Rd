@@ -36,10 +36,6 @@ collapses them into distinct and disjoint intervals. If 'lag' is specified
 then intervals must be more then 'lag' time units apart to be considered
 distinct.
 }
-\section{Author(s)}{
-ADLS, EMTH & ASO
-}
-
 \examples{
 
 1+1
@@ -60,4 +56,7 @@ ADLS, EMTH & ASO
  #                    "2008-08-22", "2015-01-29")))
 #dat |> flatten_date_intervals(ID, START, END)
 
+}
+\author{
+ADLS, EMTH & ASO
 }

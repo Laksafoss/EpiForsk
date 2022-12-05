@@ -59,7 +59,7 @@
 #'   points determined by `k`. The radius of the grid/sphere is determined by
 #'   `len`.
 #'
-#' # Author(s)
+#' @author
 #' KIJA
 #'
 #' @examples

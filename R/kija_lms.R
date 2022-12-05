@@ -39,7 +39,7 @@
 #' `lms` only supports syntactic covariate names. Using a non-syntactic name
 #' risks returning an error, e.g if names end in + or -.
 #'
-#' # Author(s)
+#' @author
 #' KIJA
 #'
 #' @examples
