@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 library(EpiForsk)
 ```
 
-This vignette describes our recommeded workflow for contributing your work to
+This vignette describes our recommended workflow for contributing your work to
 the EpiForsk package, using the [usethis](https://usethis.r-lib.org/index.html)
 package.
 
@@ -29,22 +29,32 @@ when you change computer:
 a. Generate a personal access token (PAT) to allow R access to the GitHub API.
 b. fork-and-clone the EpiForsk repository to your work computer.
 
-The next steps descripe the workflow from starting work on a new contribution
+The next steps describe the workflow from starting work on a new contribution
 to merging into the source repository:
 
-1. Create a new feature branch for developing your functions, vignettes, and other contributions.
-2. Commit your work to your local feature branch with a description of its contents.
-3. When your contribution is ready, initiate a pull request to the upstream git repository.
-4. A package maintainer will look at your pull request, and may request changes. Resolve these issues and push your updates. 
-5. When all issues are resolved, your work will be merged to the main branch. You can now switch back to the default branch, pull upstream changes, and delete the feature branch.
+1. Create a new feature branch for developing your functions, vignettes, and
+other contributions.
+2. Commit your work to your local feature branch with a description of its
+contents.
+3. When your contribution is ready, initiate a pull request to the upstream git
+repository.
+4. A package maintainer will look at your pull request, and may request changes.
+Resolve these issues and push your updates.
+5. When all issues are resolved, your work will be merged to the main branch.
+You can now switch back to the default branch, pull upstream changes, and delete
+the feature branch.
 
 ## Managing Git Credentials
 To get your git credentials set up, follow these steps:
 
-1. Log into github.
-2. Run `usethis::create_github_token()`. Alternatively, go to [github](https://github.com/settings/tokens), click on "generate new token", then fill out the form.
-3. Run `gitcreds::gitcreds_set()` to register the token in the local Git credential store.
-4. Remember to regenerate and restore your PAT on the schedule set in step 2. The default period recommended by github is 1 month.
+1. Log into github. 
+2. Run `usethis::create_github_token()`. Alternatively, go
+to [github](https://github.com/settings/tokens), click on "generate new token",
+then fill out the form. 
+3. Run `gitcreds::gitcreds_set()` to register the token
+in the local Git credential store. 
+4. Remember to regenerate and restore your PAT on the schedule set in step 2.
+The default period recommended by github is 1 month.
 
 For more details, you can read the usethis vignette [git-credentials](https://usethis.r-lib.org/articles/git-credentials.html).
 
@@ -77,8 +87,8 @@ number, as this is used to reference the PR.
 
 At this point, a package maintainer will look at your PR, and they will either
 accept it or request changes. If changes are requested, work on resolving the
-issues. Any changes you make must be commited to your local branch, then pushed
-upstream using `usethis::pr_push()`. If changes have been comitted by the 
+issues. Any changes you make must be committed to your local branch, then pushed
+upstream using `usethis::pr_push()`. If changes have been committed by the 
 reviewer, you can pull these using `usethis::pr_pull()`. 
 
 When all issues are resolved, the PR will be accepted and merged into the source
@@ -90,7 +100,20 @@ This will switch you back to the default branch, pull changes from the source
 repository and delete the local feature branch.
 
 ## Additional
-When preparing a contribution, you should put some thought into the format you use. We imagine most contributions will either be in the form of a vignette or a function.  
-Think of vignettes as an article, where you can write down thoughts and ideas in a free text format, as well as writing R code. This can be useful for sharing examples/guides on data management, analysis methods, r packages, and so on.  
-In contrast to vignettes, R functions have much stricter formal [requirements](https://r-pkgs.org/code.html). Use R functions when you need to automate a common task, such as a data management task. There are a lot of considerations to writing a good R function, and it will generally be a bigger commitment than writing a vignette. A function needs good documentation, explaining what it does and how to use it. It should also have comprehensive and descriptive error handling. The goal is not to make the sleakest, fastest and most efficient functions, but rather implementing functionalities tailored to our specific needs. With that said, writing functions is not a one and done proces, and we encourage you to improve functions added to the package over time.     
-For a deep dive into writing packages, check out [Hadley's R package book](https://r-pkgs.org/).
+When preparing a contribution, you should put some thought into the format you
+use. We imagine most contributions will either be in the form of a vignette or a
+function. Think of vignettes as an article, where you can write down thoughts
+and ideas in a free text format, as well as writing R code. This can be useful
+for sharing examples/guides on data management, analysis methods, r packages,
+and so on. In contrast to vignettes, R functions have much stricter formal
+[requirements](https://r-pkgs.org/code.html). Use R functions when you need to
+automate a common task, such as a data management task. There are a lot of
+considerations to writing a good R function, and it will generally be a bigger
+commitment than writing a vignette. A function needs good documentation,
+explaining what it does and how to use it. It should also have comprehensive and
+descriptive error handling. The goal is not to make the sleekest, fastest and
+most efficient functions, but rather implementing functionalities tailored to
+our specific needs. With that said, writing functions is not a one and done
+process, and we encourage you to improve functions added to the package over
+time. For a deep dive into writing packages, check out [Hadley's R package
+book](https://r-pkgs.org/).

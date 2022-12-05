@@ -50,7 +50,7 @@
 #'   transformed parameter.\cr
 #'   To determine \eqn{C_{\beta}}, `fct_confint()` finds the boundary by taking
 #'   a number of points around \eqn{hat(\beta)} and projecting them onto the
-#'   boundary. Therefore, the confidence set of the tranformed parameter will
+#'   boundary. Therefore, the confidence set of the transformed parameter will
 #'   only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
 #'   of the confidence set for the transformed parameter.\cr
 #'   The points projected to the boundary are either laid out in a grid around
