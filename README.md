@@ -46,10 +46,10 @@ In vignettes we share examples of typical data management, analysis methods,
 and other blog/article style walkthroughs.  
 
 ### Functions
-Functions automate common tasks the frequently occure in our daily work. These 
+Functions automate common tasks the frequently occur in our daily work. These 
 will work as any other functions made available by other packages in R. However,
-the goal is not to make the sleakest, fastest and most efficient versions of
-these functionalities, but rather implement functionalities tailored to our 
+the goal is not to make the sleekest, fastest and most efficient versions of
+these functionalists, but rather implement functionalists tailored to our 
 specific needs. 
 
 ## How to contribute
@@ -59,7 +59,7 @@ ADLS or KIJA and we talk about possible solutions.
 
 ## Requirements for contributions
 The package MUST be self-sufficient. This means that any data you wish to use 
-in your examples should either be simulated in the example (prefered) or made 
+in your examples should either be simulated in the example (preferred) or made 
 available as a dummy data set within the package (only if small).
 
 In general we follow [Hadley's guide](https://r-pkgs.org/) for package writing,
