@@ -14,10 +14,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup, echo=FALSE}
-library(EpiForsk)
-```
-
 This vignette describes our recommended workflow for contributing your work to
 the EpiForsk package, using the [usethis](https://usethis.r-lib.org/index.html)
 package.
