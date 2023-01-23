@@ -6,7 +6,9 @@
 \alias{EpiForsk-package}
 \title{EpiForsk}
 \description{
-A nice short description of the package.
+This is our department function and knowledge sharing package. It is
+primarily intended for internal use, but may also be used to publish our code
+from papers.
 }
 \author{
 \strong{Maintainer}: Anna Laksafoss \email{adls@ssi.dk} (\href{https://orcid.org/0000-0002-9898-2924}{ORCID})

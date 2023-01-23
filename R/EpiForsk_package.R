@@ -1,6 +1,8 @@
 #' EpiForsk
 #'
-#' A nice short description of the package.
+#' This is our department function and knowledge sharing package. It is
+#' primarily intended for internal use, but may also be used to publish our code
+#' from papers.
 #'
 #' @importFrom rlang .data
 #' @importFrom rlang :=

@@ -1,10 +1,12 @@
 Package: EpiForsk
-Title: Codesharing at EpiForsk
+Title: Codesharing at the EpiForsk deparment at SSI
 Version: 0.0.1
 Authors@R: 
     person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9898-2924"))
-Description: What the package does (one paragraph).
+Description: This is our department function and knowledge sharing package. It 
+    is primarily intended for internal use, but may also be used to publish our 
+    code from papers.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -22,9 +24,9 @@ Imports:
     stringr,
     tibble,
     tidyr,
-    tidyselect
+    tidyselect (>= 1.2.0)
 Depends: 
-    R (>= 2.10)
+    R (>= 4.2)
 LazyData: true
 Suggests: 
     knitr,
