@@ -35,8 +35,8 @@ When \code{time_variable} is specified, \code{end_date} must also be specified.}
 
 \item{end_date}{<\code{\link[=dplyr_data_masking]{data-masking}}> An unquoted
 expression naming the end of time-period to search for relevant diagnoses
-or a charter specifying the end date in the "YYYY-MM-DD" format. If
-\code{end_date} names a variable, this variable must be in a date format.}
+or a single date specifying the end date. If \code{end_date} names a variable,
+this variable must be in a date format.}
 
 \item{days_before_end_date}{A numeric specifying the number of days look-back
 from \code{end_date} to search for relevant diagnoses.}
@@ -142,7 +142,7 @@ charlson_score(
   Person_ID = IDs,
   diagnosis_variable = Diags,
   time_variable = time,
-  end_date = "2012-01-01"
+  end_date = as.Date("2012-01-01")
 )
 
 # Imposing differing date restriction to diagnoses

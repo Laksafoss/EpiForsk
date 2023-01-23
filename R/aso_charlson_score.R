@@ -18,8 +18,8 @@
 #'    When `time_variable` is specified, `end_date` must also be specified.
 #' @param end_date <[`data-masking`][dplyr_data_masking]> An unquoted
 #'    expression naming the end of time-period to search for relevant diagnoses
-#'    or a charter specifying the end date in the "YYYY-MM-DD" format. If
-#'    `end_date` names a variable, this variable must be in a date format.
+#'    or a single date specifying the end date. If `end_date` names a variable,
+#'    this variable must be in a date format.
 #' @param days_before_end_date A numeric specifying the number of days look-back
 #'   from `end_date` to search for relevant diagnoses.
 #' @param amount_output A character specifying whether all created index
@@ -122,7 +122,7 @@
 #'   Person_ID = IDs,
 #'   diagnosis_variable = Diags,
 #'   time_variable = time,
-#'   end_date = "2012-01-01"
+#'   end_date = as.Date("2012-01-01")
 #' )
 #'
 #' # Imposing differing date restriction to diagnoses
@@ -174,19 +174,18 @@ charlson_score <- function(
       )
     )
   }
-  end_date_test <- try(is.character(end_date), silent = TRUE)
-  if (!missing(end_date) & !inherits(end_date_test, "try-error")) {
-    data <- data |>
-      dplyr::mutate("{end_Date}" = as.Date(end_date, origin = "1970-01-01"))
-  }
+  # end_date_test <- try(is.character(end_date), silent = TRUE)
+  # if (!missing(end_date) & !inherits(end_date_test, "try-error")) {
+  #   data <- data |>
+  #     dplyr::mutate("{end_Date}" = as.Date(end_date, origin = "1970-01-01"))
+  # }
   if (inherits(data, "data.frame")) {
     data_names_test <- try(
       data |>
         dplyr::select(
           {{ Person_ID }},
           {{ diagnosis_variable }},
-          {{ time_variable }},
-          {{ days_before_end_date }}
+          {{ time_variable }}
         ),
       silent = TRUE
     )
@@ -228,7 +227,7 @@ charlson_score <- function(
     )
   } else if (missing(days_before_end_date)) {
     func_table1 <- data |>
-      dplyr::select(
+      dplyr::mutate(
         ID = {{ Person_ID }},
         Diagvar = {{ diagnosis_variable }},
         diagdate = {{ time_variable }},
@@ -238,12 +237,12 @@ charlson_score <- function(
       dplyr::select("ID", "Diagvar")
   } else {
     func_table1 <- data |>
-      dplyr::select(
+      dplyr::mutate(
         ID = {{ Person_ID }},
         Diagvar = {{ diagnosis_variable }},
         diagdate = {{ time_variable }},
         stop_time = {{ end_date }},
-        lookback = as.numeric({{ days_before_end_date}})
+        lookback = {{ days_before_end_date}}
       ) |>
       dplyr::filter(
         (.data$stop_time - .data$diagdate) > 0 &
