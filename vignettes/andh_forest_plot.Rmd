@@ -21,6 +21,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(cowplot)
+library(grDevices)
 ```
 
 
@@ -31,9 +32,9 @@ library(cowplot)
 
 
 ```{r}
-grDevices::windowsFonts(Calibri = windowsFont("TT Calibri"))
-grDevices::windowsFonts(Helvetica = windowsFont("TT Helvetica"))
-grDevices::windowsFonts(Arial = windowsFont("TT Arial"))
+windowsFonts(Calibri = windowsFont("TT Calibri"))
+windowsFonts(Helvetica = windowsFont("TT Helvetica"))
+windowsFonts(Arial = windowsFont("TT Arial"))
 ```
 
 

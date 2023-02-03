@@ -9,13 +9,13 @@
 
 A data frame with 546 rows and 7 columns describing 100 people:
 \describe{
-\item{id}{todo}
-\item{dob}{todo}
-\item{region}{todo}
-\item{move_in}{todo}
-\item{move_out}{todo}
-\item{gender}{todo}
-\item{claim}{todo}
+\item{id}{an id number}
+\item{dob}{date of birth}
+\item{region}{region of denmark}
+\item{move_in}{date of moving to region}
+\item{move_out}{date of moving away from region}
+\item{gender}{gender of the person}
+\item{claim}{whether or not the peron made a claim here}
 }
 }
 }

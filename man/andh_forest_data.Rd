@@ -9,18 +9,18 @@
 
 A data frame with 18 rows and 12 columns:
 \describe{
-\item{type}{todo}
-\item{indent}{todo}
-\item{text}{todo}
-\item{A_est}{todo}
-\item{A_l}{todo}
-\item{A_u}{todo}
-\item{B_est}{todo}
-\item{B_l}{todo}
-\item{B_u}{todo}
-\item{C_est}{todo}
-\item{C_l}{todo}
-\item{C_u}{todo}
+\item{type}{text formattaing, bold/plain}
+\item{indent}{number of indents in final formatting}
+\item{text}{description text}
+\item{A_est}{point estimate in first figure column}
+\item{A_l}{lower limit of confidence interval in first figure column}
+\item{A_u}{upper limit of confidence interval in first figure column}
+\item{B_est}{point estimate in second figure column}
+\item{B_l}{lower limit of confidence interval in second figure column}
+\item{B_u}{upper limit of confidence interval in second figure column}
+\item{C_est}{point estimate in third figure column}
+\item{C_l}{lower limit of confidence interval in third figure column}
+\item{C_u}{upper limit of confidence interval in third figure column}
 }
 }
 }

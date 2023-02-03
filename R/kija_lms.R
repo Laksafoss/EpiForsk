@@ -49,11 +49,11 @@
 #' x2 <- rnorm(1000) + sib_out[sib_id] + x1
 #' y <- rnorm(1000, 1, 0.5) + 2 * sib_out[sib_id] - x1 + 2 * x2
 #' data <- data.frame(
-#' x1 = x1,
-#' x2 = x2,
-#' y = y,
-#' sib_id = sib_id,
-#' obs_id = 1:1000
+#'   x1 = x1,
+#'   x2 = x2,
+#'   y = y,
+#'   sib_id = sib_id,
+#'   obs_id = 1:1000
 #' )
 #' mod_lm <- lm(y ~ x1 + x2, data) # OLS model
 #' mod_lm_grp <- lm(y ~ x1 + x2 + factor(sib_id), data) # OLS with grp

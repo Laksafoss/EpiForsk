@@ -5,18 +5,18 @@
 #' @format ## `andh_forest_data`
 #' A data frame with 18 rows and 12 columns:
 #' \describe{
-#'   \item{type}{todo}
-#'   \item{indent}{todo}
-#'   \item{text}{todo}
-#'   \item{A_est}{todo}
-#'   \item{A_l}{todo}
-#'   \item{A_u}{todo}
-#'   \item{B_est}{todo}
-#'   \item{B_l}{todo}
-#'   \item{B_u}{todo}
-#'   \item{C_est}{todo}
-#'   \item{C_l}{todo}
-#'   \item{C_u}{todo}
+#'   \item{type}{text formattaing, bold/plain}
+#'   \item{indent}{number of indents in final formatting}
+#'   \item{text}{description text}
+#'   \item{A_est}{point estimate in first figure column}
+#'   \item{A_l}{lower limit of confidence interval in first figure column}
+#'   \item{A_u}{upper limit of confidence interval in first figure column}
+#'   \item{B_est}{point estimate in second figure column}
+#'   \item{B_l}{lower limit of confidence interval in second figure column}
+#'   \item{B_u}{upper limit of confidence interval in second figure column}
+#'   \item{C_est}{point estimate in third figure column}
+#'   \item{C_l}{lower limit of confidence interval in third figure column}
+#'   \item{C_u}{upper limit of confidence interval in third figure column}
 #' }
 "andh_forest_data"
 
@@ -29,12 +29,12 @@
 #' @format ## `andh_forest_data`
 #' A data frame with 546 rows and 7 columns describing 100 people:
 #' \describe{
-#'   \item{id}{todo}
-#'   \item{dob}{todo}
-#'   \item{region}{todo}
-#'   \item{move_in}{todo}
-#'   \item{move_out}{todo}
-#'   \item{gender}{todo}
-#'   \item{claim}{todo}
+#'   \item{id}{an id number}
+#'   \item{dob}{date of birth}
+#'   \item{region}{region of denmark}
+#'   \item{move_in}{date of moving to region}
+#'   \item{move_out}{date of moving away from region}
+#'   \item{gender}{gender of the person}
+#'   \item{claim}{whether or not the peron made a claim here}
 #' }
 "adls_timevarying_region_data"

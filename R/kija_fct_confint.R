@@ -32,7 +32,8 @@
 #'   \deqn{hat(\beta)\sim N(\beta, (X^TWX)^{-1})}{%
 #'   hat(\beta)~N(\beta, (X^TWX)^(-1))}
 #'   will be a good approximation in large samples, where \eqn{X^TWX} is the
-#'   Fisher information of the exponential dispersion model. \cr
+#'   Fisher information of the exponential dispersion model.
+#'
 #'   From this, the combinant
 #'   \deqn{(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)}{%
 #'   (hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)}
@@ -43,18 +44,21 @@
 #'   \eqn{\beta}. Similarly, confidence sets for sub-vectors of \eqn{\beta} can
 #'   be obtained by the fact that marginal distributions of normal distributions
 #'   are again normally distributed, where the mean vector and covariance matrix
-#'   are appropriate subvectors and submatrices.\cr
+#'   are appropriate subvectors and submatrices.
+#'
 #'   Finally, a confidence set for the transformed parameters \eqn{f(\beta)}
 #'   is obtained as
 #'   \deqn{\{f(\beta)|\beta\in C_{\beta}\}}{\{f(\beta)|\beta\in C_(\beta)\}.}
 #'   Note this is a conservative confidence set, since parameters outside the
 #'   confidence set of \eqn{\beta} can be mapped to the confidence set of the
-#'   transformed parameter.\cr
+#'   transformed parameter.
+#'
 #'   To determine \eqn{C_{\beta}}, `fct_confint()` finds the boundary by taking
 #'   a number of points around \eqn{hat(\beta)} and projecting them onto the
 #'   boundary. Therefore, the confidence set of the transformed parameter will
 #'   only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
-#'   of the confidence set for the transformed parameter.\cr
+#'   of the confidence set for the transformed parameter.
+#'
 #'   The points projected to the boundary are either laid out in a grid around
 #'   \eqn{hat(\beta)}, with the number of points in each direction determined
 #'   by `n_grid`, or uniformly at random on a hypersphere, with the number of
@@ -78,6 +82,7 @@ fct_confint <- function(
 ) {
   UseMethod("fct_confint")
 }
+
 
 #' @rdname fct_confint
 #' @param len numeric, the radius of the sphere or box used to define directions
