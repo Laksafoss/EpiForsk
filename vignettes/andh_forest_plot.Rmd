@@ -31,9 +31,9 @@ library(cowplot)
 
 
 ```{r}
-windowsFonts(Calibri = windowsFont("TT Calibri"))
-windowsFonts(Helvetica = windowsFont("TT Helvetica"))
-windowsFonts(Arial = windowsFont("TT Arial"))
+grDevices::windowsFonts(Calibri = windowsFont("TT Calibri"))
+grDevices::windowsFonts(Helvetica = windowsFont("TT Helvetica"))
+grDevices::windowsFonts(Arial = windowsFont("TT Arial"))
 ```
 
 
