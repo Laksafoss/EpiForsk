@@ -53,7 +53,8 @@ to use external functions. We recommend using `@importFrom` for operators with
 special syntax such as `%>%` and for functions used repeatedly. Calling `::`
 costs around 5 `r knitr::asis_output("\U03bc")`s, so repeatedly means when the
 function could potentially be called millions of times. We recommend avoiding
-`@import`. For more, see [dependencies](https://r-pkgs.org/dependencies.html).
+`@import`. For more, see 
+[dependencies](https://r-pkgs.org/dependencies-mindset-background.html).
 
 ## Loading package functions
 To test your function during development, you can use `devtools::load_all()`

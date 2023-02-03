@@ -1,5 +1,5 @@
 Package: EpiForsk
-Title: Codesharing at the EpiForsk deparment at SSI
+Title: Code Sharing at the Department of Epidemiological Research at SSI 
 Version: 0.0.1
 Authors@R: 
     person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),

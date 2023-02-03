@@ -20,15 +20,17 @@
 #' @details Assume the response Y and predictors X are given by a generalized
 #'   linear model, that is, they fulfill the assumptions
 #'   \deqn{E(Y|X)=\mu(X^T\beta)}{E(Y|X)=\mu(X^T\beta)}
-#'   \deqn{V(Y|X)=\psi\Nu(\mu(X^T\beta))}{V(Y|X)=\psi\Nu(\mu(X^T\beta))}
-#'   \deqn{Y|X\sim\varepsilon(\theta,\nu_{\psi}).}{%Y|X ~ \varepsilon(\theta,\nu_(\psi)).}
-#'   Here \eqn{\mu} is the mean value function, \eqn{\Nu} is the variance
+#'   \deqn{V(Y|X)=\psi N(\mu(X^T\beta))}{V(Y|X)=\psi N(\mu(X^T\beta))}
+#'   \deqn{Y|X\sim\varepsilon(\theta,\nu_{\psi}).}{%
+#'   Y|X ~ \varepsilon(\theta,\nu_(\psi)).}
+#'   Here \eqn{\mu} is the mean value function, \eqn{N} is the variance
 #'   function, and \eqn{\psi} is the dispersion parameter in the exponential
 #'   dispersion model
 #'   \eqn{\varepsilon(\theta,\nu_{\psi})}{\varepsilon(\theta,\nu_(\psi))}, where
 #'   \eqn{\theta} is the canonical parameter and \eqn{\nu_{\psi}}{\nu_(\psi)} is
 #'   the structure measure. Then it follows from the central limit theorem that
-#'   \deqn{hat(\beta)\sim N(\beta, (X^TWX)^{-1})}{%hat(\beta)~N(\beta, (X^TWX)^(-1))}
+#'   \deqn{hat(\beta)\sim N(\beta, (X^TWX)^{-1})}{%
+#'   hat(\beta)~N(\beta, (X^TWX)^(-1))}
 #'   will be a good approximation in large samples, where \eqn{X^TWX} is the
 #'   Fisher information of the exponential dispersion model. \cr
 #'   From this, the combinant
