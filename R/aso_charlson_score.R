@@ -64,6 +64,7 @@
 #' ASO & ADLS
 #'
 #' @examples
+#' \dontrun{
 #'
 #' # An example dataset
 #'
@@ -144,6 +145,7 @@
 #'   end_date = match_date,
 #'   days_before_end_date = 365.25
 #' )
+#' }
 #'
 #' @export
 charlson_score <- function(

@@ -1,5 +1,5 @@
 Package: EpiForsk
-Title: Code Sharing at the Department of Epidemiological Research at SSI 
+Title: Code Sharing at the Department of Epidemiological Research at Statens Serum Institut 
 Version: 0.0.1
 Authors@R: 
     person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),

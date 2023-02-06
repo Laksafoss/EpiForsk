@@ -29,9 +29,9 @@ library(grDevices)
 # Example 1: Plain text
 
 
+If you are on a windows system you can set the fonts in the following way
 
-
-```{r}
+```{r, eval = FALSE}
 windowsFonts(Calibri = windowsFont("TT Calibri"))
 windowsFonts(Helvetica = windowsFont("TT Helvetica"))
 windowsFonts(Arial = windowsFont("TT Arial"))

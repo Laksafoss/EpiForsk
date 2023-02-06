@@ -84,6 +84,7 @@ and digits (i.e. the form "DA000" not "DA00.0")
 }
 
 \examples{
+\dontrun{
 
 # An example dataset
 
@@ -164,6 +165,7 @@ charlson_score(
   end_date = match_date,
   days_before_end_date = 365.25
 )
+}
 
 }
 \author{
