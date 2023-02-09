@@ -8,7 +8,10 @@
 \description{
 This is our department function and knowledge sharing package. It is
 primarily intended for internal use, but may also be used to publish our code
-from papers.
+from papers. Currently we have functionalities for simplifying overlapping
+timeintervals, charlson comorbidity index constructors, sibling design linear
+regression functionalities, and a method for calculating the confidence
+intervals for functions of parameters in GLMs.
 }
 \author{
 \strong{Maintainer}: Anna Laksafoss \email{adls@ssi.dk} (\href{https://orcid.org/0000-0002-9898-2924}{ORCID})

@@ -6,7 +6,10 @@ Authors@R:
            comment = c(ORCID = "0000-0002-9898-2924"))
 Description: This is our department function and knowledge sharing package. It 
     is primarily intended for internal use, but may also be used to publish our 
-    code from papers.
+    code from papers. Currently we have functionalities for simplifying 
+    overlapping timeintervals, charlson comorbidity index constructors, sibling 
+    design linear regression functionalities, and a method for calculating the 
+    confidence intervals for functions of parameters in GLMs.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -20,6 +23,7 @@ Imports:
     ggplot2,
     glue,
     parallel,
+    purrr,
     rlang,
     stringr,
     tibble,
