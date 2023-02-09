@@ -121,10 +121,10 @@ provided function given the confidence set of model parameters as domain.
 Assume the response Y and predictors X are given by a generalized
 linear model, that is, they fulfill the assumptions
 \deqn{E(Y|X)=\mu(X^T\beta)}{E(Y|X)=\mu(X^T\beta)}
-\deqn{V(Y|X)=\psi N(\mu(X^T\beta))}{V(Y|X)=\psi N(\mu(X^T\beta))}
+\deqn{V(Y|X)=\psi \nu(\mu(X^T\beta))}{V(Y|X)=\psi \nu(\mu(X^T\beta))}
 \deqn{Y|X\sim\varepsilon(\theta,\nu_{\psi}).}{%
   Y|X ~ \varepsilon(\theta,\nu_(\psi)).}
-Here \eqn{\mu} is the mean value function, \eqn{N} is the variance
+Here \eqn{\mu} is the mean value function, \eqn{\nu} is the variance
 function, and \eqn{\psi} is the dispersion parameter in the exponential
 dispersion model
 \eqn{\varepsilon(\theta,\nu_{\psi})}{\varepsilon(\theta,\nu_(\psi))}, where
