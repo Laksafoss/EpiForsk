@@ -1,6 +1,6 @@
 #' Bind lists of list of multiple data frames by row
 #'
-#' Row binds the matching innermost elements of a list of lists. This is
+#' Row binds the matching innermost dataframes in a list of lists. This is
 #' essentially a list inversion [`purrr::list_transpose()`] with row-binding
 #' [`dplyr::bind_rows()`]
 #'
@@ -79,7 +79,7 @@ braid_rows <- function(list) {
       lapply(list, function(ls) {
         if (is.character(na)) {
           return(ls[[na]])
-        } else if (length(ls) <= na) {
+        } else if (na <= length(ls)) {
           return(ls[[na]])
         } else {
           return(NULL)
