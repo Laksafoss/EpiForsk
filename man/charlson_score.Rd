@@ -84,7 +84,7 @@ and digits (i.e. the form "DA000" not "DA00.0")
 }
 
 \examples{
-\dontrun{
+\donttest{
 
 # An example dataset
 
