@@ -1,6 +1,7 @@
 #' Charlson Score Constructor
 #'
-#' This is a SAS-macro ASO translated to R in March of 2022
+#' Charlson comorbidity score for Danish ICD-10 and ICD-8 data. This is a
+#' SAS-macro ASO translated to R in March of 2022
 #'
 #' @param data A data.frame with at least an id variable and a variable with all
 #'   diagnosis codes. The data should be in the long format (only one variable
