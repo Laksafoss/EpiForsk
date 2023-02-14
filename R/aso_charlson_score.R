@@ -1,6 +1,7 @@
 #' Charlson Score Constructor
 #'
-#' This is a SAS-macro ASO translated to R in March of 2022
+#' Charlson comorbidity score for Danish ICD-10 and ICD-8 data. This is a
+#' SAS-macro ASO translated to R in March of 2022
 #'
 #' @param data A data.frame with at least an id variable and a variable with all
 #'   diagnosis codes. The data should be in the long format (only one variable
@@ -64,7 +65,7 @@
 #' ASO & ADLS
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'
 #' # An example dataset
 #'
@@ -302,67 +303,74 @@ charlson_score <- function(
     #points, and will therefore have 0 in all groups)
     func_table2 <- func_table1 |>
       dplyr::mutate(
+
+        #I (ADLS) moved all sub string calculations up here
+        Diagvar_2 = substr(.data$Diagvar, 1, 2),
+        Diagvar_3 = substr(.data$Diagvar, 1, 3),
+        Diagvar_4 = substr(.data$Diagvar, 1, 4),
+        Diagvar_5 = substr(.data$Diagvar, 1, 5),
+
         #Parts, original Quan paper (ICD-10 only)
         Myocardial_infarction_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI21", "DI22") |
-            substr(.data$Diagvar, 1, 5) %in% c("DI252") ~ 1L,
+          Diagvar_4 %in% c("DI21", "DI22") |
+            Diagvar_5 %in% c("DI252") ~ 1L,
           TRUE ~ 0L
         ),
         Congestive_heart_failure_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI43", "DI50") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DI43", "DI50") |
+            Diagvar_5 %in% c(
               "DI099", "DI110", "DI130", "DI132", "DI255", "DI420", "DI425",
               "DI426", "DI427", "DI428", "DI429", "DP290"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Periphral_vascular_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI70", "DI71") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DI70", "DI71") |
+            Diagvar_5 %in% c(
               "DI731", "DI738", "DI739", "DI771", "DI790", "DI792", "DK551",
               "DK558", "DK559", "DZ958", "DZ959"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Cerebrovascular_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DG45", "DG46", "DI60", "DI61", "DI62", "DI63", "DI64", "DI65",
             "DI66", "DI67", "DI68", "DI69"
-          ) | substr(.data$Diagvar, 1, 5) %in% c("DH340") ~ 1L,
+          ) | Diagvar_5 %in% c("DH340") ~ 1L,
           TRUE ~ 0L
         ),
         Dementia_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DF00", "DF01", "DF02", "DF03", "DG30"
-          ) | substr(.data$Diagvar, 1, 5) %in% c("DF051", "DG311") ~ 1L,
+          ) | Diagvar_5 %in% c("DF051", "DG311") ~ 1L,
           TRUE ~ 0L
         ),
         Chronic_pulmonary_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DJ40", "DJ41", "DJ42", "DJ43", "DJ44", "DJ45", "DJ46", "DJ47",
             "DJ60", "DJ61", "DJ62", "DJ63", "DJ64", "DJ65", "DJ66", "DJ67"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DI278", "DI279", "DJ684", "DJ701", "DJ703"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Connective_tissue_diesease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DM05", "DM06", "DM32", "DM33", "DM34"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DM315", "DM351", "DM353", "DM360"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Peptic_ulcer_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DK25", "DK26", "DK27", "DK28"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Mild_liver_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DB18", "DK73", "DK74") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DB18", "DK73", "DK74") |
+            Diagvar_5 %in% c(
               "DK700", "DK701", "DK702", "DK703", "DK709", "DK713", "DK714",
               "DK715", "DK717", "DK760", "DK762", "DK763", "DK764", "DK768",
               "DK769", "DZ944"
@@ -370,14 +378,14 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Moderate_or_severe_liver_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DI850", "DI859", "DI864", "DK704", "DK711", "DK721", "DK729",
             "DK765", "DK766", "DK767"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Diabetes_without_complications_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DE100", "DE101", "DE106", "DE108", "DE109", "DE110", "DE111",
             "DE116", "DE118", "DE119", "DE120", "DE121", "DE126", "DE128",
             "DE129", "DE130", "DE131", "DE136", "DE138", "DE139", "DE140",
@@ -386,7 +394,7 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Diabetes_with_complications_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DE102", "DE103", "DE104", "DE105", "DE107", "DE112", "DE113",
             "DE114", "DE115", "DE117", "DE122", "DE123", "DE124", "DE125",
             "DE127", "DE132", "DE133", "DE134", "DE135", "DE137", "DE142",
@@ -395,16 +403,16 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Paraplegia_and_hemiplegia_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DG81", "DG82") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DG81", "DG82") |
+            Diagvar_5 %in% c(
               "DG041", "DG114", "DG801", "DG802", "DG830", "DG831", "DG832",
               "DG833", "DG834", "DG839"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Renal_disease_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DN18", "DN19") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DN18", "DN19") |
+            Diagvar_5 %in% c(
               "DI120", "DI131", "DN032", "DN033", "DN034", "DN035", "DN036",
               "DN037", "DN052", "DN053", "DN054", "DN055", "DN056", "DN057",
               "DN250", "DZ490", "DZ491", "DZ492", "DZ940", "DZ992"
@@ -412,7 +420,7 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Cancer_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DC20", "DC21", "DC22", "DC23", "DC24", "DC25", "DC26", "DC30",
             "DC31", "DC32", "DC33", "DC34", "DC37", "DC38", "DC39", "DC40",
             "DC41", "DC43", "DC45", "DC46", "DC47", "DC48", "DC49", "DC50",
@@ -424,13 +432,13 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Metastatic_carcinoma_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DC77", "DC78", "DC79", "DC80"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         AIDS_HIV_cc = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DB20", "DB21", "DB22", "DB24"
           ) ~ 1L,
           TRUE ~ 0L
@@ -439,96 +447,96 @@ charlson_score <- function(
         #Parts, Christensen paper
         #(ICD-10 & ICD-8 - ICD-10 not completely overlapping Quan)
         Myocardial_infarction_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI21", "DI22", "DI23") |
-            substr(.data$Diagvar, 1, 3) %in% c("410") ~ 1L,
+          Diagvar_4 %in% c("DI21", "DI22", "DI23") |
+            Diagvar_3 %in% c("410") ~ 1L,
           TRUE ~ 0L
         ),
         Congestive_heart_failure_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI50") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DI50") |
+            Diagvar_5 %in% c(
               "DI110", "DI130", "DI132", "42709", "42710", "42711", "42719",
               "42899", "78249"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Periphral_vascular_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DI70", "DI71", "DI72", "DI73", "DI74", "DI77"
-          ) | substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_3 %in% c(
             "440", "441", "442", "443", "444", "445"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Cerebrovascular_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DG45", "DG46", "DI60", "DI61", "DI62", "DI63", "DI64", "DI65",
             "DI66", "DI67", "DI68", "DI69"
-          ) | substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_3 %in% c(
             "430", "431", "432", "433", "434", "435", "436", "437", "438"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Dementia_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DF00", "DF01", "DF02", "DF03", "DG30"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DF051", "29009", "29010", "29011", "29012", "29013", "29014",
             "29015", "29016", "29017", "29018", "29019", "29309"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Chronic_pulmonary_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DJ40", "DJ41", "DJ42", "DJ43", "DJ44", "DJ45", "DJ46", "DJ47",
             "DJ60", "DJ61", "DJ62", "DJ63", "DJ64", "DJ65", "DJ66", "DJ67"
-          ) | substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_3 %in% c(
             "490", "491", "492", "493", "515", "516", "517", "518"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DJ684", "DJ701", "DJ703", "DJ841", "DJ920", "DJ961", "DJ982",
             "DJ983"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Connective_tissue_diesease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DM05", "DM06", "DM08", "DM09", "DM30", "DM31", "DM32", "DM33",
             "DM34", "DM35", "DM36", "DD86"
-          ) | substr(.data$Diagvar, 1, 3) %in% c("712", "716", "734", "446") |
-            substr(.data$Diagvar, 1, 5) %in% c("13599") ~ 1L,
+          ) | Diagvar_3 %in% c("712", "716", "734", "446") |
+            Diagvar_5 %in% c("13599") ~ 1L,
           TRUE ~ 0L
         ),
         Peptic_ulcer_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DK25", "DK26", "DK27", "DK28") |
-            substr(.data$Diagvar, 1, 3) %in% c("531", "532", "533", "534") |
-            substr(.data$Diagvar, 1, 5) %in% c("DK221", "53091", "53098") ~ 1L,
+          Diagvar_4 %in% c("DK25", "DK26", "DK27", "DK28") |
+            Diagvar_3 %in% c("531", "532", "533", "534") |
+            Diagvar_5 %in% c("DK221", "53091", "53098") ~ 1L,
           TRUE ~ 0L
         ),
         Mild_liver_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DB18", "DK71", "DK73", "DK74") |
-            substr(.data$Diagvar, 1, 3) %in% c("571") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DB18", "DK71", "DK73", "DK74") |
+            Diagvar_3 %in% c("571") |
+            Diagvar_5 %in% c(
               "DK700", "DK701", "DK702", "DK703", "DK709", "DK760", "57301",
               "57304"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Moderate_or_severe_liver_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DK72", "DI85", "4560") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DK72", "DI85", "4560") |
+            Diagvar_5 %in% c(
               "DB150", "DB160", "DB162", "DB190", "DK704", "DK766", "07000",
               "07002", "07004", "07006", "07008", "57300"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Diabetes_without_complications_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DE100", "DE101", "DE109", "DE110", "DE111", "DE119", "24900",
             "24906", "24907", "24909", "25000", "25006", "25007", "25009"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Diabetes_with_complications_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DE102", "DE103", "DE104", "DE105", "DE106", "DE107", "DE108",
             "DE112", "DE113", "DE114", "DE115", "DE116", "DE117", "DE118",
             "24901", "24902", "24903", "24904", "24905", "24908", "25001",
@@ -537,46 +545,46 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Paraplegia_and_hemiplegia_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DG81", "DG82") |
-            substr(.data$Diagvar, 1, 3) %in% c("344") ~ 1L,
+          Diagvar_4 %in% c("DG81", "DG82") |
+            Diagvar_3 %in% c("344") ~ 1L,
           TRUE ~ 0L
         ),
         Renal_disease_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DI12", "DI13", "DN00", "DN01", "DN02", "DN03", "DN04", "DN05",
             "DN07", "DN11", "DN14", "DN17", "DN18", "DN19", "DQ61"
-          ) | substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_3 %in% c(
             "403", "404", "580", "581", "582", "583", "584", "792"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "59009", "59319", "75310", "75311", "75312", "75313", "75314",
             "75315", "75316", "75317", "75318", "75319"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Cancer_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DC70", "DC71", "DC72", "DC73", "DC74", "DC75", "DC81", "DC82",
             "DC83", "DC84", "DC85", "DC88", "DC90", "DC91", "DC92", "DC93",
             "DC94", "DC95", "DC96"
-          ) | substr(.data$Diagvar, 1, 2) %in% c("14", "15", "16", "17", "18") |
-            substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_2 %in% c("14", "15", "16", "17", "18") |
+            Diagvar_3 %in% c(
               "DC0", "DC1", "DC2", "DC3", "DC4", "DC5", "DC6", "190", "191",
               "192", "193", "194", "200", "201", "202", "203", "204", "205",
               "206", "207"
-            ) | substr(.data$Diagvar, 1, 5) %in% c("27559") ~ 1L,
+            ) | Diagvar_5 %in% c("27559") ~ 1L,
           TRUE ~ 0L
         ),
         Metastatic_carcinoma_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DC76", "DC77", "DC78", "DC79", "DC80"
-          ) | substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_3 %in% c(
             "195", "196", "197", "198", "199"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         AIDS_HIV_ch = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DB21", "DB22", "DB23", "DB24") |
-            substr(.data$Diagvar, 1, 5) %in% c("07983") ~ 1L,
+          Diagvar_4 %in% c("DB21", "DB22", "DB23", "DB24") |
+            Diagvar_5 %in% c("07983") ~ 1L,
           TRUE ~ 0L
         ),
 
@@ -584,26 +592,26 @@ charlson_score <- function(
         #Charlson-Deyo (ICD-10 only, not completely the same as Quan or
         #Christensen & different weights for some groups)
         Myocardial_infarction_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI21", "DI22") |
-            substr(.data$Diagvar, 1, 5) %in% c("DI252") ~ 1L,
+          Diagvar_4 %in% c("DI21", "DI22") |
+            Diagvar_5 %in% c("DI252") ~ 1L,
           TRUE ~ 0L
         ),
         Congestive_heart_failure_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI50") ~ 1L,
+          Diagvar_4 %in% c("DI50") ~ 1L,
           TRUE ~ 0L
         ),
         Periphral_vascular_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DI71", "DR02") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DI71", "DR02") |
+            Diagvar_5 %in% c(
               "DI790", "DI739", "DZ958", "DZ959"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Cerebrovascular_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DG46", "DI60", "DI61", "DI62", "DI63", "DI64", "DI65", "DI66",
             "DI69"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DG450", "DG451", "DG452", "DG458", "DG459", "DI670", "DI671",
             "DI672", "DI674", "DI675", "DI676", "DI677", "DI678", "DI679",
             "DI681", "DI682", "DI688"
@@ -611,96 +619,96 @@ charlson_score <- function(
           TRUE ~ 0L
         ),
         Dementia_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DF00", "DF01", "DF02") |
-            substr(.data$Diagvar, 1, 5) %in% c("DF051") ~ 1L,
+          Diagvar_4 %in% c("DF00", "DF01", "DF02") |
+            Diagvar_5 %in% c("DF051") ~ 1L,
           TRUE ~ 0L
         ),
         Chronic_pulmonary_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DJ40", "DJ41", "DJ42", "DJ43", "DJ44", "DJ45", "DJ46", "DJ47",
             "DJ60", "DJ61", "DJ62", "DJ63", "DJ64", "DJ65", "DJ66", "DJ67"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DJ684", "DJ701", "DJ703", "DJ841", "DJ920", "DJ961", "DJ982",
             "DJ983"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Connective_tissue_diesease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DM32", "DM34") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DM32", "DM34") |
+            Diagvar_5 %in% c(
               "DM050", "DM051", "DM052", "DM053", "DM058", "DM060", "DM063",
               "DM069", "DM332", "DM353"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Peptic_ulcer_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DK25", "DK26", "DK27", "DK28"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Mild_liver_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DK73") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DK73") |
+            Diagvar_5 %in% c(
               "DK702", "DK703", "DK717", "DK740", "DK742", "DK743", "DK744",
               "DK745", "DK746"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Moderate_or_severe_liver_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DK721", "DK729", "DK766", "DK767"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Diabetes_without_complications_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DE101", "DE105", "DE109", "DE111", "DE115", "DE119", "DE131",
             "DE135", "DE139", "DE141", "DE145", "DE149"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Diabetes_with_complications_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_5 %in% c(
             "DE102", "DE103", "DE104", "DE112", "DE113", "DE114", "DE132",
             "DE133", "DE134", "DE142", "DE143", "DE144"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Paraplegia_and_hemiplegia_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c("DG81") |
-            substr(.data$Diagvar, 1, 5) %in% c(
+          Diagvar_4 %in% c("DG81") |
+            Diagvar_5 %in% c(
               "DG041", "DG820", "DG821", "DG822"
             ) ~ 1L,
           TRUE ~ 0L
         ),
         Renal_disease_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DN01", "DN03", "DN18", "DN19", "DN25"
-          ) | substr(.data$Diagvar, 1, 5) %in% c(
+          ) | Diagvar_5 %in% c(
             "DN052", "DN053", "DN054", "DN055", "DN056", "DN072", "DN073",
             "DN074"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Cancer_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DC70", "DC71", "DC72", "DC73", "DC74", "DC75", "DC76", "DC81",
             "DC82", "DC83", "DC84", "DC85", "DC88", "DC90", "DC91", "DC92",
             "DC93", "DC94", "DC95", "DC96"
-          ) | substr(.data$Diagvar, 1, 3) %in% c(
+          ) | Diagvar_3 %in% c(
             "DC0", "DC1", "DC2", "DC3", "DC4", "DC5", "DC6"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         Metastatic_carcinoma_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DC77", "DC78", "DC79", "DC80"
           ) ~ 1L,
           TRUE ~ 0L
         ),
         AIDS_HIV_cd = dplyr::case_when(
-          substr(.data$Diagvar, 1, 4) %in% c(
+          Diagvar_4 %in% c(
             "DB20", "DB21", "DB22", "DB23", "DB24"
           ) ~ 1L,
           TRUE ~ 0L

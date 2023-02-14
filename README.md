@@ -1,3 +1,6 @@
+[![CRANstatus](https://www.r-pkg.org/badges/version/EpiForsk)](https://cran.r-project.org/package=EpiForsk)
+![CRAN Downloads overall](https://cranlogs.r-pkg.org/badges/grand-total/EpiForsk)
+
 # EpiForsk
 This package is a framework for sharing guides, examples, and functions here at 
 EpiForsk. It is primarily managed by ADLS and KIJA, but is intended to be a 

@@ -53,7 +53,8 @@ data available for each person, regardless of timing etc. This is OK if only
 relevant records are included.
 }
 \description{
-This is a SAS-macro ASO translated to R in March of 2022
+Charlson comorbidity score for Danish ICD-10 and ICD-8 data. This is a
+SAS-macro ASO translated to R in March of 2022
 }
 \details{
 The \code{charlson_score()} function calculates the Charlson Charlson Comorbidity
@@ -84,7 +85,7 @@ and digits (i.e. the form "DA000" not "DA00.0")
 }
 
 \examples{
-\dontrun{
+\donttest{
 
 # An example dataset
 

@@ -43,6 +43,7 @@
 #' KIJA
 #'
 #' @examples
+#' \donttest{
 #' sib_id <- sample(200, 1000, replace = TRUE)
 #' sib_out <- rnorm(200)
 #' x1 <- rnorm(1000)
@@ -62,7 +63,7 @@
 #' coef(mod_lm_grp)[1:3]
 #' summary(mod_lms)
 #' print(mod_lms)
-#'
+#' }
 #' @export
 
 lms <- function (formula, data, grp_id, obs_id = NULL, ...)
