@@ -1,5 +1,10 @@
+<!-- badges: start -->
 [![CRANstatus](https://www.r-pkg.org/badges/version/EpiForsk)](https://cran.r-project.org/package=EpiForsk)
+[![R-CMD-check](https://github.com/Laksafoss/EpiForsk/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Laksafoss/EpiForsk/actions/workflows/R-CMD-check.yaml)
 ![CRAN Downloads overall](https://cranlogs.r-pkg.org/badges/grand-total/EpiForsk)
+<!-- badges: end -->
+
+
 
 # EpiForsk
 This package is a framework for sharing guides, examples, and functions here at 
