@@ -1,6 +1,6 @@
 #' Bind lists of list of multiple data frames by row
 #'
-#' Row binds the matching innermost dataframes in a list of lists. This is
+#' Row binds the matching innermost data frames in a list of lists. This is
 #' essentially a list inversion [`purrr::list_transpose()`] with row-binding
 #' [`dplyr::bind_rows()`]
 #'
