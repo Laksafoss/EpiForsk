@@ -1,3 +1,6 @@
+# EpiForsk <img src="man/figures/logo.png" align="right" height="139" />
+
+
 <!-- badges: start -->
 [![CRANstatus](https://www.r-pkg.org/badges/version/EpiForsk)](https://cran.r-project.org/package=EpiForsk)
 [![R-CMD-check](https://github.com/Laksafoss/EpiForsk/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Laksafoss/EpiForsk/actions/workflows/R-CMD-check.yaml)
@@ -6,7 +9,6 @@
 
 
 
-# EpiForsk
 This package is a framework for sharing guides, examples, and functions here at 
 EpiForsk. It is primarily managed by ADLS and KIJA, but is intended to be a 
 collaborative effort and we encourage sharing your hard earned code snippets.  
