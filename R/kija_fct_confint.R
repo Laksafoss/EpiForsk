@@ -29,17 +29,17 @@
 #'   \eqn{\varepsilon(\theta,\nu_{\psi})}{\varepsilon(\theta,\nu_(\psi))}, where
 #'   \eqn{\theta} is the canonical parameter and \eqn{\nu_{\psi}}{\nu_(\psi)} is
 #'   the structure measure. Then it follows from the central limit theorem that
-#'   \deqn{hat(\beta)\sim N(\beta, (X^TWX)^{-1})}{%
-#'   hat(\beta)~N(\beta, (X^TWX)^(-1))}
+#'   \deqn{\hat\beta\sim N(\beta, (X^TWX)^{-1})}{%
+#'   \hat\beta~N(\beta, (X^TWX)^(-1))}
 #'   will be a good approximation in large samples, where \eqn{X^TWX} is the
 #'   Fisher information of the exponential dispersion model.
 #'
 #'   From this, the combinant
-#'   \deqn{(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)}{%
-#'   (hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)}
+#'   \deqn{(\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)}{%
+#'   (\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)}
 #'   is an approximate pivot, with a \eqn{\chi_p^2} distribution. Then
-#'   \deqn{C_{\beta}=\{\beta|(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)<\chi_p^2(1-\alpha)\}}{%
-#'   C_(\beta)=\{\beta|(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)<\chi_p^2(1-\alpha)\}}
+#'   \deqn{C_{\beta}=\{\beta|(\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)<\chi_p^2(1-\alpha)\}}{%
+#'   C_(\beta)=\{\beta|(\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)<\chi_p^2(1-\alpha)\}}
 #'   is an approximate \eqn{(1-\alpha)}-confidence set for the parameter vector
 #'   \eqn{\beta}. Similarly, confidence sets for sub-vectors of \eqn{\beta} can
 #'   be obtained by the fact that marginal distributions of normal distributions
@@ -54,13 +54,13 @@
 #'   transformed parameter.
 #'
 #'   To determine \eqn{C_{\beta}}, `fct_confint()` finds the boundary by taking
-#'   a number of points around \eqn{hat(\beta)} and projecting them onto the
+#'   a number of points around \eqn{\hat\beta} and projecting them onto the
 #'   boundary. Therefore, the confidence set of the transformed parameter will
 #'   only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
 #'   of the confidence set for the transformed parameter.
 #'
 #'   The points projected to the boundary are either laid out in a grid around
-#'   \eqn{hat(\beta)}, with the number of points in each direction determined
+#'   \eqn{\hat\beta}, with the number of points in each direction determined
 #'   by `n_grid`, or uniformly at random on a hypersphere, with the number of
 #'   points determined by `k`. The radius of the grid/sphere is determined by
 #'   `len`.
@@ -69,7 +69,25 @@
 #' KIJA
 #'
 #' @examples
-#' 1+1
+#' data <- 1:5 |>
+#'   purrr::map(
+#'     \(x) {
+#'     name = paste0("cov", x)
+#'     tibble::tibble(!!name := rnorm(100, 1))
+#'     }
+#'   ) |>
+#'   purrr::list_cbind() |>
+#'   dplyr::mutate(
+#'     y = rowSums(dplyr::across(tidyselect::everything())) + rnorm(100)
+#'   )
+#' lm <- lm(
+#'  as.formula(
+#'   paste0("y ~ 0 + ", paste0(names(data)[names(data) != "y"], collapse = " + "))
+#'  ),
+#'  data
+#' )
+#' fct_confint(lm, sum)
+#' fct_confint(lm, sum, which_parm = 1:3, level = 0.5)
 #'
 #' @export
 
@@ -131,11 +149,14 @@ fct_confint.lm <- function(
   # convert which_parm to a logical vector
   if (!rlang::is_logical(which_parm)) {
     if (rlang::is_double(which_parm)) {
-      which_parm_ind <- as.integer(round(which_parm))
+      which_parm_ind <- as.integer(trunc(which_parm))
       rlang::warn(
-        "A double was provided and was rounded and converted to an integer.",
-        "It is strongly recommended to use an integer vector with indices to",
+        paste(
+        "which_parm has type 'double', but type 'integer' is expected.",
+        "which_parm was truncated and converted to an integer.",
+        "\nIt is strongly recommended to use an integer vector with indices to",
         "avoid unexpected behavior."
+        )
       )
     } else if (
       length(which_parm) <= length(object$coefficients) &&
@@ -146,7 +167,7 @@ fct_confint.lm <- function(
       which_parm_ind <- which_parm
     } else {
       rlang::abort(
-        paste0(
+        paste(
           "which_parm must either be a logical vector the same length as the",
           "coefficients or an integer vector with indices of the coefficient",
           "vector."
@@ -198,7 +219,7 @@ fct_confint.lm <- function(
   W <- rss / rdf # equivalent to summary(object)$sigma^2
   # solve equation for scaling of points to end up on boundary of confidence set
   xtx_inv <- W * solve(crossprod(X))
-  xtx_red <- solve(xtx_inv[which_parm, which_parm])
+  xtx_red <- solve(xtx_inv)
   if(parallel) {
     fn <- function(y) {
       t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
@@ -333,9 +354,12 @@ fct_confint.glm <- function(
     if (rlang::is_double(which_parm)) {
       which_parm_ind <- as.integer(round(which_parm))
       rlang::warn(
-        "A double was provided and was rounded and converted to an integer.",
-        "It is strongly recommended to use an integer vector with indices to",
-        "avoid unexpected behavior."
+        paste(
+          "which_parm has type 'double', but type 'integer' is expected.",
+          "which_parm was truncated and converted to an integer.",
+          "\nIt is strongly recommended to use an integer vector with indices to",
+          "avoid unexpected behavior."
+        )
       )
     } else if (
       length(which_parm) <= length(object$coefficients) &&
@@ -346,7 +370,7 @@ fct_confint.glm <- function(
       which_parm_ind <- which_parm
     } else {
       rlang::abort(
-        paste0(
+        paste(
           "which_parm must either be a logical vector the same length as the",
           "coefficients or an integer vector with indices of the coefficient",
           "vector."
@@ -392,7 +416,7 @@ fct_confint.glm <- function(
   W <- object$weights
   # solve equation for scaling of points to end up on boundary of confidence set
   xtx_inv <- solve(crossprod(X * sqrt(W)))
-  xtx_red <- solve(xtx_inv[which_parm, which_parm])
+  xtx_red <- solve(xtx_inv)
   if(parallel) {
     fn <- function(y) {
       t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
@@ -527,9 +551,12 @@ fct_confint.lms <- function(
     if (rlang::is_double(which_parm)) {
       which_parm_ind <- as.integer(round(which_parm))
       rlang::warn(
-        "A double was provided and was rounded and converted to an integer.",
-        "It is strongly recommended to use an integer vector with indices to",
-        "avoid unexpected behavior."
+        paste(
+          "which_parm has type 'double', but type 'integer' is expected.",
+          "which_parm was truncated and converted to an integer.",
+          "\nIt is strongly recommended to use an integer vector with indices to",
+          "avoid unexpected behavior."
+        )
       )
     } else if (
       length(which_parm) <= length(object$coefficients) &&
@@ -540,7 +567,7 @@ fct_confint.lms <- function(
       which_parm_ind <- which_parm
     } else {
       rlang::abort(
-        paste0(
+        paste(
           "which_parm must either be a logical vector the same length as the",
           "coefficients or an integer vector with indices of the coefficient",
           "vector."
@@ -592,7 +619,7 @@ fct_confint.lms <- function(
   W <- rss / rdf # equivalent to summary(object)$sigma^2
   # solve equation for scaling of points to end up on boundary of confidence set
   xtx_inv <- W * solve(crossprod(X))
-  xtx_red <- solve(xtx_inv[which_parm, which_parm])
+  xtx_red <- solve(xtx_inv)
   if(parallel) {
     fn <- function(y) {
       t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
