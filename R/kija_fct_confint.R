@@ -70,8 +70,16 @@
 #'
 #' @examples
 #' data <- 1:5 |>
-#'   map_dfc(\(x) {name = paste0("cov", x); tibble(!!name := rnorm(100, 1))}) |>
-#'   mutate(y = rowSums(across(everything())) + rnorm(100))
+#'   purrr::map(
+#'     \(x) {
+#'       name = paste0("cov", x);
+#'       tibble::tibble(!!name := rnorm(100, 1))
+#'     }
+#'   ) |>
+#'   purrr::list_cbind() |>
+#'   dplyr::mutate(
+#'   y = rowSums(dplyr::across(tidyselect::everything())) + rnorm(100)
+#'   )
 #' lm <- lm(
 #'  as.formula(
 #'   paste0("y ~ 0 + ", paste0(names(data)[names(data) != "y"], collapse = " + "))
