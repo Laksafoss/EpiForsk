@@ -1,6 +1,5 @@
 # EpiForsk <img src="man/figures/logo.png" align="right" height="139" />
 
-
 <!-- badges: start -->
 [![CRANstatus](https://www.r-pkg.org/badges/version/EpiForsk)](https://cran.r-project.org/package=EpiForsk)
 [![R-CMD-check](https://github.com/Laksafoss/EpiForsk/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Laksafoss/EpiForsk/actions/workflows/R-CMD-check.yaml)
