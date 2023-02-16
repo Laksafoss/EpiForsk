@@ -23,7 +23,7 @@ library("EpiForsk")
 ```
 
 ## Availability
-The package is avalible on [CRAN](https://CRAN.R-project.org/package=EpiForsk).
+The package is available on [CRAN](https://CRAN.R-project.org/package=EpiForsk).
 
 ## What is already in the package
 The package is (hopefully) constantly under development, and to see all content
