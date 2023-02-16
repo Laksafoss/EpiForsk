@@ -6,8 +6,6 @@
 ![CRAN Downloads overall](https://cranlogs.r-pkg.org/badges/grand-total/EpiForsk)
 <!-- badges: end -->
 
-
-
 This package is a framework for sharing guides, examples, and functions here at 
 EpiForsk. It is primarily managed by ADLS and KIJA, but is intended to be a 
 collaborative effort and we encourage sharing your hard earned code snippets.  
