@@ -130,17 +130,17 @@ dispersion model
 \eqn{\varepsilon(\theta,\nu_{\psi})}{\varepsilon(\theta,\nu_(\psi))}, where
 \eqn{\theta} is the canonical parameter and \eqn{\nu_{\psi}}{\nu_(\psi)} is
 the structure measure. Then it follows from the central limit theorem that
-\deqn{hat(\beta)\sim N(\beta, (X^TWX)^{-1})}{%
-  hat(\beta)~N(\beta, (X^TWX)^(-1))}
+\deqn{\hat\beta\sim N(\beta, (X^TWX)^{-1})}{%
+  \hat\beta~N(\beta, (X^TWX)^(-1))}
 will be a good approximation in large samples, where \eqn{X^TWX} is the
 Fisher information of the exponential dispersion model.
 
 From this, the combinant
-\deqn{(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)}{%
-  (hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)}
+\deqn{(\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)}{%
+  (\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)}
 is an approximate pivot, with a \eqn{\chi_p^2} distribution. Then
-\deqn{C_{\beta}=\{\beta|(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)<\chi_p^2(1-\alpha)\}}{%
-  C_(\beta)=\{\beta|(hat(\beta)-\beta)^TX^TWX(hat(\beta)-\beta)<\chi_p^2(1-\alpha)\}}
+\deqn{C_{\beta}=\{\beta|(\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)<\chi_p^2(1-\alpha)\}}{%
+  C_(\beta)=\{\beta|(\hat\beta-\beta)^TX^TWX(\hat\beta-\beta)<\chi_p^2(1-\alpha)\}}
 is an approximate \eqn{(1-\alpha)}-confidence set for the parameter vector
 \eqn{\beta}. Similarly, confidence sets for sub-vectors of \eqn{\beta} can
 be obtained by the fact that marginal distributions of normal distributions
@@ -155,19 +155,29 @@ confidence set of \eqn{\beta} can be mapped to the confidence set of the
 transformed parameter.
 
 To determine \eqn{C_{\beta}}, \code{fct_confint()} finds the boundary by taking
-a number of points around \eqn{hat(\beta)} and projecting them onto the
+a number of points around \eqn{\hat\beta} and projecting them onto the
 boundary. Therefore, the confidence set of the transformed parameter will
 only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
 of the confidence set for the transformed parameter.
 
 The points projected to the boundary are either laid out in a grid around
-\eqn{hat(\beta)}, with the number of points in each direction determined
+\eqn{\hat\beta}, with the number of points in each direction determined
 by \code{n_grid}, or uniformly at random on a hypersphere, with the number of
 points determined by \code{k}. The radius of the grid/sphere is determined by
 \code{len}.
 }
 \examples{
-1+1
+data <- 1:5 |>
+  map_dfc(\(x) {name = paste0("cov", x); tibble(!!name := rnorm(100, 1))}) |>
+  mutate(y = rowSums(across(everything())) + rnorm(100))
+lm <- lm(
+ as.formula(
+  paste0("y ~ 0 + ", paste0(names(data)[names(data) != "y"], collapse = " + "))
+ ),
+ data
+)
+fct_confint(lm, sum)
+fct_confint(lm, sum, which_parm = 1:3, level = 0.5)
 
 }
 \author{
