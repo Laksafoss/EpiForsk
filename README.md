@@ -1,4 +1,4 @@
-# EpiForsk <img src="man/figures/elephant_logo.png" align="right" height="200" />
+# EpiForsk <img src="man/figures/elephant_logo.png" align="right" height="350" />
 
 <!-- badges: start -->
 [![CRANstatus](https://www.r-pkg.org/badges/version/EpiForsk)](https://cran.r-project.org/package=EpiForsk)
