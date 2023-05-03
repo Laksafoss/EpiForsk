@@ -13,7 +13,7 @@
 #'   \item{ANDH : }{Anders Husby (https://orcid.org/0000-0002-7634-8455)}
 #'   \item{ASO  : }{Mikael Andersson}
 #'   \item{EMTH : }{Emilia Myrup Thiesson}
-#'   \item{KIJA : }{Kim Daniel Jakobsen}
+#'   \item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
 #' }
 #'
 #' @importFrom rlang .data
@@ -21,6 +21,7 @@
 #' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
 #' @importFrom doParallel registerDoParallel
+#' @importFrom methods hasArg
 #' @import stats
 "_PACKAGE"
 
@@ -35,6 +36,8 @@ malicious_compliance <- function() {
 }
 
 globalVariables(c("y"))
+globalVariables(c(".SD"))
+globalVariables(c(".N"))
 
 #' @export
 .datatable.aware = TRUE

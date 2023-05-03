@@ -69,7 +69,7 @@
 lms <- function (formula, data, grp_id, obs_id = NULL, ...)
 {
   grp_id <- rlang::ensym(grp_id)
-  tryCatch(obs_id <- rlang::ensym(obs_id), error = function(e) e)
+  tryCatch({obs_id <- rlang::ensym(obs_id)}, error = function(e) e)
   if (length(formula) < 3) rlang::abort("formula must have a LHS")
   # remove intercept
   formula <- update.formula(formula, . ~ . - 1)

@@ -16,7 +16,7 @@ A list of \code{data.frame}s with the combined information from the inputted lis
 \description{
 Row binds the matching innermost data frames in a list of lists. This is
 essentially a list inversion \code{\link[purrr:list_transpose]{purrr::list_transpose()}} with row-binding
-\code{\link[dplyr:bind]{dplyr::bind_rows()}}
+\code{\link[dplyr:bind_rows]{dplyr::bind_rows()}}
 }
 \examples{
 # A simple example
