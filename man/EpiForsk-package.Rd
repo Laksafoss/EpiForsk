@@ -20,7 +20,7 @@ In the package there are contributions from
 \item{ANDH : }{Anders Husby (https://orcid.org/0000-0002-7634-8455)}
 \item{ASO  : }{Mikael Andersson}
 \item{EMTH : }{Emilia Myrup Thiesson}
-\item{KIJA : }{Kim Daniel Jakobsen}
+\item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
 }
 }
 \author{
