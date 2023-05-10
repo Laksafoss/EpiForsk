@@ -2,7 +2,7 @@
 % Please edit documentation in R/kija_rate_test.R
 \name{RATETest}
 \alias{RATETest}
-\title{wrapper for grf::rank_average_treatment_effect}
+\title{wrapper for \link[grf]{rank_average_treatment_effect}}
 \usage{
 RATETest(
   forest,
@@ -19,7 +19,8 @@ RATETest(
 )
 }
 \arguments{
-\item{forest}{a causal forest object.}
+\item{forest}{An object of class \code{causal_forest}, as returned by
+\link[grf]{causal_forest}().}
 
 \item{priorities}{character, name of covariate to test for heterogeneity.}
 
@@ -29,19 +30,22 @@ RATETest(
 and q is not manually set, TOC will be evaluated at the quantiles
 corresponding to transitions from one level to the next.}
 
-\item{target}{character, see grf::rank_average_treatment_effect.}
+\item{target}{character, see \link[grf]{rank_average_treatment_effect}.}
 
-\item{q}{numeric, see grf::rank_average_treatment_effect.}
+\item{q}{numeric, see \link[grf]{rank_average_treatment_effect}.}
 
-\item{R}{integer, see grf::rank_average_treatment_effect.}
+\item{R}{integer, see \link[grf]{rank_average_treatment_effect}.}
 
-\item{subset}{numeric, see grf::rank_average_treatment_effect.}
+\item{subset}{numeric, see \link[grf]{rank_average_treatment_effect}.}
 
-\item{debiasing.weights}{numeric, see grf::rank_average_treatment_effect.}
+\item{debiasing.weights}{numeric, see
+\link[grf]{rank_average_treatment_effect}.}
 
-\item{compliance.score}{numeric, see grf::rank_average_treatment_effect.}
+\item{compliance.score}{numeric, see
+\link[grf]{rank_average_treatment_effect}.}
 
-\item{num.trees.for.weights}{integer, see grf::rank_average_treatment_effect.}
+\item{num.trees.for.weights}{integer, see
+\link[grf]{rank_average_treatment_effect}.}
 }
 \value{
 A list of class 'rank_average_treatment_effect' with elements
@@ -58,7 +62,7 @@ confidence interval.
 }
 \description{
 Provides confidence interval and p-value together with the standard output
-from grf::rank_average_treatment_effect.
+from \link[grf]{rank_average_treatment_effect}.
 }
 \examples{
 n <- 1500

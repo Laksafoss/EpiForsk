@@ -3,18 +3,19 @@
 #' Calculates the c-for-benefit, as proposed by D. van Klaveren et
 #' al. (2018), by matching patients based on patient characteristics.
 #'
-#' @param forest a causal forest object.
-#' @param match character, "covariates" to match on covariates or "CATE" to
+#' @param forest An object of class `causal_forest`, as returned by
+#'   \link[grf]{causal_forest}().
+#' @param match character, `"covariates"` to match on covariates or `"CATE"` to
 #'   match on estimated CATE.
-#' @param tau_hat_method character, "treatment" to calculate the expected
+#' @param tau_hat_method character, `"treatment"` to calculate the expected
 #'   treatment effect in matched groups as the risk under treatment for the
 #'   treated subject minus the risk under control for the untreated
-#'   subject. "average" to calculate it as the average treatment effect of
+#'   subject. `"average"` to calculate it as the average treatment effect of
 #'   matched subject.
 #' @param time_limit numeric, maximum allowed time to compute C-for-benefit. If
 #'   limit is reached, execution stops.
-#' @param CI character, "none" for no confidence interval, "simple" to use a
-#'   normal approximation, and "bootstrap" to use the bootstrap.
+#' @param CI character, `"none"` for no confidence interval, `"simple"` to use a
+#'   normal approximation, and `"bootstrap"` to use the bootstrap.
 #' @param level numeric, confidence level of the confidence interval.
 #' @param n_bootstraps numeric, number of bootstraps to use for the bootstrap
 #'   confidence interval computation.
@@ -23,18 +24,18 @@
 #'   should continue or be stopped.
 #' @param verbose boolean, TRUE to display progress bar, FALSE to not display
 #'   progress bar.
-#' @param method see MatchIt::matchit.
-#' @param distance see MatchIt::matchit.
-#' @param Y a vector of outcomes. If provided, replaces forest$Y.orig.
+#' @param method see \link[MatchIt]{matchit}.
+#' @param distance see \link[MatchIt]{matchit}.
+#' @param Y a vector of outcomes. If provided, replaces `forest$Y.orig`.
 #' @param W a vector of treatment assignment; 1 for active treatment; 0 for
-#'   control If provided, replaces forest$W.orig.
+#'   control If provided, replaces `forest$W.orig`.
 #' @param X a matrix of patient characteristics. If provided, replaces
-#' forest$X.orig.
-#' @param p_0 a vector of outcome probabilities under control
-#' @param p_1 a vector of outcome probabilities under active treatment
+#' `forest$X.orig`.
+#' @param p_0 a vector of outcome probabilities under control.
+#' @param p_1 a vector of outcome probabilities under active treatment.
 #' @param tau_hat a vector of individualized treatment effect predictions. If
 #'   provided, replaces forest$predictions.
-#' @param ... additional arguments for MatchIt::matchit.
+#' @param ... additional arguments for \link[MatchIt]{matchit}.
 #'
 #' @returns a list with the following components:
 #'
@@ -70,7 +71,6 @@
 #'   the difference between the exposed risk for the subject receiving treatment
 #'   and the baseline risk of the subject receiving control (tau_hat_method =
 #'   "treatment").
-#'
 #'
 #' @author KIJA
 #'
