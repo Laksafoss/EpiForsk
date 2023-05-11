@@ -1,21 +1,25 @@
-#' wrapper for grf::rank_average_treatment_effect
+#' wrapper for \link[grf]{rank_average_treatment_effect}
 #'
 #' Provides confidence interval and p-value together with the standard output
-#' from grf::rank_average_treatment_effect.
+#' from \link[grf]{rank_average_treatment_effect}.
 #'
-#' @param forest a causal forest object.
+#' @param forest An object of class `causal_forest`, as returned by
+#'   \link[grf]{causal_forest}().
 #' @param priorities character, name of covariate to test for heterogeneity.
 #' @param level numeric, level of RATE confidence interval.
 #' @param cov_type character, either "continuous" or "discrete". If "discrete",
 #'   and q is not manually set, TOC will be evaluated at the quantiles
 #'   corresponding to transitions from one level to the next.
-#' @param target character, see grf::rank_average_treatment_effect.
-#' @param q numeric, see grf::rank_average_treatment_effect.
-#' @param R integer, see grf::rank_average_treatment_effect.
-#' @param subset numeric, see grf::rank_average_treatment_effect.
-#' @param debiasing.weights numeric, see grf::rank_average_treatment_effect.
-#' @param compliance.score numeric, see grf::rank_average_treatment_effect.
-#' @param num.trees.for.weights integer, see grf::rank_average_treatment_effect.
+#' @param target character, see \link[grf]{rank_average_treatment_effect}.
+#' @param q numeric, see \link[grf]{rank_average_treatment_effect}.
+#' @param R integer, see \link[grf]{rank_average_treatment_effect}.
+#' @param subset numeric, see \link[grf]{rank_average_treatment_effect}.
+#' @param debiasing.weights numeric, see
+#'   \link[grf]{rank_average_treatment_effect}.
+#' @param compliance.score numeric, see
+#'   \link[grf]{rank_average_treatment_effect}.
+#' @param num.trees.for.weights integer, see
+#'   \link[grf]{rank_average_treatment_effect}.
 #'
 #' @returns A list of class 'rank_average_treatment_effect' with elements
 #' - estimate: the RATE estimate.
@@ -27,8 +31,7 @@
 #'   confidence interval.
 #' - pval: the p-value for the test that RATE is non-positive.
 #'
-#' @author
-#' KIJA
+#' @author KIJA
 #'
 #' @examples
 #' n <- 1500

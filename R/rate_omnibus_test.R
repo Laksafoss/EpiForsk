@@ -3,33 +3,34 @@
 #' Provides the P-value for a formal test of heterogeneity based on the RATE
 #' statistic by Yadlowsky et al.
 #'
-#' @param forest a causal forest object with binary treatment
+#' @param forest An object of class `causal_forest`, as returned by
+#'   \link[grf]{causal_forest}(), with binary treatment.
 #' @param level numeric, level of RATE confidence interval.
-#' @param target character, see grf::rank_average_treatment_effect.
-#' @param q numeric, see grf::rank_average_treatment_effect.
-#' @param R integer, see grf::rank_average_treatment_effect.
-#' @param num.threads passed to grf::causal_forest. Number of threads used in
+#' @param target character, see \link[grf]{rank_average_treatment_effect}.
+#' @param q numeric, see \link[grf]{rank_average_treatment_effect}.
+#' @param R integer, see \link[grf]{rank_average_treatment_effect}
+#' @param num.threads passed to \link[grf]{causal_forest}. Number of threads used in
 #'   training. Default value is 1.
 #' @param seed numeric, either length 1, in which case the same seed is used for
 #' both new forests, or length 2, to train each forest with a different seed.
-#' Default is NULL, in which case two seeds are randomly sampled.
-#' @param honesty TRUE if forest was trained using honesty. Otherwise FALSE.
+#' Default is `NULL`, in which case two seeds are randomly sampled.
+#' @param honesty Boolean, `TRUE` if forest was trained using honesty. Otherwise `FALSE`.
 #'   Argument controls if honesty is used to train the new forests on the random
 #'   half-samples, so misspecification will lead to invalid results. Default is
-#'   TRUE, the default in grf::causal_forest.
-#' @param stabilize.splits TRUE if forest was trained taking treatment into
-#'   account when determining the imbalance of a split. Otherwise FALSE.
+#'   `TRUE`, the default in \link[grf]{causal_forest}.
+#' @param stabilize.splits Boolean, `TRUE` if forest was trained taking treatment into
+#'   account when determining the imbalance of a split. Otherwise `FALSE`.
 #'   Argument controls if treatment is taken into account when determining the
 #'   imbalance of a split during training of the new forests on the random
 #'   half-samples, so misspecification will lead to invalid results. Default is
-#'   TRUE, the default in grf::causal_forest.
-#' @param ... additional arguments for grf::causal_forest. By default, the
+#'   `TRUE`, the default in \link[grf]{causal_forest}.
+#' @param ... additional arguments for \link[grf]{causal_forest}. By default, the
 #' arguments used by forest will be used to train new forests on the random
-#' half-samples. Arguments provided through ... will override these. Note that
-#' sample.weights and clusters are passed to both grf::causal_forest and
-#' grf::rank_average_treatment_effect.fit.
+#' half-samples. Arguments provided through `...` will override these. Note that
+#' sample.weights and clusters are passed to both \link[grf]{causal_forest} and
+#' \link[grf]{rank_average_treatment_effect.fit}.
 #'
-#' @returns A list of class 'rank_average_treatment_effect' with elements
+#' @returns A list of class `rank_average_treatment_effect` with elements
 #' - estimate: the RATE estimate.
 #' - std.err: bootstrapped standard error of RATE.
 #' - target: the type of estimate.

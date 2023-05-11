@@ -26,22 +26,23 @@ CForBenefit(
 )
 }
 \arguments{
-\item{forest}{a causal forest object.}
+\item{forest}{An object of class \code{causal_forest}, as returned by
+\link[grf]{causal_forest}().}
 
-\item{match}{character, "covariates" to match on covariates or "CATE" to
+\item{match}{character, \code{"covariates"} to match on covariates or \code{"CATE"} to
 match on estimated CATE.}
 
-\item{tau_hat_method}{character, "treatment" to calculate the expected
+\item{tau_hat_method}{character, \code{"treatment"} to calculate the expected
 treatment effect in matched groups as the risk under treatment for the
 treated subject minus the risk under control for the untreated
-subject. "average" to calculate it as the average treatment effect of
+subject. \code{"average"} to calculate it as the average treatment effect of
 matched subject.}
 
 \item{time_limit}{numeric, maximum allowed time to compute C-for-benefit. If
 limit is reached, execution stops.}
 
-\item{CI}{character, "none" for no confidence interval, "simple" to use a
-normal approximation, and "bootstrap" to use the bootstrap.}
+\item{CI}{character, \code{"none"} for no confidence interval, \code{"simple"} to use a
+normal approximation, and \code{"bootstrap"} to use the bootstrap.}
 
 \item{level}{numeric, confidence level of the confidence interval.}
 
@@ -55,26 +56,26 @@ should continue or be stopped.}
 \item{verbose}{boolean, TRUE to display progress bar, FALSE to not display
 progress bar.}
 
-\item{method}{see MatchIt::matchit.}
+\item{method}{see \link[MatchIt]{matchit}.}
 
-\item{distance}{see MatchIt::matchit.}
+\item{distance}{see \link[MatchIt]{matchit}.}
 
-\item{Y}{a vector of outcomes. If provided, replaces forest$Y.orig.}
+\item{Y}{a vector of outcomes. If provided, replaces \code{forest$Y.orig}.}
 
 \item{W}{a vector of treatment assignment; 1 for active treatment; 0 for
-control If provided, replaces forest$W.orig.}
+control If provided, replaces \code{forest$W.orig}.}
 
 \item{X}{a matrix of patient characteristics. If provided, replaces
-forest$X.orig.}
+\code{forest$X.orig}.}
 
-\item{p_0}{a vector of outcome probabilities under control}
+\item{p_0}{a vector of outcome probabilities under control.}
 
-\item{p_1}{a vector of outcome probabilities under active treatment}
+\item{p_1}{a vector of outcome probabilities under active treatment.}
 
 \item{tau_hat}{a vector of individualized treatment effect predictions. If
 provided, replaces forest$predictions.}
 
-\item{...}{additional arguments for MatchIt::matchit.}
+\item{...}{additional arguments for \link[MatchIt]{matchit}.}
 }
 \value{
 a list with the following components:

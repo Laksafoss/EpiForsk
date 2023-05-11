@@ -18,43 +18,44 @@ RATEOmnibusTest(
 )
 }
 \arguments{
-\item{forest}{a causal forest object with binary treatment}
+\item{forest}{An object of class \code{causal_forest}, as returned by
+\link[grf]{causal_forest}(), with binary treatment.}
 
 \item{level}{numeric, level of RATE confidence interval.}
 
-\item{target}{character, see grf::rank_average_treatment_effect.}
+\item{target}{character, see \link[grf]{rank_average_treatment_effect}.}
 
-\item{q}{numeric, see grf::rank_average_treatment_effect.}
+\item{q}{numeric, see \link[grf]{rank_average_treatment_effect}.}
 
-\item{R}{integer, see grf::rank_average_treatment_effect.}
+\item{R}{integer, see \link[grf]{rank_average_treatment_effect}}
 
-\item{num.threads}{passed to grf::causal_forest. Number of threads used in
+\item{num.threads}{passed to \link[grf]{causal_forest}. Number of threads used in
 training. Default value is 1.}
 
 \item{seed}{numeric, either length 1, in which case the same seed is used for
 both new forests, or length 2, to train each forest with a different seed.
-Default is NULL, in which case two seeds are randomly sampled.}
+Default is \code{NULL}, in which case two seeds are randomly sampled.}
 
-\item{honesty}{TRUE if forest was trained using honesty. Otherwise FALSE.
+\item{honesty}{Boolean, \code{TRUE} if forest was trained using honesty. Otherwise \code{FALSE}.
 Argument controls if honesty is used to train the new forests on the random
 half-samples, so misspecification will lead to invalid results. Default is
-TRUE, the default in grf::causal_forest.}
+\code{TRUE}, the default in \link[grf]{causal_forest}.}
 
-\item{stabilize.splits}{TRUE if forest was trained taking treatment into
-account when determining the imbalance of a split. Otherwise FALSE.
+\item{stabilize.splits}{Boolean, \code{TRUE} if forest was trained taking treatment into
+account when determining the imbalance of a split. Otherwise \code{FALSE}.
 Argument controls if treatment is taken into account when determining the
 imbalance of a split during training of the new forests on the random
 half-samples, so misspecification will lead to invalid results. Default is
-TRUE, the default in grf::causal_forest.}
+\code{TRUE}, the default in \link[grf]{causal_forest}.}
 
-\item{...}{additional arguments for grf::causal_forest. By default, the
+\item{...}{additional arguments for \link[grf]{causal_forest}. By default, the
 arguments used by forest will be used to train new forests on the random
-half-samples. Arguments provided through ... will override these. Note that
-sample.weights and clusters are passed to both grf::causal_forest and
-grf::rank_average_treatment_effect.fit.}
+half-samples. Arguments provided through \code{...} will override these. Note that
+sample.weights and clusters are passed to both \link[grf]{causal_forest} and
+\link[grf]{rank_average_treatment_effect.fit}.}
 }
 \value{
-A list of class 'rank_average_treatment_effect' with elements
+A list of class \code{rank_average_treatment_effect} with elements
 \itemize{
 \item estimate: the RATE estimate.
 \item std.err: bootstrapped standard error of RATE.
