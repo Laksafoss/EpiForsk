@@ -1,0 +1,52 @@
+#Function intended for making it possible to get frequencies for many variables at one go,
+#   either as one way tables or two way tables were the second variable is fixed.
+#The function is a kind of wrapper for the Freq_function() with the same syntax but the FUNCTION
+#   of the "var1" argument have been changed: it should be a vector of one or more
+#   variable names (all will give a separate table). Example: var1=c("Age_group", "Sex", "Region")
+
+#The output will look slightly different from Freq_function() due to not only having one variable,
+#   but otherwise Freq_function_repeated should give the same.
+
+Freq_function_repeated <- function(normaldata,
+                                   var1,
+                                   var2=NULL,
+                                   by_vars=NULL,
+                                   include_NA=FALSE,
+                                   values_to_remove=NULL,
+                                   weightvar=NULL,
+                                   textvar=NULL,
+                                   number_decimals=2,
+                                   output="all",
+                                   chisquare=FALSE) {
+  func_table1 <- normaldata %>%
+    dplyr::select(all_of({{var1}}), all_of({{var2}}), all_of({{weightvar}}), all_of({{by_vars}}))
+
+  var_count <- length(var1)
+  #return(var_count)
+  i <- 1
+  while(i <= var_count){
+    func_var <- nth(var1, n=i)
+    Orig_var_name <- gsub('"',"",paste(deparse(substitute(func_var)),collapse=""))
+    #return(func_var)
+    func_freqs <- Freq_function_v2(normaldata = func_table1, var1=func_var, var2 = var2, by_vars = by_vars,
+                                   include_NA = include_NA,
+                                   values_to_remove = values_to_remove, weightvar = weightvar, textvar = textvar,
+                                   number_decimals = number_decimals, output = output, chisquare = chisquare)
+    func_freqs2 <- func_freqs %>% mutate(var_name=Orig_var_name)
+    if(i==1){func_table2 <- func_freqs2}
+    else {func_table2 <- bind_rows(func_table2, func_freqs2)}
+    i <- (i+1)
+  }
+  func_table3 <- func_table2 %>% relocate(var_name, .before=1) %>% rename(Level=func_var)
+  return(func_table3)
+}
+
+# #Examples
+# data(starwars)
+# test_table1 <- Freq_function_repeated(starwars, var1 = c("sex","homeworld","eye_color"), include_NA = TRUE)
+# test_table2 <- Freq_function_repeated(starwars, var1 = c("homeworld","eye_color","skin_color"), var2 = "sex",
+#                                       output = "col", number_decimals = 3)
+# test_table3 <- Freq_function_repeated(starwars, var1 = c("homeworld","eye_color","skin_color"), var2 = "sex",
+#                                       by_vars = c("gender"), output = "row")
+
+
