@@ -3,9 +3,9 @@
 #' Function to join/merge multiple data.frames with one or more common
 #' variable names.
 #'
-#' @param byvars A join specification created with \link[dplyr]{`join_by()`}, or
-#'   a character vector of variables to join by. The `byvars` must be present in
-#'   all data frames `first_data` and `...`.
+#' @param by A join specification created with \code{\link[dplyr:join_by]{join_by()}}, or a character vector of variables to
+#'   join by. The `by` must be present in all data frames `first_data` and
+#'   `...`.
 #' @param first_data A data frame (presented on the left in the final table).
 #' @param ... Data frames to merge onto `first_data`.
 #'
@@ -23,15 +23,15 @@
 #' var5 <- letters[11:20]
 #'
 #' # Rename alle the variables to "var"
-#' data1 <- data.frame(testdata_id, var1) %>% rename(var = var1)
-#' data2 <- data.frame(testdata_id, var2) %>% rename(var = var2)
-#' data3 <- data.frame(testdata_id, var3) %>% rename(var = var3)
-#' data4 <- data.frame(testdata_id, var4) %>% rename(var = var4)
-#' data5 <- data.frame(testdata_id, var5) %>% rename(var = var5)
+#' data1 <- data.frame(testdata_id, var = var1)
+#' data2 <- data.frame(testdata_id, var = var2)
+#' data3 <- data.frame(testdata_id, var = var3)
+#' data4 <- data.frame(testdata_id, var = var4)
+#' data5 <- data.frame(testdata_id, var = var5)
 #'
 #' # Many merge
 #' final_data <- many_merge(
-#'   byvars=c("testdata_id"),
+#'   by = c("testdata_id"),
 #'   data1,
 #'   data2,
 #'   data3,
@@ -40,7 +40,7 @@
 #' )
 #'
 #' @export
-many_merge <- function(byvars, first_data, ...) {
+many_merge <- function(by, first_data, ...) {
   func_table <- first_data
   func_list <- list(...)
   j <- 1
@@ -49,7 +49,7 @@ many_merge <- function(byvars, first_data, ...) {
     func_table <- dplyr::full_join(
       func_table,
       i,
-      by = byvars,
+      by = by,
       suffix = c("", paste(".", j, sep = "")),
       multiple = "all"
     )
