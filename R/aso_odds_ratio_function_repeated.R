@@ -22,6 +22,28 @@
 #         models until done BUT in the output the error text can be seen.
 #Other restrictions from the OR_function() is still relevant here as well as all other options
 
+#' Title
+#'
+#' @param normaldata
+#' @param outcomevar
+#' @param expvars
+#' @param adjustment_fixed
+#' @param by_var
+#' @param number_decimals
+#' @param alpha
+#' @param regtype
+#' @param matchgroup
+#' @param matchtiemethod
+#' @param values_to_remove
+#' @param weightvar
+#' @param surveydata
+#' @param textvar
+#' @param model_object
+#'
+#' @return
+#'
+#' @examples
+#' @export
 odds_ratio_function_repeated <- function(
     normaldata,
     outcomevar,

@@ -7,6 +7,24 @@
 #The output will look slightly different from Freq_function() due to not only having one variable,
 #   but otherwise Freq_function_repeated should give the same.
 
+#' Title
+#'
+#' @param normaldata
+#' @param var1
+#' @param var2
+#' @param by_vars
+#' @param include_NA
+#' @param values_to_remove
+#' @param weightvar
+#' @param textvar
+#' @param number_decimals
+#' @param output
+#' @param chisquare
+#'
+#' @return
+#' @export
+#'
+#' @examples
 freq_function_repeated <- function(
     normaldata,
     var1,

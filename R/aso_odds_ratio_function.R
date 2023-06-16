@@ -54,6 +54,26 @@ require(survey) #For when surveydata are in use (might be used in functions to g
 require(nnet) #for polytomous/multinomial models
 require(svyVGAM) #For more advanced analyses using survey data (like polytomous/multinomial regression)
 
+#' Title
+#'
+#' @param normaldata
+#' @param outcomevar
+#' @param expvars
+#' @param number_decimals
+#' @param alpha
+#' @param regtype
+#' @param matchgroup
+#' @param matchtiemethod
+#' @param values_to_remove
+#' @param weightvar
+#' @param surveydata
+#' @param textvar
+#' @param model_object
+#'
+#' @return
+#' @export
+#'
+#' @examples
 odds_ratio_function <- function(
     normaldata,
     outcomevar,
