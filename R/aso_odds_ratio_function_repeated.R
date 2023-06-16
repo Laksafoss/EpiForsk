@@ -47,13 +47,15 @@ OR_function_repeated <- function(
     c(outcomevar, new_expvars, adjustment_fixed, by_var, weightvar)
   )
 
-  func_table1 <- normaldata %>%
-    dplyr::select(all_of(func_var_names))
+  func_table1 <- normaldata |>
+    dplyr::select(tidyselect::all_of(func_var_names))
 
   if (is.null(by_var)){
     by_var_level_count <- 1
   } else {
-    by_var2 <- pull(unique(distinct(dplyr::select(func_table1, {{ by_var }}))))
+    by_var2 <- dplyr::pull(
+      unique(dplyr::distinct(dplyr::select(func_table1, {{ by_var }})))
+    )
     if (is.numeric(by_var2)){
       by_var3 <- by_var2[!is.na(by_var2)]
     }
@@ -73,7 +75,7 @@ OR_function_repeated <- function(
       By_var_name <- c("None")
       func_table1_2 <- func_table1
     } else {
-      by_var_level <- nth(by_var3, n = k)
+      by_var_level <- dplyr::nth(by_var3, n = k)
       By_var_name <- gsub(
         '"',
         "",
@@ -85,7 +87,7 @@ OR_function_repeated <- function(
         )
       )
       print(paste0("By_var: ", By_var_name))
-      func_table1_2 <- filter(
+      func_table1_2 <- dplyr::filter(
         func_table1,
         as.character(!!rlang::sym(by_var)) == by_var_level
       )
@@ -93,7 +95,7 @@ OR_function_repeated <- function(
 
     while (i <= outcome_var_count){
       j <- 1
-      outcome_func_var <- nth(outcomevar, n = i)
+      outcome_func_var <- dplyr::nth(outcomevar, n = i)
       Outcome_var_name <- gsub(
         '"',
         "",
@@ -102,7 +104,7 @@ OR_function_repeated <- function(
       print(paste0("Outcome: ", Outcome_var_name))
 
       while (j <= expvars_var_count){
-        expvars_func_var <- nth(expvars, n = j)
+        expvars_func_var <- dplyr::nth(expvars, n = j)
         Expvar_var_name <- gsub(
           '"',
           "",
@@ -128,16 +130,16 @@ OR_function_repeated <- function(
           )
         )
         if (model_object == FALSE & func_res1$error == ''){
-          func_res2_prp <- func_res1$value %>%
-            mutate(
+          func_res2_prp <- func_res1$value |>
+            dplyr::mutate(
               By_name = By_var_name,
               Outcome_name = Outcome_var_name,
               Expvar_name = Expvar_var_name
             )
           if (func_res1$warning != ''){
-            func_res2 <- func_res2_prp %>%
-              mutate(
-                Warning = case_when(
+            func_res2 <- func_res2_prp |>
+              dplyr::mutate(
+                Warning = dplyr::case_when(
                   .data$term == "(Intercept)" ~ paste0(func_res1$warning),
                   TRUE ~ ""
                 )
@@ -148,7 +150,7 @@ OR_function_repeated <- function(
           if (k==1 & i==1 & j==1){
             func_table2 <- func_res2
           } else {
-            func_table2 <- bind_rows(func_table2, func_res2)
+            func_table2 <- dplyr::bind_rows(func_table2, func_res2)
           }
         } else if (model_object == TRUE & func_res1$error == ''){
           if (k==1 & i==1 & j==1){
@@ -170,18 +172,18 @@ OR_function_repeated <- function(
             )
           }
         } else if (model_object == FALSE & func_res1$error != ''){
-          func_res2 <- as.data.frame(func_res1$error) %>%
-            rename(Error = 1) %>%
-            mutate(
+          func_res2 <- as.data.frame(func_res1$error) |>
+            dplyr::rename(Error = 1) |>
+            dplyr::mutate(
               By_name = By_var_name,
               Outcome_name = Outcome_var_name,
               Expvar_name = Expvar_var_name
-            ) %>%
-            relocate("Error", .after = last_col())
+            ) |>
+            dplyr::relocate("Error", .after = tidyselect::last_col())
           if (k == 1 & i == 1 & j == 1){
             func_table2 <- func_res2
           } else {
-            func_table2 <- bind_rows(func_table2, func_res2)
+            func_table2 <- dplyr::bind_rows(func_table2, func_res2)
           }
         } else if (model_object == TRUE & func_res1$error != ''){
           if(k == 1 & i == 1 & j == 1){
@@ -209,10 +211,10 @@ OR_function_repeated <- function(
   }
 
   if (model_object == FALSE) {
-    func_table3 <- func_table2 %>%
-      relocate("Expvar_name", .before = 1) %>%
-      relocate("Outcome_name", .before = 1) %>%
-      relocate("By_name", .before = 1)
+    func_table3 <- func_table2 |>
+      dplyr::relocate("Expvar_name", .before = 1) |>
+      dplyr::relocate("Outcome_name", .before = 1) |>
+      dplyr::relocate("By_name", .before = 1)
   } else{
     func_table3 <- func_table2
   }
@@ -222,7 +224,7 @@ OR_function_repeated <- function(
 # #Examples
 # #Data to use
 # data("infert")
-# infert2 <- infert %>%
+# infert2 <- infert |>
 #   mutate(Age_grp=case_when(age<25 ~ "<25", 25<=age & age<35 ~ "25-<35", age>=35 ~ "35+"),
 #          Parity_grp=case_when(parity==1 ~ "1", parity>=2 & parity<=3 ~ "2-3", parity>3 ~ "4+"))
 # infert2$Age_grp <- relevel(as.factor(infert2$Age_grp), ref="25-<35")

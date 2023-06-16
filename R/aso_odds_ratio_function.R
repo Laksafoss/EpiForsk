@@ -99,27 +99,27 @@ OR_function <- function(
 
   # Selecting all relevant variables from data
   # (effectively dropping all other variables)
-  func_table1 <- normaldata %>%
+  func_table1 <- normaldata |>
     dplyr::select(
-      "Outc" = all_of(outcomevar),
-      all_of(new_expvars),
-      "matchID" = all_of(matchgroup),
-      "weight_used" = all_of(weightvar)
+      "Outc" = tidyselect::all_of(outcomevar),
+      tidyselect::all_of(new_expvars),
+      "matchID" = tidyselect::all_of(matchgroup),
+      "weight_used" = tidyselect::all_of(weightvar)
     )
 
   # Setting weights (unless specified, weight will be 1)
   # Only selecting variables to use in OR estimation
   # (adjusted or not, with weights or not)
   if (is.null(weightvar)) {
-    func_table2 <- func_table1 %>% mutate(weight_used = as.numeric(1))
+    func_table2 <- func_table1 |> dplyr::mutate(weight_used = as.numeric(1))
   } else {
-    func_table2 <- filter(func_table1, .data$weight_used > 0)
+    func_table2 <- dplyr::filter(func_table1, .data$weight_used > 0)
   }
 
   # Removing observations with missing in ANY of the used variables
   used_var <- ls(func_table2)
-  func_table3 <- func_table2 %>%
-    filter(if_all(all_of(used_var), ~ !is.na(.x)))
+  func_table3 <- func_table2 |>
+    dplyr::filter(dplyr::if_all(tidyselect::all_of(used_var), ~ !is.na(.x)))
 
   # Removes specified observation values in any of the used variables IF the
   # option "values_to_remove" is given (as vector)
@@ -130,9 +130,12 @@ OR_function <- function(
   if (is.null(values_to_remove)) {
     func_table4 <- droplevels(func_table3)
   } else {
-    func_table4_prp <- func_table3 %>%
-      filter(
-        if_all(all_of(used_var), ~ !as.character(.x) %in% values_to_remove)
+    func_table4_prp <- func_table3 |>
+      dplyr::filter(
+        dplyr::if_all(
+          tidyselect::all_of(used_var),
+          ~ !as.character(.x) %in% values_to_remove
+        )
       )
     func_table4 <- droplevels(func_table4_prp)
   }
@@ -168,16 +171,16 @@ OR_function <- function(
   }
 
   #Getting N for all levels of the outcome
-  func_model_n_prp <- func_table4 %>%
-    group_by(.data$Outc) %>%
-    summarise(
-      Freq = n(),
+  func_model_n_prp <- func_table4 |>
+    dplyr::group_by(.data$Outc) |>
+    dplyr::summarize(
+      Freq = dplyr::n(),
       Freqw = sum(.data$weight_used),
       .groups = "drop"
-    ) %>%
-    rownames_to_column(var = "sortnr") %>%
-    mutate(
-      Part_ = case_when(
+    ) |>
+    tibble::rownames_to_column(var = "sortnr") |>
+    dplyr::mutate(
+      Part_ = dplyr::case_when(
         .data$sortnr == 1 ~ paste0(
           "Non-outcome=",
           .data$Outc,
@@ -198,31 +201,31 @@ OR_function <- function(
         )
       )
     )
-  func_model_n_sum <- summarise(
+  func_model_n_sum <- dplyr::summarize(
     func_model_n_prp,
     Total = sum(.data$Freq),
     Total_weighted = sum(.data$Freqw)
   )
-  func_model_n_prp2 <- pivot_wider(
+  func_model_n_prp2 <- tidyr::pivot_wider(
     dplyr::select(func_model_n_prp, "sortnr", "Part_"),
     names_from = "sortnr",
     values_from = c("Part_"),
     names_prefix = "Outcome"
   )
-  func_model_n_prp3_1 <- pivot_wider(
+  func_model_n_prp3_1 <- tidyr::pivot_wider(
     dplyr::select(func_model_n_prp, "Outc", "Freq"),
     names_from = "Outc",
     values_from = c("Freq"),
     names_prefix = "Unweighted_n_"
-  ) %>%
-    mutate(sortnr = 0)
-  func_model_n_prp3_2 <- pivot_wider(
+  ) |>
+    dplyr::mutate(sortnr = 0)
+  func_model_n_prp3_2 <- tidyr::pivot_wider(
     dplyr::select(func_model_n_prp, "Outc", "Freqw"),
     names_from = "Outc",
     values_from = c("Freqw"),
     names_prefix = "Weighted_n_"
-  ) %>%
-    mutate(sortnr = 0)
+  ) |>
+    dplyr::mutate(sortnr = 0)
   func_model_n <- as.data.frame(
     paste0(
       paste(as.vector(func_model_n_prp2), collapse = ", "),
@@ -231,14 +234,14 @@ OR_function <- function(
       "/ weighted n=",
       sprintf("%.2f", dplyr::select(func_model_n_sum, "Total_weighted"))
     )
-  ) %>%
-    rename("N" = 1) %>%
-    mutate(
+  ) |>
+    dplyr::rename("N" = 1) |>
+    dplyr::mutate(
       term = "(Intercept)",
       sortnr = 0
-    ) %>% dplyr::select("term", "N", "sortnr") %>%
-    left_join(func_model_n_prp3_1, by = c("sortnr")) %>%
-    left_join(func_model_n_prp3_2, by = c("sortnr"))
+    ) |> dplyr::select("term", "N", "sortnr") |>
+    dplyr::left_join(func_model_n_prp3_1, by = c("sortnr")) |>
+    dplyr::left_join(func_model_n_prp3_2, by = c("sortnr"))
 
   # Binomial outcome
   if (outcome_levels == 2){
@@ -262,19 +265,19 @@ OR_function <- function(
         func_table5_prp <- glm(
           Model_call,
           data = func_table4,
-          family = binomial(link="logit"),
+          family = binomial(link = "logit"),
           weights = func_table4$weight_used
         )
 
         #Extract estimates and standard error etc. from model output
-        func_table5 <- tidy(func_table5_prp, exponentiate = FALSE)
+        func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
 
         #Getting p-values for included components in model
-        func_table5_p <- drop1(func_table5_prp, test = "Chisq") %>%
-          rownames_to_column(var = "Variable") %>%
-          dplyr::select("Variable", "P_anova" = "Pr(>Chi)") %>%
-          filter(!is.na(.data$P_anova)) %>%
-          rename("P_drop1" = "P_anova")
+        func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
+          tibble::rownames_to_column(var = "Variable") |>
+          dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
+          dplyr::filter(!is.na(.data$P_anova)) |>
+          dplyr::rename("P_drop1" = "P_anova")
 
       } else if (surveydata == FALSE){
 
@@ -299,13 +302,13 @@ OR_function <- function(
         # Running regression and getting estimates, standard errors etc. in a
         # table - depends on if weights are used or not
         if (is.null(weightvar)) {
-          func_table5_prp <- clogit(
+          func_table5_prp <- survival::clogit(
             Model_call,
             data = func_table4model,
             method = matchtiemethod
           )
         } else {
-          func_table5_prp <- clogit(
+          func_table5_prp <- survival::clogit(
             Model_call,
             data = func_table4model,
             method = matchtiemethod,
@@ -314,29 +317,29 @@ OR_function <- function(
         }
 
         # Extract estimates and standard error etc. from model output
-        func_table5 <- tidy(func_table5_prp, exponentiate = FALSE)
+        func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
 
         # Getting p-values for included components in model
-        func_table5_p <- drop1(func_table5_prp, test = "Chisq") %>%
-          rownames_to_column(var = "Variable") %>%
-          dplyr::select("Variable", "P_anova" = "Pr(>Chi)") %>%
-          filter(!is.na(.data$P_anova)) %>%
-          rename("P_drop1" = "P_anova")
+        func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
+          tibble::rownames_to_column(var = "Variable") |>
+          dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
+          dplyr::filter(!is.na(.data$P_anova)) |>
+          dplyr::rename("P_drop1" = "P_anova")
 
         # Due to ONLY observations having matches are used, the earlier
         # calculated N can't be used
         # Getting number of observations used as well as for each level
         # (2 levels only!) of the outcome
-        func_model_n_prp1 <- as.data.frame(func_table5_prp$n) %>%
-          mutate(matchnum = "1")
-        func_model_n_prp2 <- as.data.frame(func_table5_prp$nevent) %>%
-          mutate(matchnum = "1")
-        func_model_n <- full_join(
+        func_model_n_prp1 <- as.data.frame(func_table5_prp$n) |>
+          dplyr::mutate(matchnum = "1")
+        func_model_n_prp2 <- as.data.frame(func_table5_prp$nevent) |>
+          dplyr::mutate(matchnum = "1")
+        func_model_n <- dplyr::full_join(
           func_model_n_prp1,
           func_model_n_prp2,
           by = c("matchnum")
-        ) %>%
-          mutate(
+        ) |>
+          dplyr::mutate(
             term = "(Intercept)",
             n_nonevent = as.character(
               as.numeric(.data$`func_table5_prp$n`) -
@@ -350,7 +353,7 @@ OR_function <- function(
               ", Total n=", .data$`func_table5_prp$n`
             ),
             sortnr = 0
-          ) %>%
+          ) |>
           dplyr::select("term", "N", "sortnr")
       } else if (surveydata == TRUE){
         #Logistic regression with data from survey
@@ -364,7 +367,7 @@ OR_function <- function(
 
         # Creating a survey object (i.e. a data frame with weights etc. that R
         # recognizes as survey data)
-        func_table5_prp <- svydesign(
+        func_table5_prp <- survey::svydesign(
           ~0,
           probs = NULL,
           strata = NULL,
@@ -376,19 +379,19 @@ OR_function <- function(
 
         # Running regression and getting estimates, standard errors etc. in a
         # table (survey data)
-        func_table5_prp2 <- svyglm(
+        func_table5_prp2 <- survey::svyglm(
           Model_call,
           design = func_table5_prp,
           family = quasibinomial(link="logit")
         )
-        func_table5 <- tidy(func_table5_prp2, exponentiate = FALSE)
+        func_table5 <- broom::tidy(func_table5_prp2, exponentiate = FALSE)
 
         #Getting p-values for included components in model
-        func_table5_p <- drop1(func_table5_prp2, test = "Chisq") %>%
-          rownames_to_column(var = "Variable") %>%
-          dplyr::select("Variable", "P_anova" = "Pr(>Chi)") %>%
-          filter(!is.na(.data$P_anova)) %>%
-          rename("P_drop1" = "P_anova")
+        func_table5_p <- drop1(func_table5_prp2, test = "Chisq") |>
+          tibble::rownames_to_column(var = "Variable") |>
+          dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
+          dplyr::filter(!is.na(.data$P_anova)) |>
+          dplyr::rename("P_drop1" = "P_anova")
       }
     } else if (regtype == "log-linear"){
 
@@ -405,14 +408,14 @@ OR_function <- function(
         family = binomial(link = "log"),
         weights = func_table4$weight_used
       )
-      func_table5 <- tidy(func_table5_prp, exponentiate = FALSE)
+      func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
 
       # Getting p-values for included components in model
-      func_table5_p <- drop1(func_table5_prp, test = "Chisq") %>%
-        rownames_to_column(var = "Variable") %>%
-        dplyr::select("Variable", "P_anova" = "Pr(>Chi)") %>%
-        filter(!is.na(.data$P_anova)) %>%
-        rename("P_drop1" = "P_anova")
+      func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
+        tibble::rownames_to_column(var = "Variable") |>
+        dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
+        dplyr::filter(!is.na(.data$P_anova)) |>
+        dplyr::rename("P_drop1" = "P_anova")
     }
   } else if (outcome_levels > 2) {
     #Polytomous/multinomial outcome
@@ -427,12 +430,12 @@ OR_function <- function(
 
       # Running multinomial regression and getting estimates, standard errors
       # etc. in a table (normal version)
-      func_table5_prp <- multinom(
+      func_table5_prp <- nnet::multinom(
         Model_call,
         data = func_table4,
         weights = func_table4$weight_used
       )
-      func_table5 <- tidy(func_table5_prp, exponentiate = FALSE)
+      func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
     } else if (surveydata == TRUE) {
       #Multionomial/polytomous logistic regression with surveydata
 
@@ -441,7 +444,7 @@ OR_function <- function(
 
       # Creating a survey object (i.e. a data frame with weights etc. that R
       # recognizes as survey data)
-      func_table5_prp_prp <- svydesign(
+      func_table5_prp_prp <- survey::svydesign(
         ~0,
         probs = NULL,
         strata = NULL,
@@ -453,22 +456,24 @@ OR_function <- function(
       # Running multinomial regression and getting estimates, standard errors
       # etc. in a table (survey data) AND
       #   make sure the variable names are the same as from the other models
-      func_table5_prp <- svy_vglm(
+      func_table5_prp <- svyVGAM::svy_vglm(
         Model_call,
-        family = multinomial(refLevel = 1),
+        family = VGAM::multinomial(refLevel = 1),
         design = func_table5_prp_prp
       )
 
       #Getting coefficients etc.
-      func_table5_prp2 <- as.data.frame(summary(func_table5_prp)$coeftable) %>%
-        rownames_to_column(var = "term_prp") %>%
-        rowwise() %>%
-        mutate(
-          cut_point = tail(unlist(gregexpr(":", .data$term_prp)), n = 1),
+      func_table5_prp2 <- as.data.frame(
+        summary(func_table5_prp)$coeftable
+      ) |>
+        tibble::rownames_to_column(var = "term_prp") |>
+        dplyr::rowwise() |>
+        dplyr::mutate(
+          cut_point = utils::tail(unlist(gregexpr(":", .data$term_prp)), n = 1),
           y.level = substring(.data$term_prp, first = (.data$cut_point + 1)),
           term = substr(.data$term_prp, start = 1, stop = (.data$cut_point - 1))
-        ) %>%
-        ungroup() %>%
+        ) |>
+        dplyr::ungroup() |>
         dplyr::select(
           "y.level",
           "term",
@@ -478,8 +483,8 @@ OR_function <- function(
           "p.value" = "p"
         )
       # Getting outcome group names (Not included in standard output)
-      func_table5_prp3 <- as.data.frame(func_table5_prp$fit@extra$colnames.y) %>%
-        rownames_to_column(var = "Outcome_order")
+      func_table5_prp3 <- as.data.frame(func_table5_prp$fit@extra$colnames.y) |>
+        tibble::rownames_to_column(var = "Outcome_order")
       # Getting hold of outcome reference level number
       func_table5_prp4 <- as.data.frame(func_table5_prp$fit@extra$use.refLevel)
       # Change column/variable names so they are standardized
@@ -487,35 +492,35 @@ OR_function <- function(
       colnames(func_table5_prp4)[1] <- "refLevel"
       # Final adjustments, so the numeric levels used in function now have the
       # outcome level names instead
-      func_table5_prp5 <- func_table5_prp4 %>%
-        mutate(
+      func_table5_prp5 <- func_table5_prp4 |>
+        dplyr::mutate(
           ref_indicator = .data$refLevel,
           refLevel = paste0(.data$refLevel)
         )
-      func_table5_prp6 <- full_join(
+      func_table5_prp6 <- dplyr::full_join(
         func_table5_prp3,
         func_table5_prp5,
         by = c("Outcome_order" = "refLevel")
-      ) %>%
-        mutate(
+      ) |>
+        dplyr::mutate(
           Outcome_order_new_prp = as.numeric(.data$Outcome_order),
           ref = as.numeric(.data$ref_indicator),
           ref_level = min(.data$ref, na.rm = TRUE),
-          Outcome_order_new = case_when(
+          Outcome_order_new = dplyr::case_when(
             .data$Outcome_order_new_prp == .data$ref_level ~ paste0(0),
             .data$Outcome_order_new_prp < .data$ref_level ~
               paste0(.data$Outcome_order_new_prp),
             .data$Outcome_order_new_prp > .data$ref_level ~
               paste0(.data$Outcome_order_new_prp - 1)
           )
-        ) %>%
+        ) |>
         dplyr::select("Outcome_order_new", "Outcome_levels")
-      func_table5 <- right_join(
+      func_table5 <- dplyr::right_join(
         func_table5_prp6,
         func_table5_prp2,
         by = c("Outcome_order_new" = "y.level")
-      ) %>%
-        rename("y.level" = "Outcome_levels") %>%
+      ) |>
+        dplyr::rename("y.level" = "Outcome_levels") |>
         dplyr::select(-"Outcome_order_new")
     }
   }
@@ -528,22 +533,24 @@ OR_function <- function(
   #   with variables with variable name+level, log(estimate), log(std.error),
   # statistic and p.value (vs. reference)
   #   + adding calculated OR and CI
-  func_table6 <- func_table5 %>%
-    mutate(
+  func_table6 <- func_table5 |>
+    dplyr::mutate(
       OR = paste0(
         sprintf(paste0("%.",number_decimals,"f"), exp(.data$estimate)),
         " (",
-        sprintf(paste0("%.",number_decimals,"f"), exp(.data$estimate - .data$std.error * .data$z)),
+        sprintf(paste0("%.",number_decimals,"f"),
+                exp(.data$estimate - .data$std.error * .data$z)),
         "-",
-        sprintf(paste0("%.",number_decimals,"f"), exp(.data$estimate + .data$std.error * .data$z)),
+        sprintf(paste0("%.",number_decimals,"f"),
+                exp(.data$estimate + .data$std.error * .data$z)),
         ")"
       ),
       Point_estimate = exp(.data$estimate),
       Lower_confidence_limit = exp(.data$estimate - .data$std.error * .data$z),
       Upper_confidence_limit = exp(.data$estimate + .data$std.error * .data$z)
-    ) %>%
+    ) |>
     dplyr::select(
-      any_of(c(
+      tidyselect::any_of(c(
         "y.level",
         "term",
         "OR",
@@ -555,7 +562,7 @@ OR_function <- function(
     )
 
   #Getting reference groups for factors
-  func_table7 <- func_table4 %>% dplyr::select(all_of(new_expvars))
+  func_table7 <- func_table4 |> dplyr::select(tidyselect::all_of(new_expvars))
   func_table7_var_count <- ncol(func_table7)
   func_table7_levels <- lapply(func_table7, levels)
 
@@ -563,17 +570,17 @@ OR_function <- function(
   # data compared to two or more, special steps are taken here to
   #   get the reference groups. Also, if all exposures are numeric (not
   #   factors), there are no rows in file, so it must be added
-  func_table7_levels2_prp <- as.data.frame(unlist(func_table7_levels)) %>%
-    rownames_to_column(var = "Variable_prp") %>%
-    mutate(
+  func_table7_levels2_prp <- as.data.frame(unlist(func_table7_levels)) |>
+    tibble::rownames_to_column(var = "Variable_prp") |>
+    dplyr::mutate(
       count_digit1 = substr(
         .data$Variable_prp,
         nchar(.data$Variable_prp),
         nchar(.data$Variable_prp)
       ),
       Variable = substr(.data$Variable_prp, 1, (nchar(.data$Variable_prp) - 1))
-    ) %>%
-    filter(.data$count_digit1 == "1")
+    ) |>
+    dplyr::filter(.data$count_digit1 == "1")
   if(nrow(func_table7_levels2_prp) > 0) {
     func_table7_levels2 <- dplyr::select(
       "func_table7_levels2_prp",
@@ -582,37 +589,42 @@ OR_function <- function(
     )
   }
   else{
-    func_table7_levels2 <- add_row(func_table7_levels2_prp, Variable = "") %>%
-      mutate(Reference = "")
+    func_table7_levels2 <- tibble::add_row(func_table7_levels2_prp, Variable = "") |>
+      dplyr::mutate(Reference = "")
   }
 
 
   func_table7_var_types <- as.data.frame(
     t(as.data.frame(purrr::map(func_table7, class)))
-  ) %>%
-    rownames_to_column(var = "Variable") %>%
-    filter(.data$V1 %in% c("factor")) %>%
+  ) |>
+    tibble::rownames_to_column(var = "Variable") |>
+    dplyr::filter(.data$V1 %in% c("factor")) |>
     dplyr::select("Variable")
   # Making sure reference values shown for all outcomes (except the
   # "none-outcome")
-  func_table7_final_prp <- inner_join(
+  func_table7_final_prp <- dplyr::inner_join(
     func_table7_levels2,
     func_table7_var_types,
     by = c("Variable")
-  ) %>%
-    mutate(
+  ) |>
+    dplyr::mutate(
       term = paste0(.data$Variable, .data$Reference),
       OR = "1 (Ref)",
       Point_estimate = 1
-    ) %>%
+    ) |>
     dplyr::select("term", "OR", "Point_estimate")
 
   if (outcome_levels == 2){
     func_table7_final <- func_table7_final_prp
   }
   else if (outcome_levels > 2){
-    func_table7_final_prp2 <- distinct(dplyr::select(func_table6, "y.level"))
-    func_table7_final <- crossing(func_table7_final_prp2, func_table7_final_prp)
+    func_table7_final_prp2 <- dplyr::distinct(
+      dplyr::select(func_table6, "y.level")
+    )
+    func_table7_final <- tidyr::crossing(
+      func_table7_final_prp2,
+      func_table7_final_prp
+    )
   }
 
   # Due to problems withe the anova for survey-data, the p-values from a
@@ -621,54 +633,56 @@ OR_function <- function(
   if (outcome_levels == 2){
     # Adding the reference level of the exposure variable
     # (so all levels can be seen in output)
-    func_table8_prp <- bind_rows(func_table6, func_table7_final) %>%
-      full_join(func_table5_p, by = c("term" = "Variable"))
-    func_table8 <- func_table8_prp %>%
-      mutate(
-        sortnr = case_when(
+    func_table8_prp <- dplyr::bind_rows(func_table6, func_table7_final) |>
+      dplyr::full_join(func_table5_p, by = c("term" = "Variable"))
+    func_table8 <- func_table8_prp |>
+      dplyr::mutate(
+        sortnr = dplyr::case_when(
           str_detect(.data$term, ":") == TRUE ~ 2,
           .data$term == "(Intercept)" ~ 0,
           TRUE ~ 1
         )
-      ) %>%
-      arrange(.data$sortnr, .data$term)
+      ) |>
+      dplyr::arrange(.data$sortnr, .data$term)
   } else {
     # Adding the reference level of the exposure variable
     # (so all levels can be seen in output)
-    func_table8_prp <- bind_rows(func_table6, func_table7_final)
-    func_table8 <- func_table8_prp %>%
-      mutate(
-        sortnr = case_when(
+    func_table8_prp <- dplyr::bind_rows(func_table6, func_table7_final)
+    func_table8 <- func_table8_prp |>
+      dplyr::mutate(
+        sortnr = dplyr::case_when(
           str_detect(.data$term,":") == TRUE ~ 2,
           .data$term == "(Intercept)" ~ 0,
           TRUE ~ 1
         )
-      ) %>%
-      arrange(.data$sortnr, .data$term)
+      ) |>
+      dplyr::arrange(.data$sortnr, .data$term)
   }
 
   Full_model_info <- as.data.frame(
     paste(Outcome_type, Regression_type, Model_info, sep = " ")
-  ) %>%
-    mutate(term = "(Intercept)", sortnr = 0) %>%
+  ) |>
+    dplyr::mutate(term = "(Intercept)", sortnr = 0) |>
     dplyr::select("term", "Model_info" = 1, "sortnr")
 
   #Adding number of observations and model information
-  func_table9 <- full_join(
+  func_table9 <- dplyr::full_join(
     func_table8,
     func_model_n,
     by = c("term", "sortnr")
-  ) %>%
-    full_join(Full_model_info, by = c("term", "sortnr")) %>%
-    relocate("Model_info", .after = "N") %>%
-    rename(any_of(c("Outcome_level"="y.level"))) %>%
-    arrange(across(any_of(c("Outcome_level", "sortnr", "term")))) %>%
+  ) |>
+    dplyr::full_join(Full_model_info, by = c("term", "sortnr")) |>
+    dplyr::relocate("Model_info", .after = "N") |>
+    dplyr::rename(tidyselect::any_of(c("Outcome_level"="y.level"))) |>
+    dplyr::arrange(
+      dplyr::across(tidyselect::any_of(c("Outcome_level", "sortnr", "term")))
+    ) |>
     dplyr::select(-"sortnr")
 
   # Due to log-linear regression don't give Odds Ratios but Risk Ratios, result
   # variable OR is renamed RR in those cases
   if (regtype == "log-linear"){
-    func_table9 <- func_table9 %>% rename("RR" = "OR")
+    func_table9 <- func_table9 |> dplyr::rename("RR" = "OR")
   }
 
   # Check type of output requested and if it's the "normal" output, if there
@@ -680,10 +694,31 @@ OR_function <- function(
     return(func_table9)
   } else {
     #Adding text-variable
-    func_table10 <- func_table9 %>%
-      mutate(Description = textvar) %>%
-      relocate("Description")
+    func_table10 <- func_table9 |>
+      dplyr::mutate(Description = textvar) |>
+      dplyr::relocate("Description")
     return(func_table10)}
+}
+
+
+#' Summary function for svy_vglm objects
+#'
+#' Internal summary function for svy_vglm objects
+#'
+#' @param object An svy_vglm object
+#' @param ... additional arguments. Not used.
+#'
+#' @return
+#' A "summary.svy_vglm" object is returned.
+summary.svy_vglm <- function(object, ...) {
+  object$coeftable <- cbind(
+    Coef = object$coef,
+    SE = sqrt(diag(object$var)),
+    z = object$coef / sqrt(diag(object$var)),
+    p = pnorm(- abs(object$coef / sqrt(diag(object$var)))) * 2
+  )
+  class(object) <- "summary.svy_vglm"
+  object
 }
 
 # #Examples

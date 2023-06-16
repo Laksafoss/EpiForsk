@@ -20,19 +20,19 @@ Freq_function_repeated <- function(
     output = "all",
     chisquare = FALSE
 ) {
-  func_table1 <- normaldata %>%
+  func_table1 <- normaldata |>
     dplyr::select(
-      all_of({{ var1 }}),
-      all_of({{ var2 }}),
-      all_of({{ weightvar }}),
-      all_of({{ by_vars }})
+      tidyselect::all_of({{ var1 }}),
+      tidyselect::all_of({{ var2 }}),
+      tidyselect::all_of({{ weightvar }}),
+      tidyselect::all_of({{ by_vars }})
     )
 
   var_count <- length(var1)
 
   i <- 1
   while (i <= var_count){
-    func_var <- nth(var1, n = i)
+    func_var <- dplyr::nth(var1, n = i)
     Orig_var_name <- gsub(
       '"',
       "",
@@ -51,17 +51,17 @@ Freq_function_repeated <- function(
       output = output,
       chisquare = chisquare
     )
-    func_freqs2 <- func_freqs %>% mutate(var_name = Orig_var_name)
+    func_freqs2 <- func_freqs |> dplyr::mutate(var_name = Orig_var_name)
     if (i == 1){
       func_table2 <- func_freqs2
     } else {
-      func_table2 <- bind_rows(func_table2, func_freqs2)
+      func_table2 <- dplyr::bind_rows(func_table2, func_freqs2)
     }
     i <- (i + 1)
   }
-  func_table3 <- func_table2 %>%
-    relocate("var_name", .before = 1) %>%
-    rename("Level" = "func_var")
+  func_table3 <- func_table2 |>
+    dplyr::relocate("var_name", .before = 1) |>
+    dplyr::rename("Level" = "func_var")
   return(func_table3)
 }
 

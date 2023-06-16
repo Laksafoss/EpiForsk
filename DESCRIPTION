@@ -15,6 +15,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
+    broom,
     cli,
     cowplot,
     data.table,
@@ -28,14 +29,19 @@ Imports:
     Hmisc,
     MatchIt,
     methods,
+    nnet,
     parallel,
     policytree,
     purrr,
     rlang,
     stringr,
+    survey,
+    survival,
+    svyVGAM,
     tibble,
     tidyr,
-    tidyselect (>= 1.2.0)
+    tidyselect (>= 1.2.0),
+    VGAM
 Depends: 
     R (>= 4.2)
 LazyData: true
