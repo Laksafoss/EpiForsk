@@ -46,14 +46,6 @@
 #       model_object = FALSE or model_object = TRUE
 
 
-#Needed R package for functions to work (in all prepared situations):
-require(tidyverse) #all functions needs this
-require(broom) #For extracting the most interesting parts of output from glm() and multinom()
-require(survival) #Needed when using conditional logistic regression in ASO_OR_function_v2_prp()
-require(survey) #For when surveydata are in use (might be used in functions to get correct standard errors if data is from survey)
-require(nnet) #for polytomous/multinomial models
-require(svyVGAM) #For more advanced analyses using survey data (like polytomous/multinomial regression)
-
 #' Title
 #'
 #' @param normaldata
