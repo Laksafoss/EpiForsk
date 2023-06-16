@@ -81,7 +81,7 @@ OR_function_repeated <- function(
           deparse(substitute(by_var)),
           "=",
           deparse(substitute(by_var_level)),
-          collapse=""
+          collapse = ""
         )
       )
       print(paste0("By_var: ", By_var_name))
@@ -106,7 +106,7 @@ OR_function_repeated <- function(
         Expvar_var_name <- gsub(
           '"',
           "",
-          paste(deparse(substitute(expvars_func_var)),collapse = "")
+          paste(deparse(substitute(expvars_func_var)), collapse = "")
         )
         print(paste0("Expvar: ", Expvar_var_name))
         new_expvar <- unique(c(expvars_func_var, adjustment_fixed))
@@ -138,7 +138,7 @@ OR_function_repeated <- function(
             func_res2 <- func_res2_prp %>%
               mutate(
                 Warning = case_when(
-                  term == "(Intercept)" ~ paste0(func_res1$warning),
+                  .data$term == "(Intercept)" ~ paste0(func_res1$warning),
                   TRUE ~ ""
                 )
               )
@@ -177,7 +177,7 @@ OR_function_repeated <- function(
               Outcome_name = Outcome_var_name,
               Expvar_name = Expvar_var_name
             ) %>%
-            relocate(Error, .after = last_col())
+            relocate("Error", .after = last_col())
           if (k == 1 & i == 1 & j == 1){
             func_table2 <- func_res2
           } else {
@@ -210,9 +210,9 @@ OR_function_repeated <- function(
 
   if (model_object == FALSE) {
     func_table3 <- func_table2 %>%
-      relocate(Expvar_name, .before = 1) %>%
-      relocate(Outcome_name, .before = 1) %>%
-      relocate(By_name, .before = 1)
+      relocate("Expvar_name", .before = 1) %>%
+      relocate("Outcome_name", .before = 1) %>%
+      relocate("By_name", .before = 1)
   } else{
     func_table3 <- func_table2
   }

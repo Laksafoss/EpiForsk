@@ -60,8 +60,8 @@ Freq_function_repeated <- function(
     i <- (i + 1)
   }
   func_table3 <- func_table2 %>%
-    relocate(var_name, .before = 1) %>%
-    rename(Level = func_var)
+    relocate("var_name", .before = 1) %>%
+    rename("Level" = "func_var")
   return(func_table3)
 }
 
