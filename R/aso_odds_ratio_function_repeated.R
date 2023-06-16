@@ -22,8 +22,7 @@
 #         models until done BUT in the output the error text can be seen.
 #Other restrictions from the OR_function() is still relevant here as well as all other options
 
-
-OR_function_repeated <- function(
+odds_ratio_function_repeated <- function(
     normaldata,
     outcomevar,
     expvars,
@@ -112,8 +111,8 @@ OR_function_repeated <- function(
         )
         print(paste0("Expvar: ", Expvar_var_name))
         new_expvar <- unique(c(expvars_func_var, adjustment_fixed))
-        func_res1 <- catch_warnings_text(
-          OR_function(
+        func_res1 <- try_catch_warnings(
+          odds_ratio_function(
             normaldata = func_table1_2,
             outcomevar = outcome_func_var,
             expvars = new_expvar,
@@ -127,7 +126,8 @@ OR_function_repeated <- function(
             surveydata = surveydata,
             textvar = textvar,
             model_object = model_object
-          )
+          ),
+          character = TRUE
         )
         if (model_object == FALSE & func_res1$error == ''){
           func_res2_prp <- func_res1$value |>

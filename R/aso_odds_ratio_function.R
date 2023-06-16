@@ -54,7 +54,7 @@ require(survey) #For when surveydata are in use (might be used in functions to g
 require(nnet) #for polytomous/multinomial models
 require(svyVGAM) #For more advanced analyses using survey data (like polytomous/multinomial regression)
 
-OR_function <- function(
+odds_ratio_function <- function(
     normaldata,
     outcomevar,
     expvars,

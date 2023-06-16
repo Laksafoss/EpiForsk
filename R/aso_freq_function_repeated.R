@@ -7,7 +7,7 @@
 #The output will look slightly different from Freq_function() due to not only having one variable,
 #   but otherwise Freq_function_repeated should give the same.
 
-Freq_function_repeated <- function(
+freq_function_repeated <- function(
     normaldata,
     var1,
     var2 = NULL,
