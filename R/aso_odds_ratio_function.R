@@ -63,9 +63,9 @@
 #' @param model_object
 #'
 #' @return
-#' @export
 #'
 #' @examples
+#' @export
 odds_ratio_function <- function(
     normaldata,
     outcomevar,
