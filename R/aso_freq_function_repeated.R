@@ -7,37 +7,79 @@
 #The output will look slightly different from Freq_function() due to not only having one variable,
 #   but otherwise Freq_function_repeated should give the same.
 
-Freq_function_repeated <- function(normaldata,
-                                   var1,
-                                   var2=NULL,
-                                   by_vars=NULL,
-                                   include_NA=FALSE,
-                                   values_to_remove=NULL,
-                                   weightvar=NULL,
-                                   textvar=NULL,
-                                   number_decimals=2,
-                                   output="all",
-                                   chisquare=FALSE) {
-  func_table1 <- normaldata %>%
-    dplyr::select(all_of({{var1}}), all_of({{var2}}), all_of({{weightvar}}), all_of({{by_vars}}))
+#' Title
+#'
+#' @param normaldata
+#' @param var1
+#' @param var2
+#' @param by_vars
+#' @param include_NA
+#' @param values_to_remove
+#' @param weightvar
+#' @param textvar
+#' @param number_decimals
+#' @param output
+#' @param chisquare
+#'
+#' @return
+#'
+#' @examples
+#' @export
+freq_function_repeated <- function(
+    normaldata,
+    var1,
+    var2 = NULL,
+    by_vars = NULL,
+    include_NA = FALSE,
+    values_to_remove = NULL,
+    weightvar = NULL,
+    textvar = NULL,
+    number_decimals = 2,
+    output = "all",
+    chisquare = FALSE
+) {
+  func_table1 <- normaldata |>
+    dplyr::select(
+      tidyselect::all_of({{ var1 }}),
+      tidyselect::all_of({{ var2 }}),
+      tidyselect::all_of({{ weightvar }}),
+      tidyselect::all_of({{ by_vars }})
+    )
 
   var_count <- length(var1)
-  #return(var_count)
+
   i <- 1
-  while(i <= var_count){
-    func_var <- nth(var1, n=i)
-    Orig_var_name <- gsub('"',"",paste(deparse(substitute(func_var)),collapse=""))
-    #return(func_var)
-    func_freqs <- Freq_function_v2(normaldata = func_table1, var1=func_var, var2 = var2, by_vars = by_vars,
-                                   include_NA = include_NA,
-                                   values_to_remove = values_to_remove, weightvar = weightvar, textvar = textvar,
-                                   number_decimals = number_decimals, output = output, chisquare = chisquare)
-    func_freqs2 <- func_freqs %>% mutate(var_name=Orig_var_name)
-    if(i==1){func_table2 <- func_freqs2}
-    else {func_table2 <- bind_rows(func_table2, func_freqs2)}
-    i <- (i+1)
+  while (i <= var_count){
+    func_var <- dplyr::nth(var1, n = i)
+    Orig_var_name <- gsub(
+      '"',
+      "",
+      paste(deparse(substitute(func_var)), collapse = "")
+    )
+    func_freqs <- freq_function(
+      normaldata = func_table1,
+      var1 = func_var,
+      var2 = var2,
+      by_vars = by_vars,
+      include_NA = include_NA,
+      values_to_remove = values_to_remove,
+      weightvar = weightvar,
+      textvar = textvar,
+      number_decimals = number_decimals,
+      output = output,
+      chisquare = chisquare
+    )
+    func_freqs2 <- func_freqs |> dplyr::mutate(var_name = Orig_var_name)
+    if (i == 1){
+      func_table2 <- func_freqs2
+    } else {
+      func_table2 <- dplyr::bind_rows(func_table2, func_freqs2)
+    }
+    i <- (i + 1)
   }
-  func_table3 <- func_table2 %>% relocate(var_name, .before=1) %>% rename(Level=func_var)
+  func_table3 <- func_table2 |>
+    dplyr::relocate("var_name", .before = 1) |>
+    dplyr::rename("Level" = "func_var")
   return(func_table3)
 }
 
