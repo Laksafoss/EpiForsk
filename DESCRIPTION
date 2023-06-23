@@ -26,6 +26,7 @@ Imports:
     ggplot2,
     glue,
     grf,
+    gridExtra,
     Hmisc,
     MatchIt,
     methods,
@@ -47,6 +48,7 @@ Depends:
     R (>= 4.2)
 LazyData: true
 Suggests: 
+    ggsci,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)

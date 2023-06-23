@@ -10,18 +10,18 @@
 #'   covariate names from the causal_forest object, while the names attribute
 #'   should contain the names to use when plotting. If the vector is unnamed,
 #'   the provided vector will act as the new covariate names, given in the order
-#'   of cf$X_orig. If `NULL` (the default), the original names are used.
+#'   of `cf$X_orig`. If `NULL` (the default), the original names are used.
 #' @param treatment_name Character, name of treatment.
 #' @param asmd_breaks Numeric, breaks used in the plot of absolute standardized
 #'   mean differences.
-#' @param asmd_xlim Numeric, x-limits used in the plot of absolute standardized
-#'   mean differences.
+#' @param asmd_xlim Numeric, `x`-limits used in the plot of absolute
+#'   standardized mean differences.
 #' @param asmd_scale_color Function, `scale_color_.` function to use in the plot
 #'   of absolute standardized mean differences.
 #' @param cd_nrow,cd_ncol Numeric, the dimensions of the grid to create in
-#'   covariate distribution plots. If both are NULL it will use the same logic
-#'   as \link[ggplot2]{facet_wrap} to set the dimensions
-#' @param cd_x_scale_width Numeric, the distance between major x-axis tics in
+#'   covariate distribution plots. If both are `NULL` it will use the same logic
+#'   as \link[ggplot2]{facet_wrap} to set the dimensions.
+#' @param cd_x_scale_width Numeric, the distance between major `x`-axis tics in
 #'   the covariate distribution plots. If `NULL`, a width is chosen to display
 #'   approximately six major tics. If length 1, the same width is used for all
 #'   covariate plots. If the same length as the number of covariates included,
@@ -75,8 +75,8 @@
 #' "no imbalance" = "V4"
 #' ),
 #' treatment_name = "Treatment",
-#' asmd_breaks = seq(0, 0.7, 0.1),
-#' asmd_xlim = c(0, 0.7),
+#' asmd_breaks = seq(0, 0.5, 0.1),
+#' asmd_xlim = c(0, 0.5),
 #' cd_nrow = 2,
 #' cd_x_scale_width = 1,
 #' cd_bar_width = 0.3
@@ -85,29 +85,21 @@
 #' @export
 
 CovariateBalance <- function(cf,
-                             covariates = everything(),
+                             covariates = dplyr::everything(),
                              names = NULL,
                              treatment_name = "W",
                              asmd_breaks = NULL,
                              asmd_xlim = NULL,
-                             asmd_scale_color = ggsci::scale_color_jama(),
+                             asmd_scale_color = NULL,
                              cd_nrow = NULL,
                              cd_ncol = NULL,
                              cd_x_scale_width = NULL,
                              cd_bar_width = NULL,
-                             cd_scale_fill = ggsci::scale_fill_jama()) {
+                             cd_scale_fill = NULL) {
   # check input
   stopifnot(
-    "cf must be a 'causal_forest' object" = !inherits(cf, "causal_forest")
+    "cf must be a 'causal_forest' object" = inherits(cf, "causal_forest")
   )
-  if (!(is.character(treatment_name) && length(treatment_name) == 1)) {
-    stop(
-      paste0(
-        "'treatment_name' must be a single string with the treatment name",
-        "to display in the covariate distribution plots"
-      )
-    )
-  }
   if (!inherits(cf, "grf")) {
     warning(
       paste0(
@@ -124,7 +116,7 @@ CovariateBalance <- function(cf,
         rlang::set_names(names)
     } else {
       X_orig <- tibble::as_tibble(cf$X.orig, .name_repair = "universal") |>
-        dplyr::rename(all_of(names))
+        dplyr::rename(dplyr::all_of(names))
     }
   } else {
     stop(paste0(
@@ -136,32 +128,60 @@ CovariateBalance <- function(cf,
   }
   X_orig <- dplyr::select(X_orig, {{ covariates }})
   if (!(is.null(cd_x_scale_width) | is.numeric(cd_x_scale_width))) {
-    stop(
+    stop (
       glue::glue(
         "cd_x_scale_width must be NULL or a numeric vector of length 1 or ",
         "{ncol(X_orig)}.")
     )
   } else if (!(length(cd_x_scale_width) %in% c(0, 1, ncol(X_orig)))) {
-    stop(
+    stop (
       glue::glue(
         "cd_x_scale_width has the wrong length. Must be NULL or have ",
         "length 1 or {ncol(X_orig)}."
       )
     )
   }
-  if (!(is.null(cd_bar_width) | is.numeric(cd_bar_width))) {
-    stop(
+  if (!(is.character(treatment_name) && length(treatment_name) == 1)) {
+    stop (
+      paste0(
+        "'treatment_name' must be a single string with the treatment name",
+        "to display in the covariate distribution plots"
+      )
+    )
+  }
+  if (!(is.null(cd_bar_width) || is.numeric(cd_bar_width))) {
+    stop (
       glue::glue(
         "cd_bar_width must be NULL or a numeric vector of length 1 or ",
         "{ncol(X_orig)}.")
     )
   } else if (!(length(cd_bar_width) %in% c(0, 1, ncol(X_orig)))) {
-    stop(
+    stop (
       glue::glue(
         "cd_bar_width has the wrong length. Must be NULL or have ",
         "length 1 or {ncol(X_orig)}."
       )
     )
+  }
+  if (!(is.null(cd_nrow) || (is.numeric(cd_nrow) && cd_nrow > 0.5))) {
+    stop ("cd_nrow must be NULL or a positive integer.")
+  }
+  if (!(is.null(cd_ncol) || (is.numeric(cd_ncol) && cd_ncol > 0.5))) {
+    stop ("cd_ncol must be NULL or a positive integer.")
+  }
+  if (is.null(asmd_scale_color)) {
+    if (requireNamespace("ggsci", quietly = TRUE)) {
+      asmd_scale_color <- ggsci::scale_color_jama()
+    } else {
+      asmd_scale_color <- ggplot2::scale_color_discrete()
+    }
+  }
+  if (is.null(cd_scale_fill)) {
+    if (requireNamespace("ggsci", quietly = TRUE)) {
+      cd_scale_fill <- ggsci::scale_fill_jama()
+    } else {
+      cd_scale_fill <- ggplot2::scale_fill_discrete()
+    }
   }
   # create absolute standardised mean difference plot
   funs <- c(mean = mean, var = var)
@@ -197,7 +217,7 @@ CovariateBalance <- function(cf,
       std_abs_mean_diff_adj = abs(diff(mean)) / sqrt(sum(var)),
       .by = "name"
     ) |>
-    dplyr::arrange(std_abs_mean_diff_adj)
+    dplyr::arrange(.data$std_abs_mean_diff_adj)
   asmd_plot_data <-
     dplyr::inner_join(
       df_ori,
@@ -206,9 +226,9 @@ CovariateBalance <- function(cf,
       relationship = "one-to-one"
     ) |>
     dplyr::rename(
-      covariate_name = name,
-      `Before adjustment` = std_abs_mean_diff,
-      `After adjustment` = std_abs_mean_diff_adj
+      covariate_name = "name",
+      `Before adjustment` = "std_abs_mean_diff",
+      `After adjustment` = "std_abs_mean_diff_adj"
     ) |>
     tidyr::pivot_longer(
       cols = c("Before adjustment", "After adjustment"),
@@ -216,21 +236,28 @@ CovariateBalance <- function(cf,
       values_to = "value"
     )
   covariate_name_ordered <- asmd_plot_data |>
-    dplyr::filter(Cohort == "Before adjustment") |>
-    dplyr::arrange(value)
+    dplyr::filter(.data$Cohort == "Before adjustment") |>
+    dplyr::arrange(.data$value)
   asmd_plot_data <- asmd_plot_data |>
     dplyr::mutate(
       covariate_name = factor(
-        covariate_name,
+        .data$covariate_name,
         levels = covariate_name_ordered$covariate_name
       )
     )
   std_abs_mean_diff <- asmd_plot_data |>
     ggplot2::ggplot(
-      ggplot2::aes(x = value, y = covariate_name, colour = Cohort)
+      ggplot2::aes(
+        x = .data$value,
+        y = .data$covariate_name,
+        colour = .data$Cohort
+      )
     ) +
     ggplot2::geom_point(size = 2) +
-    ggplot2::geom_line(ggplot2::aes(group = Cohort), orientation = "y") +
+    ggplot2::geom_line(
+      ggplot2::aes(group = .data$Cohort),
+      orientation = "y"
+    ) +
     ggplot2::geom_vline(xintercept = 0, linetype = 1) +
     ggplot2::geom_vline(xintercept = 0.1, linetype = 2) +
     ggplot2::ylab("") +
@@ -257,7 +284,11 @@ CovariateBalance <- function(cf,
   cd_plot_data <- tibble::tibble(
     X_orig,
     "{treatment_name}" := as.factor(cf$W.orig),
-    IPW = ifelse(W == 1, 1 / cf$W.hat, 1 / (1 - cf$W.hat))
+    IPW = ifelse(
+      !!rlang::sym(treatment_name) == 1,
+      1 / cf$W.hat,
+      1 / (1 - cf$W.hat)
+    )
   ) |>
     tidyr::pivot_longer(
       cols = names(X_orig),
@@ -277,8 +308,8 @@ CovariateBalance <- function(cf,
       names(X_orig),
       \(names) {
         cd_plot_data |>
-          dplyr::filter(covariate_name == names) |>
-          dplyr::pull(covariate_values) |>
+          dplyr::filter(.data$covariate_name == names) |>
+          dplyr::pull(.data$covariate_values) |>
           (\(x) signif(diff(range(x)), 1) / 5)()
       }
     )
@@ -295,8 +326,8 @@ CovariateBalance <- function(cf,
       plot_type,
       \(names, type) {
         cd_plot_data |>
-          dplyr::filter(covariate_name == names) |>
-          dplyr::pull(covariate_values) |>
+          dplyr::filter(.data$covariate_name == names) |>
+          dplyr::pull(.data$covariate_values) |>
           (\(x) {
             if (type == "bar") {
               0.9 * ggplot2::resolution(x)
@@ -322,22 +353,30 @@ CovariateBalance <- function(cf,
     ),
     \(names, type, cd_x_scale_width, cd_bar_width) {
       p <- cd_plot_data |>
-        dplyr::filter(covariate_name == names) |>
+        dplyr::filter(.data$covariate_name == names) |>
         ggplot2::ggplot() +
-        ggplot2::facet_grid(~ covariate_name)
+        ggplot2::facet_grid(~ .data$covariate_name)
       if(type == "bar") {
-        p <- p + ggplot2::geom_bar(
-          ggplot2::aes(x = covariate_values, fill = .data[[treatment_name]]),
-          position = "dodge",
-          width = cd_bar_width
-        )
+        p <- p +
+          ggplot2::geom_bar(
+            ggplot2::aes(
+              x = .data$covariate_values,
+              fill = .data[[treatment_name]]
+            ),
+            position = "dodge",
+            width = cd_bar_width
+          )
       } else {
-        p <- p + ggplot2::geom_histogram(
-          ggplot2::aes(x = covariate_values, fill = .data[[treatment_name]]),
-          alpha = 0.5,
-          position = "identity",
-          binwidth = cd_bar_width
-        )
+        p <- p +
+          ggplot2::geom_histogram(
+            ggplot2::aes(
+              x = .data$covariate_values,
+              fill = .data[[treatment_name]]
+            ),
+            alpha = 0.5,
+            position = "identity",
+            binwidth = cd_bar_width
+          )
       }
       p <- p +
         ggplot2::xlab("") +
@@ -345,13 +384,13 @@ CovariateBalance <- function(cf,
         ggplot2::scale_x_continuous(
           breaks = seq(
             cd_plot_data |>
-              dplyr::filter(covariate_name == names)|>
-              dplyr::pull(covariate_values) |>
+              dplyr::filter(.data$covariate_name == names)|>
+              dplyr::pull(.data$covariate_values) |>
               min() |>
               floor_dec(digits = decimalplaces(cd_x_scale_width)),
             cd_plot_data |>
-              dplyr::filter(covariate_name == names)|>
-              dplyr::pull(covariate_values) |>
+              dplyr::filter(.data$covariate_name == names)|>
+              dplyr::pull(.data$covariate_values) |>
               max() |>
               ceiling_dec(digits = decimalplaces(cd_x_scale_width)),
             cd_x_scale_width
@@ -369,30 +408,32 @@ CovariateBalance <- function(cf,
     ),
     \(names, type, cd_x_scale_width, cd_bar_width) {
       p <- cd_plot_data |>
-        dplyr::filter(covariate_name == names) |>
+        dplyr::filter(.data$covariate_name == names) |>
         ggplot2::ggplot() +
-        ggplot2::facet_grid(~ covariate_name)
+        ggplot2::facet_grid(~ .data$covariate_name)
       if(type == "bar") {
-        p <- p + ggplot2::geom_bar(
-          ggplot2::aes(
-            x = covariate_values,
-            weight = IPW,
-            fill = .data[[treatment_name]]
-          ),
-          position = "dodge",
-          width = cd_bar_width
-        )
+        p <- p +
+          ggplot2::geom_bar(
+            ggplot2::aes(
+              x = .data$covariate_values,
+              weight = .data$IPW,
+              fill = .data[[treatment_name]]
+            ),
+            position = "dodge",
+            width = cd_bar_width
+          )
       } else {
-        p <- p + ggplot2::geom_histogram(
-          ggplot2::aes(
-            x = covariate_values,
-            weight = IPW,
-            fill = .data[[treatment_name]]
-          ),
-          alpha = 0.5,
-          position = "identity",
-          binwidth = cd_bar_width
-        )
+        p <- p +
+          ggplot2::geom_histogram(
+            ggplot2::aes(
+              x = .data$covariate_values,
+              weight = .data$IPW,
+              fill = .data[[treatment_name]]
+            ),
+            alpha = 0.5,
+            position = "identity",
+            binwidth = cd_bar_width
+          )
       }
       p <- p +
         ggplot2::xlab("") +
@@ -400,13 +441,13 @@ CovariateBalance <- function(cf,
         ggplot2::scale_x_continuous(
           breaks = seq(
             cd_plot_data |>
-              dplyr::filter(covariate_name == names)|>
-              dplyr::pull(covariate_values) |>
+              dplyr::filter(.data$covariate_name == names)|>
+              dplyr::pull(.data$covariate_values) |>
               min() |>
               floor_dec(digits = decimalplaces(cd_x_scale_width)),
             cd_plot_data |>
-              dplyr::filter(covariate_name == names)|>
-              dplyr::pull(covariate_values) |>
+              dplyr::filter(.data$covariate_name == names)|>
+              dplyr::pull(.data$covariate_values) |>
               max() |>
               ceiling_dec(digits = decimalplaces(cd_x_scale_width)),
             cd_x_scale_width
@@ -416,7 +457,7 @@ CovariateBalance <- function(cf,
     }
   )
   cd_plot_unadjusted <- cowplot::ggdraw(
-    gridExtra::arrangeGrob(
+    arrangeGrob(
       patchwork::patchworkGrob(
         (
           Reduce("+", cov_plots_unadjusted) +
@@ -434,9 +475,11 @@ CovariateBalance <- function(cf,
       left = "count", bottom = "covariate values"
     )
   ) +
-    theme(plot.background = element_rect(fill = "white", color = NA))
+    ggplot2::theme(
+      plot.background = ggplot2::element_rect(fill = "white", color = NA)
+    )
   cd_plot_adjusted <- cowplot::ggdraw(
-    gridExtra::arrangeGrob(
+    arrangeGrob(
       patchwork::patchworkGrob(
         (
           Reduce("+", cov_plots_adjusted) +
@@ -454,7 +497,9 @@ CovariateBalance <- function(cf,
       left = "count", bottom = "covariate values"
     )
   ) +
-    theme(plot.background = element_rect(fill = "white", color = NA))
+    ggplot2::theme(
+      plot.background = ggplot2::element_rect(fill = "white", color = NA)
+    )
 
   return(
     list(
@@ -474,9 +519,6 @@ CovariateBalance <- function(cf,
 #' @param digits integer indicating the number of decimal places
 #'
 #' @return The rounded down numeric vector
-#'
-#' @examples
-#' floor_dec(c(1.23456, 2.34567), level = 2)
 
 floor_dec <- function(x, digits = 1) {
   round(x - 5 * 10^(-digits - 1), digits)
@@ -488,9 +530,6 @@ floor_dec <- function(x, digits = 1) {
 #' @param digits integer indicating the number of decimal places
 #'
 #' @return The rounded up numeric vector
-#'
-#' @examples
-#' ceiling_dec(c(1.23456, 2.34567), level = 2)
 
 ceiling_dec <- function(x, digits = 1) {
   round(x + 5 * 10^(-digits - 1), digits)
@@ -501,9 +540,7 @@ ceiling_dec <- function(x, digits = 1) {
 #' @param x Numeric, a single decimal number
 #'
 #' @return The number of decimal places in x
-#'
-#' @examples
-#' decimalplaces(1.234)
+
 decimalplaces <- function(x) {
   if (abs(x - round(x)) > .Machine$double.eps^0.5) {
     nchar(strsplit(sub("0+$", "", as.character(x)), ".", fixed = TRUE)[[1]][[2]])
