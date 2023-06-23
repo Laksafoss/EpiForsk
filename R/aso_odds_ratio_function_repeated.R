@@ -42,8 +42,12 @@
 #'
 #' @return
 #'
+#' @author ASO
+#'
 #' @examples
+#'
 #' @export
+
 odds_ratio_function_repeated <- function(
     normaldata,
     outcomevar,
@@ -69,7 +73,7 @@ odds_ratio_function_repeated <- function(
   )
 
   func_table1 <- normaldata |>
-    dplyr::select(tidyselect::all_of(func_var_names))
+    dplyr::select(dplyr::all_of(func_var_names))
 
   if (is.null(by_var)){
     by_var_level_count <- 1
@@ -201,7 +205,7 @@ odds_ratio_function_repeated <- function(
               Outcome_name = Outcome_var_name,
               Expvar_name = Expvar_var_name
             ) |>
-            dplyr::relocate("Error", .after = tidyselect::last_col())
+            dplyr::relocate("Error", .after = dplyr::last_col())
           if (k == 1 & i == 1 & j == 1){
             func_table2 <- func_res2
           } else {

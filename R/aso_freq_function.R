@@ -12,16 +12,16 @@
 #'   to stratify the claculations and output by. That is, ALL calculations will
 #'   be made within the combinations of variables in the vector, hence it's
 #'   possible to get N and % for many groups in one go.
-#' @param include_NA A logical. If `FALSE` (standard) missing variables
-#'   (`NA`'s) will be removed from `var1` and `var2`. Any missing values in
-#'   `by_vars` will not be removed. If `TRUE` all missing values will be
-#'   included in calculations and the output.
+#' @param include_NA A logical. If `FALSE` (standard) missing variables (`NA`'s)
+#'   will be removed from `var1` and `var2`. Any missing values in `by_vars`
+#'   will not be removed. If `TRUE` all missing values will be included in
+#'   calculations and the output.
 #' @param values_to_remove An optional character vector. When specified all
 #'   values from `var1` and `var2` found in `values_to_remove` will be removed
 #'   from the calculations and output.
-#' @param weightvar An optional character naming a column in `normaldata`
-#'   with numeric weights for each observation. If `NULL` (standard) all
-#'   observations have weight 1.
+#' @param weightvar An optional character naming a column in `normaldata` with
+#'   numeric weights for each observation. If `NULL` (standard) all observations
+#'   have weight 1.
 #' @param textvar An optional character. When specified `textvar` is added to
 #'   the resulting table as a comment. When `NULL` (standard) no such text
 #'   addition is made.
@@ -30,26 +30,26 @@
 #'   variables.
 #' @param output A character indicating the output type wanted:
 #'   * `"all" - will give ALL output from tables. In many cases unnecessary and
-#'     hard to get an overview of. This is set as the standard.
+#'   hard to get an overview of. This is set as the standard.
 #'   * `"numeric"` - will give frequencies and percents as numeric variables
-#'     only, thus the number_decimals option is not in effect. This option might
-#'    be useful when making figures/graphs.
+#'   only, thus the number_decimals option is not in effect. This option might
+#'   be useful when making figures/graphs.
 #'   * "col" - will only give unweighted number of observations and weighted
-#'     column percent (if weights are used, otherwise unweighted)
+#'   column percent (if weights are used, otherwise unweighted)
 #'   * `"colw"` - will only give weighted number of observations and weighted
-#'     column percent (if weights are used, otherwise unweighted)
+#'   column percent (if weights are used, otherwise unweighted)
 #'   * `"row"`- will only give unweighted number of observations and weighted
-#'     row percent (if weights are used, otherwise unweighted). Only works in
-#'     two-way tables (`var2` is specified)
+#'   row percent (if weights are used, otherwise unweighted). Only works in
+#'   two-way tables (`var2` is specified)
 #'   * `"roww"` - will only give weighted number of oberservations and weighted
-#'     column percent (if weights are used, otherwise unweighted). Only works in
-#'     two-way tables (`var2` is specified)
+#'   column percent (if weights are used, otherwise unweighted). Only works in
+#'   two-way tables (`var2` is specified)
 #'   * `"total"` - will only give unweighted number of observations and
-#'     weighted percent of the total (if weights are used, otherwise
-#'     unweighted). Only works in two-way tables (`var2` is specified)
+#'   weighted percent of the total (if weights are used, otherwise unweighted).
+#'   Only works in two-way tables (`var2` is specified)
 #'   * `"totalw"` - will only give weighted number of observations and
-#'     weighted percent of the total (if weights are used, otherwise
-#'     unweighted). Only works in two-way tables (`var2` is specified)
+#'   weighted percent of the total (if weights are used, otherwise unweighted).
+#'   Only works in two-way tables (`var2` is specified)
 #'   * Any other text will give the default ("all")
 #' @param chisquare A logical. `FALSE` (standard) will not calculate p-value for
 #'   the chi-square test for two-way tables (`var2` is specified). If `TRUE`,
@@ -58,8 +58,9 @@
 #'   the output whichever output option have been specified. No chi-square test
 #'   is performed or included in one-way tables (`var2` is unspecified)
 #'
-#' @return
-#' A data frame.
+#' @return A data frame.
+#'
+#' @author ASO
 #'
 #' @examples
 #' data("starwars", package = "dplyr")
@@ -142,10 +143,10 @@ freq_function <- function(
   # Select only mentioned variables from called data (not using specifications)
   func_table1 <- normaldata |>
     dplyr::select(
-      tidyselect::all_of({{ var1 }}),
-      tidyselect::all_of({{ var2 }}),
-      tidyselect::all_of({{ weightvar }}),
-      tidyselect::all_of({{ by_vars }})
+      dplyr::all_of({{ var1 }}),
+      dplyr::all_of({{ var2 }}),
+      dplyr::all_of({{ weightvar }}),
+      dplyr::all_of({{ by_vars }})
     )
 
   # Encoding for weight variable - unless a precalculated weight should be used,
@@ -282,7 +283,7 @@ freq_function <- function(
     } else if (output == "numeric") {
       func_table11 <- dplyr::select(
         func_table10,
-        -tidyselect::starts_with("Freq")
+        -dplyr::starts_with("Freq")
       )
     } else if (output == "col") {
       func_table11 <- dplyr::select(
@@ -331,7 +332,7 @@ freq_function <- function(
         Variable = .data$Variable1
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var",
         "Variable",
         "n",
@@ -354,7 +355,7 @@ freq_function <- function(
         n_weighted = .data$n_weighted_total
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var",
         "Variable",
         "n",
@@ -389,7 +390,7 @@ freq_function <- function(
         N_weighted = .data$n_weighted
       ) |> #,
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Level",
         "N",
         "N_weighted",
@@ -411,7 +412,7 @@ freq_function <- function(
     } else if (output == "numeric"){
       func_table11 <- dplyr::select(
         func_table10,
-        -tidyselect::starts_with("Freq")
+        -dplyr::starts_with("Freq")
       )
     } else if (output == "col"){
       func_table11 <- dplyr::select(
@@ -844,91 +845,91 @@ freq_function <- function(
     } else if (output == "numeric") {
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("Freq")
+        -dplyr::starts_with("Freq")
       )
     } else if (output == "col"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "colw"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_")
       )
     } else if (output == "row"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "roww"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "total"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "totalw"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else {
       func_table26 <- func_table25
@@ -957,7 +958,7 @@ freq_function <- function(
         Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2))
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -979,7 +980,7 @@ freq_function <- function(
         Variable3 = "Total"
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Variable1",
         "Variable2" = "Variable3",
@@ -1000,7 +1001,7 @@ freq_function <- function(
         Variable3 = "Total"
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var2",
         "Variable1" = "Variable3",
         "Variable2",
@@ -1022,7 +1023,7 @@ freq_function <- function(
         Variable3 = "Total"
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable" = "Variable3",
@@ -1039,7 +1040,7 @@ freq_function <- function(
       func_table7
     ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1058,7 +1059,7 @@ freq_function <- function(
       func_table10
     ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1077,7 +1078,7 @@ freq_function <- function(
       func_table9
     ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1106,7 +1107,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1135,7 +1136,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1164,7 +1165,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1" = "Variable3",
@@ -1186,7 +1187,7 @@ freq_function <- function(
         Row_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100)
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1" = "Variable3",
@@ -1248,7 +1249,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        tidyselect::all_of({{ by_vars }}),
+        dplyr::all_of({{ by_vars }}),
         "Func_var2",
         "Variable1",
         "Variable2",
@@ -1314,7 +1315,7 @@ freq_function <- function(
     func_table22 <- suppressMessages(
       dplyr::full_join(func_table22_1, func_table22_2)
     ) |>
-      dplyr::arrange(dplyr::across(tidyselect::all_of({{ by_vars }})))
+      dplyr::arrange(dplyr::across(dplyr::all_of({{ by_vars }})))
 
     if (chisquare == TRUE) {
       # Calculating expected numbers for each cell
@@ -1390,91 +1391,91 @@ freq_function <- function(
     } else if (output == "numeric"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("Freq")
+        -dplyr::starts_with("Freq")
       )
     } else if (output == "col"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "colw"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_")
       )
     } else if (output == "row"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "roww"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "total"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freqw_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freqw_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else if (output == "totalw"){
       func_table26 <- dplyr::select(
         func_table25,
-        -tidyselect::starts_with("N_"),
-        -tidyselect::starts_with("Weighted_N_"),
-        -tidyselect::starts_with("Row_pct_"),
-        -tidyselect::starts_with("Column_pct_"),
-        -tidyselect::starts_with("Total_pct_"),
-        -tidyselect::starts_with("Freq_total_"),
-        -tidyselect::starts_with("Freq_row_"),
-        -tidyselect::starts_with("Freqw_row_"),
-        -tidyselect::starts_with("Freq_col_"),
-        -tidyselect::starts_with("Freqw_col_")
+        -dplyr::starts_with("N_"),
+        -dplyr::starts_with("Weighted_N_"),
+        -dplyr::starts_with("Row_pct_"),
+        -dplyr::starts_with("Column_pct_"),
+        -dplyr::starts_with("Total_pct_"),
+        -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freq_row_"),
+        -dplyr::starts_with("Freqw_row_"),
+        -dplyr::starts_with("Freq_col_"),
+        -dplyr::starts_with("Freqw_col_")
       )
     } else {
       func_table26 <- func_table25

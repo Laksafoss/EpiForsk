@@ -171,12 +171,12 @@ data <- 1:5 |>
   purrr::map(
     \(x) {
       name = paste0("cov", x);
-      tibble::tibble(!!name := rnorm(100, 1))
+      tibble::tibble("{name}" := rnorm(100, 1))
     }
   ) |>
   purrr::list_cbind() |>
   dplyr::mutate(
-  y = rowSums(dplyr::across(tidyselect::everything())) + rnorm(100)
+  y = rowSums(dplyr::across(dplyr::everything())) + rnorm(100)
   )
 lm <- lm(
  as.formula(

@@ -126,8 +126,8 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
     data |>
       dplyr::select(
         !!formula[[2]],
-        tidyselect::all_of(grp_id),
-        tidyselect::all_of(obs_id)
+        dplyr::all_of(grp_id),
+        dplyr::all_of(obs_id)
       )
   )
   outcome_trans <- eval(
@@ -164,14 +164,14 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   } else {
     mod_data <- dplyr::bind_cols(
       model_matrix_trans,
-      outcome_trans |> dplyr::select(-tidyselect::all_of(grp_id))
+      outcome_trans |> dplyr::select(-dplyr::all_of(grp_id))
     )
   }
   # OLS model fitting demeaned data
   mod <- lm(
     formula = formula(paste0(formula[[2]], "~ . - 1")),
     data = mod_data |>
-      dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id))),
+      dplyr::select(-c(dplyr::all_of(obs_id), dplyr::all_of(grp_id))),
     ...
   )
   # return enriched OLS model

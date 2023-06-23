@@ -64,8 +64,12 @@
 #'
 #' @return
 #'
+#' @author ASO
+#'
 #' @examples
+#'
 #' @export
+
 odds_ratio_function <- function(
     normaldata,
     outcomevar,
@@ -113,10 +117,10 @@ odds_ratio_function <- function(
   # (effectively dropping all other variables)
   func_table1 <- normaldata |>
     dplyr::select(
-      "Outc" = tidyselect::all_of(outcomevar),
-      tidyselect::all_of(new_expvars),
-      "matchID" = tidyselect::all_of(matchgroup),
-      "weight_used" = tidyselect::all_of(weightvar)
+      "Outc" = dplyr::all_of(outcomevar),
+      dplyr::all_of(new_expvars),
+      "matchID" = dplyr::all_of(matchgroup),
+      "weight_used" = dplyr::all_of(weightvar)
     )
 
   # Setting weights (unless specified, weight will be 1)
@@ -131,7 +135,7 @@ odds_ratio_function <- function(
   # Removing observations with missing in ANY of the used variables
   used_var <- ls(func_table2)
   func_table3 <- func_table2 |>
-    dplyr::filter(dplyr::if_all(tidyselect::all_of(used_var), ~ !is.na(.x)))
+    dplyr::filter(dplyr::if_all(dplyr::all_of(used_var), ~ !is.na(.x)))
 
   # Removes specified observation values in any of the used variables IF the
   # option "values_to_remove" is given (as vector)
@@ -145,7 +149,7 @@ odds_ratio_function <- function(
     func_table4_prp <- func_table3 |>
       dplyr::filter(
         dplyr::if_all(
-          tidyselect::all_of(used_var),
+          dplyr::all_of(used_var),
           ~ !as.character(.x) %in% values_to_remove
         )
       )
@@ -562,7 +566,7 @@ odds_ratio_function <- function(
       Upper_confidence_limit = exp(.data$estimate + .data$std.error * .data$z)
     ) |>
     dplyr::select(
-      tidyselect::any_of(c(
+      dplyr::any_of(c(
         "y.level",
         "term",
         "OR",
@@ -574,7 +578,7 @@ odds_ratio_function <- function(
     )
 
   #Getting reference groups for factors
-  func_table7 <- func_table4 |> dplyr::select(tidyselect::all_of(new_expvars))
+  func_table7 <- func_table4 |> dplyr::select(dplyr::all_of(new_expvars))
   func_table7_var_count <- ncol(func_table7)
   func_table7_levels <- lapply(func_table7, levels)
 
@@ -685,9 +689,9 @@ odds_ratio_function <- function(
   ) |>
     dplyr::full_join(Full_model_info, by = c("term", "sortnr")) |>
     dplyr::relocate("Model_info", .after = "N") |>
-    dplyr::rename(tidyselect::any_of(c("Outcome_level"="y.level"))) |>
+    dplyr::rename(dplyr::any_of(c("Outcome_level"="y.level"))) |>
     dplyr::arrange(
-      dplyr::across(tidyselect::any_of(c("Outcome_level", "sortnr", "term")))
+      dplyr::across(dplyr::any_of(c("Outcome_level", "sortnr", "term")))
     ) |>
     dplyr::select(-"sortnr")
 
@@ -722,6 +726,7 @@ odds_ratio_function <- function(
 #'
 #' @return
 #' A "summary.svy_vglm" object is returned.
+
 summary.svy_vglm <- function(object, ...) {
   object$coeftable <- cbind(
     Coef = object$coef,

@@ -39,14 +39,14 @@
 #' @author KIJA
 #'
 #' @examples
-#' n <- 1500
+#' n <- 1000
 #' p <- 5
 #' X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
 #' W <- rbinom(n, 1, 0.5)
 #' event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 #' Y <- rbinom(n, 1, event_prob)
 #' cf <- grf::causal_forest(X, Y, W)
-#' cf_ds <- CausalForestDynamicSubgroups(cf)
+#' cf_ds <- CausalForestDynamicSubgroups(cf, 2, 4)
 #'
 #' @export
 
@@ -381,7 +381,7 @@ CausalForestDynamicSubgroups <- function(forest,
       "Estimate",
       "Std. Error",
       "95 % CI",
-      tidyselect::everything()
+      dplyr::everything()
     )
 
   # Plot heatmap with average of covariates in each group

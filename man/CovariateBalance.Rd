@@ -89,7 +89,7 @@ The plot theme can be adjusted using ggplot2 active theme modifiers,
 see \link[ggplot2]{theme_get}.
 }
 \examples{
-n <- 1500
+n <- 1000
 p <- 5
 X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
 expo_prob <- 1 / (1 + exp(0.2 * X[, 1] + 0.1 * X[, 2] - 0.3 * X[, 3]))

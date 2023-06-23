@@ -1,16 +1,18 @@
 #' Merging Many Data Frames with Name Handling
 #'
-#' Function to join/merge multiple data.frames with one or more common
-#' variable names.
+#' Function to join/merge multiple data.frames with one or more common variable
+#' names.
 #'
-#' @param by A join specification created with \code{\link[dplyr:join_by]{join_by()}}, or a character vector of variables to
-#'   join by. The `by` must be present in all data frames `first_data` and
+#' @param by A join specification created with
+#'   \code{\link[dplyr:join_by]{join_by()}}, or a character vector of variables
+#'   to join by. The `by` must be present in all data frames `first_data` and
 #'   `...`.
 #' @param first_data A data frame (presented on the left in the final table).
 #' @param ... Data frames to merge onto `first_data`.
 #'
-#' @return
-#' The `many_merge()` function returns a data frame.
+#' @return The `many_merge()` function returns a data frame.
+#'
+#' @author ASO
 #'
 #' @examples
 #'
@@ -40,6 +42,7 @@
 #' )
 #'
 #' @export
+
 many_merge <- function(by, first_data, ...) {
   func_table <- first_data
   func_list <- list(...)

@@ -14,11 +14,11 @@
 #'
 #' @examples
 #' mtcars |>
-#' dplyr::mutate(across(c(2, 8:11), factor)) |>
+#' dplyr::mutate(dplyr::across(c(2, 8:11), factor)) |>
 #'  as.data.frame() |>
 #'  DiscreteCovariatesToOneHot(cyl)
 #' mtcars |>
-#' dplyr::mutate(across(c(2, 8:11), factor)) |>
+#' dplyr::mutate(dplyr::across(c(2, 8:11), factor)) |>
 #'  as.data.frame() |>
 #'  DiscreteCovariatesToOneHot(c(2, 8:11))
 #'
@@ -54,23 +54,16 @@ DiscreteCovariatesToOneHot <- function(df,
       )
     }
   }
-  df_o <- suppressMessages(
+  df_o <-
     purrr::map(
       names(df_f),
-      \(x) model.matrix(~ df_f[[x]] + 0)
+      \(x) {
+        out <- model.matrix(~ df_f[[x]] + 0)
+        dimnames(out)[[2]] <- paste0(x, "_", levels(df_f[[x]]))
+        return(out)
+      }
     ) |>
-      purrr::map(dplyr::as_tibble) |>
-      purrr::list_cbind()
-  )
-  nm <- c()
-  for(i in seq_along(names(df_f))) {
-    for(j in seq_along(levels(df_f[[names(df_f)[i]]]))) {
-      nm <- c(
-        nm,
-        paste0(names(df_f)[i], "_", levels(df_f[[names(df_f)[i]]])[j])
-      )
-    }
-  }
-  names(df_o) <- nm
+    purrr::map(dplyr::as_tibble) |>
+    purrr::list_cbind()
   return(dplyr::bind_cols(df_r, df_o))
 }

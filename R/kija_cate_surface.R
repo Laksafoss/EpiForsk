@@ -179,7 +179,7 @@ CATESurface <- function(forest,
 
   # Generate grid of covariate values in which to evaluate CATE
   X_continuous <- tibble::as_tibble(forest$X.orig) |>
-    dplyr::select(tidyselect::all_of(continuous_covariates))
+    dplyr::select(dplyr::all_of(continuous_covariates))
   data_grid <- purrr::map2(
     X_continuous,
     grid,
@@ -206,7 +206,7 @@ CATESurface <- function(forest,
   names(discrete_values) <- discrete_covariates_input
   data_grid <- c(data_grid, discrete_values)
   X_other <- tibble::as_tibble(forest$X.orig) |>
-    dplyr::select(tidyselect::all_of(other_covariates))
+    dplyr::select(dplyr::all_of(other_covariates))
   fixed_values <- purrr::map_dbl(X_other, fixed_covariate_fct)
   if(!is.null(other_discrete)) {
     fixed_values[
@@ -243,7 +243,7 @@ CATESurface <- function(forest,
   X_grid <- rlang::exec(tidyr::expand_grid, !!!data_grid)
   X_grid <- tidyr::unnest(
     X_grid,
-    cols = tidyselect::all_of(discrete_covariates_input)
+    cols = dplyr::all_of(discrete_covariates_input)
   )
 
   # predict CATE in grid of points on surface

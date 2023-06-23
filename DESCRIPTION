@@ -42,7 +42,6 @@ Imports:
     svyVGAM,
     tibble,
     tidyr,
-    tidyselect (>= 1.2.0),
     VGAM
 Depends: 
     R (>= 4.2)

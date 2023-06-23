@@ -120,7 +120,7 @@ and the baseline risk of the subject receiving control (tau_hat_method =
 "treatment").
 }
 \examples{
-n <- 1500
+n <- 1000
 p <- 5
 X <- matrix(rnorm(n * p), n, p)
 W <- rbinom(n, 1, 0.5)

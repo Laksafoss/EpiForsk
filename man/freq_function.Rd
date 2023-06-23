@@ -32,18 +32,18 @@ to stratify the claculations and output by. That is, ALL calculations will
 be made within the combinations of variables in the vector, hence it's
 possible to get N and \% for many groups in one go.}
 
-\item{include_NA}{A logical. If \code{FALSE} (standard) missing variables
-(\code{NA}'s) will be removed from \code{var1} and \code{var2}. Any missing values in
-\code{by_vars} will not be removed. If \code{TRUE} all missing values will be
-included in calculations and the output.}
+\item{include_NA}{A logical. If \code{FALSE} (standard) missing variables (\code{NA}'s)
+will be removed from \code{var1} and \code{var2}. Any missing values in \code{by_vars}
+will not be removed. If \code{TRUE} all missing values will be included in
+calculations and the output.}
 
 \item{values_to_remove}{An optional character vector. When specified all
 values from \code{var1} and \code{var2} found in \code{values_to_remove} will be removed
 from the calculations and output.}
 
-\item{weightvar}{An optional character naming a column in \code{normaldata}
-with numeric weights for each observation. If \code{NULL} (standard) all
-observations have weight 1.}
+\item{weightvar}{An optional character naming a column in \code{normaldata} with
+numeric weights for each observation. If \code{NULL} (standard) all observations
+have weight 1.}
 
 \item{textvar}{An optional character. When specified \code{textvar} is added to
 the resulting table as a comment. When \code{NULL} (standard) no such text
@@ -71,11 +71,11 @@ two-way tables (\code{var2} is specified)
 column percent (if weights are used, otherwise unweighted). Only works in
 two-way tables (\code{var2} is specified)
 \item \code{"total"} - will only give unweighted number of observations and
-weighted percent of the total (if weights are used, otherwise
-unweighted). Only works in two-way tables (\code{var2} is specified)
+weighted percent of the total (if weights are used, otherwise unweighted).
+Only works in two-way tables (\code{var2} is specified)
 \item \code{"totalw"} - will only give weighted number of observations and
-weighted percent of the total (if weights are used, otherwise
-unweighted). Only works in two-way tables (\code{var2} is specified)
+weighted percent of the total (if weights are used, otherwise unweighted).
+Only works in two-way tables (\code{var2} is specified)
 \item Any other text will give the default ("all")
 }}
 
@@ -117,4 +117,7 @@ test_table3 <- freq_function(
   number_decimals = 5
 )
 
+}
+\author{
+ASO
 }

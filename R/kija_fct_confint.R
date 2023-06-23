@@ -73,12 +73,12 @@
 #'   purrr::map(
 #'     \(x) {
 #'       name = paste0("cov", x);
-#'       tibble::tibble(!!name := rnorm(100, 1))
+#'       tibble::tibble("{name}" := rnorm(100, 1))
 #'     }
 #'   ) |>
 #'   purrr::list_cbind() |>
 #'   dplyr::mutate(
-#'   y = rowSums(dplyr::across(tidyselect::everything())) + rnorm(100)
+#'   y = rowSums(dplyr::across(dplyr::everything())) + rnorm(100)
 #'   )
 #' lm <- lm(
 #'  as.formula(
@@ -307,14 +307,14 @@ fct_confint.lm <- function(
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
-    dplyr::select("estimate", tidyselect::everything())
+    dplyr::select("estimate", dplyr::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
     ci_data <- ci_data |>
-      dplyr::select("estimate", "conf.low", "conf.high", tidyselect::everything())
+      dplyr::select("estimate", "conf.low", "conf.high", dplyr::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
     ci_data <- ci_data |>
@@ -504,14 +504,14 @@ fct_confint.glm <- function(
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
-    dplyr::select("estimate", tidyselect::everything())
+    dplyr::select("estimate", dplyr::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
     ci_data <- ci_data |>
-      dplyr::select("estimate", "conf.low", "conf.high", tidyselect::everything())
+      dplyr::select("estimate", "conf.low", "conf.high", dplyr::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
     ci_data <- ci_data |>
@@ -707,14 +707,14 @@ fct_confint.lms <- function(
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
-    dplyr::select("estimate", tidyselect::everything())
+    dplyr::select("estimate", dplyr::everything())
 
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
   if(return_beta) {
     ci_data <- ci_data |>
-      dplyr::select("estimate", "conf.low", "conf.high", tidyselect::everything())
+      dplyr::select("estimate", "conf.low", "conf.high", dplyr::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
   } else {
     ci_data <- ci_data |>

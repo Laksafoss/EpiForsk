@@ -7,8 +7,9 @@
 many_merge(by, first_data, ...)
 }
 \arguments{
-\item{by}{A join specification created with \code{\link[dplyr:join_by]{join_by()}}, or a character vector of variables to
-join by. The \code{by} must be present in all data frames \code{first_data} and
+\item{by}{A join specification created with
+\code{\link[dplyr:join_by]{join_by()}}, or a character vector of variables
+to join by. The \code{by} must be present in all data frames \code{first_data} and
 \code{...}.}
 
 \item{first_data}{A data frame (presented on the left in the final table).}
@@ -19,8 +20,8 @@ join by. The \code{by} must be present in all data frames \code{first_data} and
 The \code{many_merge()} function returns a data frame.
 }
 \description{
-Function to join/merge multiple data.frames with one or more common
-variable names.
+Function to join/merge multiple data.frames with one or more common variable
+names.
 }
 \examples{
 
@@ -49,4 +50,7 @@ final_data <- many_merge(
   data5
 )
 
+}
+\author{
+ASO
 }

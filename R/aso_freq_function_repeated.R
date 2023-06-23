@@ -23,7 +23,10 @@
 #'
 #' @return
 #'
+#' @author ASO
+#'
 #' @examples
+#'
 #' @export
 freq_function_repeated <- function(
     normaldata,
@@ -40,10 +43,10 @@ freq_function_repeated <- function(
 ) {
   func_table1 <- normaldata |>
     dplyr::select(
-      tidyselect::all_of({{ var1 }}),
-      tidyselect::all_of({{ var2 }}),
-      tidyselect::all_of({{ weightvar }}),
-      tidyselect::all_of({{ by_vars }})
+      dplyr::all_of({{ var1 }}),
+      dplyr::all_of({{ var2 }}),
+      dplyr::all_of({{ weightvar }}),
+      dplyr::all_of({{ by_vars }})
     )
 
   var_count <- length(var1)
