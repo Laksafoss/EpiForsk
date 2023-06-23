@@ -22,6 +22,7 @@
 #' @importFrom foreach %dopar%
 #' @importFrom doParallel registerDoParallel
 #' @importFrom methods hasArg
+#' @importFrom gridExtra arrangeGrob
 #' @import stats
 "_PACKAGE"
 
