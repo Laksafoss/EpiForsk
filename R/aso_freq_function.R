@@ -108,6 +108,18 @@ freq_function <- function(
   if (!inherits(normaldata, "data.frame")) {
     stop("'normaldata' must be a data frame.")
   }
+  if (!(is.character(var1) && length(var1) == 1)) {
+    stop(
+      "'var1' must be a length 1 character vector naming ",
+      "the first variable to get frequencies."
+      )
+  }
+  if (!(is.null(var2) || (is.character(var2) && length(var2) == 1))) {
+    stop(
+      "'var2' must be NULL or optionally a length 1 character ",
+      "vector naming the second\nvariable to get frequencies."
+    )
+  }
   if (!inherits(include_NA, "logical")) {
     stop("'include_NA' must be a logical.")
   }
@@ -153,7 +165,7 @@ freq_function <- function(
   # the weight will be 1 for all observations
   if (!is.null(weightvar)){
     func_table2 <- func_table1 |>
-      dplyr::mutate("weight_used" := !!rlang::sym(weightvar)) |>
+      dplyr::mutate("weight_used" := .data[[weightvar]]) |>
       dplyr::filter(.data$weight_used > 0)
   }
   else {
@@ -163,13 +175,13 @@ freq_function <- function(
   # Rename the variable of interest to Variable1 so it can be used below (name
   # changed back in the end)
   func_table3 <- func_table2 |>
-    dplyr::mutate("Variable1" := as.character(!!rlang::sym(var1)))
+    dplyr::mutate("Variable1" := as.character(.data[[var1]]))
 
   # If there should be a two-way table, the second variable is called Variable2
   # below (name changed back in the end)
   if (!is.null(var2)){
     func_table4 <- func_table3 |>
-      dplyr::mutate("Variable2" := as.character(!!rlang::sym(var2)))
+      dplyr::mutate("Variable2" := as.character(.data[[var2]]))
   }
   else {
     func_table4 <- func_table3

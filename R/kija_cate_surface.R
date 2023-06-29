@@ -200,7 +200,7 @@ CATESurface <- function(forest,
     )
     tibble_temp <- diag(1, length(covariate_temp), length(covariate_temp)) |>
       tibble::as_tibble(.name_repair = "minimal") |>
-      rlang::set_names(nm = covariate_temp)
+      purrr::set_names(nm = covariate_temp)
     discrete_values[[i]] <- tibble_temp
   }
   names(discrete_values) <- discrete_covariates_input
@@ -240,7 +240,7 @@ CATESurface <- function(forest,
   }
   fixed_values <- as.list(fixed_values)
   data_grid <- c(data_grid, fixed_values)
-  X_grid <- rlang::exec(tidyr::expand_grid, !!!data_grid)
+  X_grid <- purrr::exec(tidyr::expand_grid, !!!data_grid)
   X_grid <- tidyr::unnest(
     X_grid,
     cols = dplyr::all_of(discrete_covariates_input)

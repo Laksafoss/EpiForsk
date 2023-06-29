@@ -147,31 +147,27 @@ fct_confint.lm <- function(
     on.exit(parallel::stopCluster(cluster))
   }
   # convert which_parm to a logical vector
-  if (!rlang::is_logical(which_parm)) {
-    if (rlang::is_double(which_parm)) {
+  if (!purrr::is_logical(which_parm)) {
+    if (purrr::is_double(which_parm)) {
       which_parm_ind <- as.integer(trunc(which_parm))
-      rlang::warn(
-        paste(
-        "which_parm has type 'double', but type 'integer' is expected.",
-        "which_parm was truncated and converted to an integer.",
-        "\nIt is strongly recommended to use an integer vector with indices to",
+      warning(
+        "'which_parm' has type 'double', but type 'integer' is expected. ",
+        "'which_parm' was\ntruncated and converted to an integer. ",
+        "It is strongly recommended to use an integer\nvector with indices to ",
         "avoid unexpected behavior."
-        )
       )
     } else if (
       length(which_parm) <= length(object$coefficients) &&
-      rlang::is_integer(which_parm) &&
+      purrr::is_integer(which_parm) &&
       all(which_parm >= 1L) &&
       all(which_parm <= length(object$coefficients))
     ) {
       which_parm_ind <- which_parm
     } else {
-      rlang::abort(
-        paste(
-          "which_parm must either be a logical vector the same length as the",
-          "coefficients or an integer vector with indices of the coefficient",
-          "vector."
-        )
+      stop(
+        "which_parm must either be a logical vector the same length as the ",
+        "coefficients\nor an integer vector with indices of the coefficient ",
+        "vector."
       )
     }
     which_parm <- rep(FALSE, length(object$coefficients))
@@ -187,10 +183,10 @@ fct_confint.lm <- function(
     norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
     delta <- t(delta / rep(norm / len, ncol(delta)))
     rownames(delta) <- names(beta_hat)[which_parm]
-  } else if (!rlang::is_integer(n_grid)) {
-    rlang::abort("n_grid must be an integer vector.")
+  } else if (!purrr::is_integer(n_grid)) {
+    stop("'n_grid' must be an integer vector.")
   } else if (!(match(length(n_grid), c(1L, sum(which_parm))))) {
-    rlang::abort(glue::glue("n_grid must have length 1 or {sum(which_parm)}."))
+    stop(glue::glue("'n_grid' must have length 1 or {sum(which_parm)}."))
   } else {
     # create sum(which_parm)-dimensional grid with n_grid points in each direction
     if (length(n_grid) == 1L) {
@@ -202,7 +198,7 @@ fct_confint.lm <- function(
         lapply(n_grid, function(y) seq(-len, len, length.out = y))
       ))
     } else {
-      rlang::abort(glue::glue("n_grid must be length 1 or {sum(which_parm)}"))
+      stop(glue::glue("'n_grid' must be length 1 or {sum(which_parm)}"))
     }
     delta <- t(delta)
     rownames(delta) <- names(beta_hat)[which_parm]
@@ -350,26 +346,24 @@ fct_confint.glm <- function(
     on.exit(parallel::stopCluster(cluster))
   }
   # convert which_parm to a logical vector
-  if (!rlang::is_logical(which_parm)) {
-    if (rlang::is_double(which_parm)) {
+  if (!purrr::is_logical(which_parm)) {
+    if (purrr::is_double(which_parm)) {
       which_parm_ind <- as.integer(round(which_parm))
-      rlang::warn(
-        paste(
-          "which_parm has type 'double', but type 'integer' is expected.",
-          "which_parm was truncated and converted to an integer.",
-          "\nIt is strongly recommended to use an integer vector with indices to",
-          "avoid unexpected behavior."
-        )
+      warning(
+        "'which_parm' has type 'double', but type 'integer' is expected. ",
+        "'which_parm' was\ntruncated and converted to an integer. ",
+        "It is strongly recommended to use an integer\nvector with indices to ",
+        "avoid unexpected behavior."
       )
     } else if (
       length(which_parm) <= length(object$coefficients) &&
-      rlang::is_integer(which_parm) &&
+      purrr::is_integer(which_parm) &&
       all(which_parm >= 1L) &&
       all(which_parm <= length(object$coefficients))
     ) {
       which_parm_ind <- which_parm
     } else {
-      rlang::abort(
+      stop(
         paste(
           "which_parm must either be a logical vector the same length as the",
           "coefficients or an integer vector with indices of the coefficient",
@@ -390,10 +384,10 @@ fct_confint.glm <- function(
     norm <- apply(delta, 1, function(x) sqrt(sum(x^2)))
     delta <- t(delta / rep(norm / len, ncol(delta)))
     rownames(delta) <- names(beta_hat)[which_parm]
-  } else if (!rlang::is_integer(n_grid)) {
-    rlang::abort("n_grid must be an integer vector.")
+  } else if (!purrr::is_integer(n_grid)) {
+    stop("'n_grid' must be an integer vector.")
   } else if (!(length(n_grid) %in% c(1L, sum(which_parm)))) {
-    rlang::abort(glue::glue("n_grid must have length 1 or {sum(which_parm)}."))
+    stop(glue::glue("'n_grid' must have length 1 or {sum(which_parm)}."))
   } else {
     # create sum(which_parm)-dimensional grid with n_grid points in each direction
     if (length(n_grid) == 1L) {
@@ -405,7 +399,7 @@ fct_confint.glm <- function(
         lapply(n_grid, function(x) seq(-len, len, length.out = x))
       ))
     } else {
-      rlang::abort(glue::glue("n_grid must be length 1 or {sum(which_parm)}"))
+      stop(glue::glue("'n_grid' must be length 1 or {sum(which_parm)}"))
     }
     delta <- t(delta)
     rownames(delta) <- names(beta_hat)[which_parm]
@@ -547,26 +541,24 @@ fct_confint.lms <- function(
     on.exit(parallel::stopCluster(cluster))
   }
   # convert which_parm to a logical vector
-  if (!rlang::is_logical(which_parm)) {
-    if (rlang::is_double(which_parm)) {
+  if (!purrr::is_logical(which_parm)) {
+    if (purrr::is_double(which_parm)) {
       which_parm_ind <- as.integer(round(which_parm))
-      rlang::warn(
-        paste(
-          "which_parm has type 'double', but type 'integer' is expected.",
-          "which_parm was truncated and converted to an integer.",
-          "\nIt is strongly recommended to use an integer vector with indices to",
-          "avoid unexpected behavior."
-        )
+      warning(
+        "'which_parm' has type 'double', but type 'integer' is expected. ",
+        "'which_parm' was\ntruncated and converted to an integer. ",
+        "It is strongly recommended to use an integer\nvector with indices to ",
+        "avoid unexpected behavior."
       )
     } else if (
       length(which_parm) <= length(object$coefficients) &&
-      rlang::is_integer(which_parm) &&
+      purrr::is_integer(which_parm) &&
       all(which_parm >= 1L) &&
       all(which_parm <= length(object$coefficients))
     ) {
       which_parm_ind <- which_parm
     } else {
-      rlang::abort(
+      stop(
         paste(
           "which_parm must either be a logical vector the same length as the",
           "coefficients or an integer vector with indices of the coefficient",
@@ -587,10 +579,10 @@ fct_confint.lms <- function(
     norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
     delta <- t(delta / rep(norm / len, ncol(delta)))
     rownames(delta) <- names(beta_hat)[which_parm]
-  } else if (!rlang::is_integer(n_grid)) {
-    rlang::abort("n_grid must be an integer vector.")
+  } else if (!purrr::is_integer(n_grid)) {
+    stop("'n_grid' must be an integer vector.")
   } else if (!(match(length(n_grid), c(1L, sum(which_parm))))) {
-    rlang::abort(glue::glue("n_grid must have length 1 or {sum(which_parm)}."))
+    stop(glue::glue("'n_grid' must have length 1 or {sum(which_parm)}."))
   } else {
     # create sum(which_parm)-dimensional grid with n_grid points in each direction
     if (length(n_grid) == 1L) {
@@ -602,7 +594,7 @@ fct_confint.lms <- function(
         lapply(n_grid, function(y) seq(-len, len, length.out = y))
       ))
     } else {
-      rlang::abort(glue::glue("n_grid must be length 1 or {sum(which_parm)}"))
+      stop(glue::glue("'n_grid' must be length 1 or {sum(which_parm)}"))
     }
     delta <- t(delta)
     rownames(delta) <- names(beta_hat)[which_parm]
@@ -732,5 +724,5 @@ fct_confint.default <- function(
     level = 0.95,
     ...
 ) {
-  rlang::abort("Class is not supported. Object must have class lm, glm or lms.")
+  stop("Class is not supported. Object must have class lm, glm or lms.")
 }

@@ -114,7 +114,7 @@ odds_ratio_function_repeated <- function(
       print(paste0("By_var: ", By_var_name))
       func_table1_2 <- dplyr::filter(
         func_table1,
-        as.character(!!rlang::sym(by_var)) == by_var_level
+        as.character(.data[[by_var]]) == by_var_level
       )
     }
 
