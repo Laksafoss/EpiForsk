@@ -92,10 +92,10 @@ RATETest <- function(forest,
     target = target,
     q = q,
     R = R,
-    subset = NULL,
-    debiasing.weights = NULL,
-    compliance.score = NULL,
-    num.trees.for.weights = 500
+    subset = subset,
+    debiasing.weights = debiasing.weights,
+    compliance.score = compliance.score,
+    num.trees.for.weights = num.trees.for.weights
   )
   confint <- rate$estimate +
     tibble::tibble(

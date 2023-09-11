@@ -6,6 +6,7 @@
 #' @param cf An object of class causal_forest (and inheriting from class grf).
 #' @param plots Character, `"all"` returns both Love plots and density plots,
 #'   `"Love"` returns only Love plots, `"density"` returns only density plots.
+#' @param balance_table Boolean, TRUE to return a table with balance statistics.
 #' @param covariates A vector to select covariates to show in balance plots. If
 #'   `cf$X.orig` is an unnamed matrix, use a numeric vector to select variables.
 #'   Otherwise use a character vector. Names provided in the `names` argument
@@ -22,6 +23,10 @@
 #'   levels for plotting. If the vector is unnamed, the provided vector will act
 #'   as the new covariate names, given in the order of `cf$X_orig`. If `NULL`
 #'   (the default), the original names are used.
+#' @param factor A named list with covariates to be converted to factor. Note
+#' that one-hot encoded covariates are automatically converted, so need not be
+#' specified in the factor argument. Each component of the list must contain
+#' the factor levels, using a named vector to supply custom labels.
 #' @param treatment_name Character, name of treatment.
 #' @param love_breaks Numeric, breaks used in the plot of absolute standardized
 #'   mean differences.
@@ -51,6 +56,17 @@
 #'   in `covariates`.
 #' @param cd_scale_fill Function, `scale_fill_.` function to use in covariate
 #'   distribution plots.
+#' @param ec_nrow,ec_ncol Numeric, the dimensions of the grid to create in
+#'   empirical CDF plots. If both are `NULL` it will use the same logic
+#'   as \link[ggplot2]{facet_wrap} to set the dimensions.
+#' @param ec_x_scale_width Numeric, the distance between major `x`-axis tics in
+#'   the empirical CDF plots. If `NULL`, a width is chosen to display
+#'   approximately six major tics. If length 1, the same width is used for all
+#'   plots. If the same length as the number of covariates included, each number
+#'   is used as the width for different covariates, in the order of the
+#'   covariates after selection with the tidy-select expression in `covariates`.
+#' @param ec_scale_color Function, `scale_color_.` function to use in empirical
+#'   CDF plots.
 #'
 #' @return A list with up to five elements:
 #' - love_data: data used to plot the absolute standardized mean differences.
@@ -65,7 +81,7 @@
 #' If an unnamed character vector is provided in `names`, it must have length
 #' `ncol(cf$X.orig)`. Names of covarates not selected by `covariates` can be set
 #' to `NA`. If a named character vector is provided in `names`, all renamed
-#' covariates will be keept regardless if they are selected in `covariates`.
+#' covariates will be kept regardless if they are selected in `covariates`.
 #' Thus to select only renamed covariates, `character(0)` can be used in
 #' `covariates`. The plot theme can be adjusted using ggplot2 active theme
 #' modifiers, see \link[ggplot2]{theme_get}.
@@ -140,9 +156,11 @@
 #' @export
 
 CovariateBalance <- function(cf,
-                             plots = c("all", "Love", "density"),
+                             plots = c("all", "Love", "density", "ecdf"),
+                             balance_table = TRUE,
                              covariates = NULL,
                              names = NULL,
+                             factor = NULL,
                              treatment_name = "W",
                              love_breaks = NULL,
                              love_xlim = NULL,
@@ -151,11 +169,17 @@ CovariateBalance <- function(cf,
                              cd_ncol = NULL,
                              cd_x_scale_width = NULL,
                              cd_bar_width = NULL,
-                             cd_scale_fill = NULL) {
+                             cd_scale_fill = NULL,
+                             ec_nrow = NULL,
+                             ec_ncol = NULL,
+                             ec_x_scale_width = NULL,
+                             ec_scale_color = NULL) {
   # check input
   plots <- match.arg(plots)
   love <- plots == "all" | plots == "Love"
   density <- plots == "all" | plots == "density"
+  ecdf <- plots == "all" | plots == "ecdf"
+  bal_tab <- balance_table
   stopifnot(
     "cf must be a 'causal_forest' object" =
       inherits(cf, c("causal_forest", "causal_survival_forest"))
@@ -221,6 +245,22 @@ object complies with the class structure used by grf::causal_forest()."
               paste0(names(names)[i], " - "),
               names(X_orig)[grepl(paste0("^", names[i]), names(X_orig))]
             )
+          if (!is.null(factor[[names(names)[i]]])) {
+            for (j in which(grepl(paste0("^", names(names)[i]), names(X_orig)))) {
+              names(X_orig)[j] <-
+                sub(
+                  factor[[names(names)[i]]][
+                    factor[[names(names)[i]]] ==
+                      sub(paste(names(names)[i], "- "), "", names(X_orig)[j])
+                  ],
+                  names(factor[[names(names)[i]]])[
+                    factor[[names(names)[i]]] ==
+                      sub(paste(names(names)[i], "- "), "", names(X_orig)[j])
+                  ],
+                  names(X_orig)[j]
+                )
+            }
+          }
         }
         if (!is.null(covariates)) {
           covariates <- unique(c(covariates, names(names)))
@@ -243,6 +283,24 @@ a named character vector with the original names and the replacement names
 in the names attribute."
     )
   }
+  if (!is.null(factor)) {
+    if (!exists("X_orig_fct")) {
+      X_orig_fct <- X_orig
+    }
+    factor_name <- intersect(
+      names(X_orig_fct),
+      names(factor)
+    )
+    for (i in factor_name) {
+      X_orig_fct[[i]] <-
+        factor(
+          X_orig_fct[[i]],
+          levels = factor[[i]],
+          labels = names(factor[[i]])
+        )
+    }
+    which_fct <- purrr::map_lgl(X_orig_fct, is.factor)
+  }
   if (!(is.null(cd_x_scale_width) || is.numeric(cd_x_scale_width))) {
     stop (
       glue::glue(
@@ -255,6 +313,22 @@ in the names attribute."
     stop (
       glue::glue(
         "'cd_x_scale_width' has the wrong length. Must be NULL or have ",
+        "length 1 or {ncol(X_orig)}."
+      )
+    )
+  }
+  if (!(is.null(ec_x_scale_width) || is.numeric(ec_x_scale_width))) {
+    stop (
+      glue::glue(
+        "'ec_x_scale_width' must be NULL or a numeric vector of length 1 or ",
+        "{ncol(X_orig)}."
+      )
+    )
+  }
+  if (!(length(ec_x_scale_width) %in% c(0, 1, ncol(X_orig)))) {
+    stop (
+      glue::glue(
+        "'ec_x_scale_width' has the wrong length. Must be NULL or have ",
         "length 1 or {ncol(X_orig)}."
       )
     )
@@ -286,7 +360,17 @@ display in the covariate distribution plots."
   if (!(is.null(cd_ncol) || (is.numeric(cd_ncol) && cd_ncol > 0.5))) {
     stop ("'cd_ncol' must be NULL or a positive integer.")
   }
+  if (!(is.null(ec_nrow) || (is.numeric(ec_nrow) && ec_nrow > 0.5))) {
+    stop ("'ec_nrow' must be NULL or a positive integer.")
+  }
+  if (!(is.null(ec_ncol) || (is.numeric(ec_ncol) && ec_ncol > 0.5))) {
+    stop ("'ec_ncol' must be NULL or a positive integer.")
+  }
 
+  # initialize balance table
+  if (bal_tab) {
+    balance_table <- list(unadjusted = NA, adjusted = NA)
+  }
   # create Love plot
   if (love) {
     if (is.null(love_scale_color)) {
@@ -301,6 +385,7 @@ display in the covariate distribution plots."
     df_0[cf$W.orig == 1,] <- NA
     df_1 <- X_orig
     df_1[cf$W.orig == 0,] <- NA
+
     df_ori <- tibble::as_tibble(
       cbind(df_0, df_1),
       .name_repair = "minimal"
@@ -311,32 +396,58 @@ display in the covariate distribution plots."
       purrr::list_rbind() |>
       dplyr::mutate(name = rep(names(X_orig), 2)) |>
       dplyr::summarise(
+        mean_control = dplyr::first(mean),
+        mean_treated = dplyr::last(mean),
         std_abs_mean_diff = abs(diff(mean)) / sqrt(sum(var)),
+        var_ratio = dplyr::last(var) / dplyr::first(var),
         .by = "name"
-      ) |>
-      dplyr::arrange(.data$std_abs_mean_diff)
+      )
+
+    weighted.var <- function(x, w, na.rm = TRUE) {
+      na_index <- is.na(w) | is.na(x)
+      if (any(na_index)) {
+        if (!na.rm)
+          return(NA_real_)
+        ok <- !na_index
+        x <- x[ok]
+        w <- w[ok]
+      }
+      cov.wt(matrix(x, ncol = 1), w)$cov[1, 1]
+    }
+    funs <- c(mean = weighted.mean, var = weighted.var)
     df_adj <- tibble::as_tibble(
-      cbind(X_orig * cf$W.orig / cf$W.hat,
-            X_orig * (1 - cf$W.orig) / (1 - cf$W.hat)),
+      cbind(df_0, df_1),
       .name_repair = "minimal"
     ) |>
       purrr::map(
-        \(x) tibble::as_tibble(purrr::map(funs, purrr::exec, x, na.rm = TRUE))
+        \(x) {
+          tibble::as_tibble(
+            purrr::map(
+              funs,
+              purrr::exec,
+              x,
+              cf$W.orig / cf$W.hat + (1 - cf$W.orig) / (1 - cf$W.hat),
+              na.rm = TRUE)
+          )
+        }
       ) |>
       purrr::list_rbind() |>
       dplyr::mutate(name = rep(names(X_orig), 2)) |>
       dplyr::summarise(
+        mean_control = dplyr::first(mean),
+        mean_treated = dplyr::last(mean),
         std_abs_mean_diff_adj = abs(diff(mean)) / sqrt(sum(var)),
+        var_ratio = dplyr::last(var) / dplyr::first(var),
         .by = "name"
-      ) |>
-      dplyr::arrange(.data$std_abs_mean_diff_adj)
+      )
     love_plot_data <-
       dplyr::inner_join(
-        df_ori,
-        df_adj,
+        df_ori |> select(name, std_abs_mean_diff),
+        df_adj |> select(name, std_abs_mean_diff_adj),
         by = "name",
         relationship = "one-to-one"
       ) |>
+      dplyr::arrange(.data$std_abs_mean_diff) |>
       dplyr::rename(
         "covariate_name" = "name",
         "Before adjustment" = "std_abs_mean_diff",
@@ -392,23 +503,36 @@ display in the covariate distribution plots."
           limits = love_xlim
         )
     }
+
+    if (bal_tab) {
+      balance_table$unadjusted <- df_ori |>
+        mutate(
+          var_ratio = ifelse(
+            grepl(" - ", name),
+            NA_real_,
+            var_ratio
+          )
+        )
+      balance_table$adjusted <- df_adj |>
+        mutate(
+          var_ratio = ifelse(
+            grepl(" - ", name),
+            NA_real_,
+            var_ratio
+          )
+        )
+    }
   }
 
   # create covariate distribution plots
-  if (density) {
+  if (density | ecdf) {
     if (exists("X_orig_fct")) {
+      X_orig_old <- X_orig
       X_orig <- X_orig_fct
     }
-    if (is.null(cd_scale_fill)) {
-      if (requireNamespace("ggsci", quietly = TRUE)) {
-        cd_scale_fill <- ggsci::scale_fill_jama()
-      } else {
-        cd_scale_fill <- ggplot2::scale_fill_discrete()
-      }
-    }
 
-    cd_plot_data <- tibble::tibble(
-      X_orig,
+    plot_data <- tibble::tibble(
+      dplyr::mutate(X_orig, dplyr::across(dplyr::where(is.integer), as.numeric)),
       "{treatment_name}" := as.factor(cf$W.orig),
       IPW = ifelse(
         .data[[treatment_name]] == 1,
@@ -417,238 +541,576 @@ display in the covariate distribution plots."
       )
     )
 
-    plot_type <- X_orig |>
-      dplyr::summarise(
-        dplyr::across(
-          dplyr::everything(), \(x) ifelse(is.factor(x), "bar", "hist")
-        )
-      )
+    if (density) {
+      if (is.null(cd_scale_fill)) {
+        if (requireNamespace("ggsci", quietly = TRUE)) {
+          cd_scale_fill <- ggsci::scale_fill_jama()
+        } else {
+          cd_scale_fill <- ggplot2::scale_fill_discrete()
+        }
+      }
 
-    if (is.null(cd_x_scale_width)) {
-      nm_num <- names(X_orig)
-      if (exists("which_fct")) {
-        nm_num <- nm_num[!(names(X_orig) %in% names(names)[which_fct])]
-      }
-      if (length(nm_num) == 0) {
-        cd_x_scale_width <- vector("numeric", ncol(X_orig))
-      } else {
-        scale_width_dt <- data.table::as.data.table(cd_plot_data)
-        scale_width_dt <- scale_width_dt[
-          ,
-          (nm_num) := lapply(.SD, \(x) signif(diff(range(x)), 1) / 5),
-          .SDcols = nm_num
-        ]
-        cd_x_scale_width <- suppressWarnings(
-          as.numeric(scale_width_dt[1])[seq_len(ncol(X_orig))]
+      plot_type <- X_orig |>
+        dplyr::summarise(
+          dplyr::across(
+            dplyr::everything(), \(x) ifelse(is.factor(x), "bar", "hist")
+          )
+        )
+
+      if (is.null(cd_x_scale_width)) {
+        nm_num <- names(X_orig)
+        if (exists("which_fct")) {
+          nm_num <- nm_num[!(names(X_orig) %in% names(names)[which_fct])]
+        }
+        if (length(nm_num) == 0) {
+          cd_x_scale_width <- vector("numeric", ncol(X_orig))
+        } else {
+          scale_width_dt <- data.table::as.data.table(plot_data)
+          scale_width_dt <- scale_width_dt[
+            ,
+            (nm_num) := lapply(.SD, \(x) signif(diff(range(x)), 1) / 5),
+            .SDcols = nm_num
+          ]
+          cd_x_scale_width <- suppressWarnings(
+            as.numeric(scale_width_dt[1])[seq_len(ncol(X_orig))]
+          )
+        }
+      } else if (length(cd_x_scale_width) == 1) {
+        cd_x_scale_width <- rep(
+          cd_x_scale_width,
+          ncol(X_orig)
         )
       }
-    } else if (length(cd_x_scale_width) == 1) {
-      cd_x_scale_width <- rep(
-        cd_x_scale_width,
-        ncol(X_orig)
+
+      if (is.null(cd_bar_width)) {
+        bar_width_dt <- plot_data |>
+          dplyr::mutate(dplyr::across(dplyr::where(is.factor), as.numeric)) |>
+          data.table::as.data.table()
+        bar_width_dt <- bar_width_dt[
+          ,
+          (names(X_orig)) := purrr::map2(
+            .SD,
+            plot_type,
+            \(x, y) {
+              if (any(y == "bar")) {
+                0.9 * ggplot2::resolution(x)
+              } else {
+                diff(range(x)) / 50
+              }
+            }
+          ),
+          .SDcols = names(X_orig)
+        ]
+        cd_bar_width <- as.numeric(bar_width_dt[1])[seq_len(ncol(X_orig))]
+      } else if (length(cd_bar_width) == 1) {
+        cd_bar_width <- rep(
+          cd_bar_width,
+          ncol(X_orig)
+        )
+      }
+      cov_plots_unadjusted <- purrr::pmap(
+        list(
+          names = names(X_orig),
+          type = plot_type,
+          cd_x_scale_width = cd_x_scale_width,
+          cd_bar_width = cd_bar_width
+        ),
+        \(names, type, cd_x_scale_width, cd_bar_width) {
+          plot_data <- plot_data |>
+            dplyr::select(
+              dplyr::all_of(treatment_name),
+              "IPW",
+              "covariate_values" = dplyr::all_of(names)
+            ) |>
+            dplyr::mutate(
+              "covariate_name" = names
+            )
+          covariate_values <- plot_data[["covariate_values"]]
+          p <- plot_data |>
+            ggplot2::ggplot() +
+            ggplot2::facet_grid(~ .data$covariate_name)
+          if (type == "bar") {
+            p <- p +
+              ggplot2::geom_bar(
+                ggplot2::aes(
+                  x = .data$covariate_values,
+                  fill = .data[[treatment_name]]
+                ),
+                alpha = 0.5,
+                position = "dodge",
+                width = cd_bar_width
+              )
+          } else {
+            p <- p +
+              ggplot2::geom_histogram(
+                ggplot2::aes(
+                  x = .data$covariate_values,
+                  y = ggplot2::after_stat(density),
+                  fill = .data[[treatment_name]]
+                ),
+                alpha = 0.5,
+                position = "identity",
+                binwidth = cd_bar_width
+              ) +
+              ggplot2::scale_x_continuous(
+                breaks = seq(
+                  floor_dec(
+                    min(covariate_values),
+                    digits = decimalplaces(cd_x_scale_width)
+                  ),
+                  ceiling_dec(
+                    max(covariate_values),
+                    digits = decimalplaces(cd_x_scale_width)
+                  ),
+                  cd_x_scale_width
+                )
+              )
+          }
+          p <- p +
+            ggplot2::xlab("") +
+            ggplot2::ylab("") +
+            cd_scale_fill
+        }
       )
+      cov_plots_adjusted <- purrr::pmap(
+        list(
+          names = names(X_orig),
+          type = plot_type,
+          cd_x_scale_width = cd_x_scale_width,
+          cd_bar_width = cd_bar_width
+        ),
+        \(names, type, cd_x_scale_width, cd_bar_width) {
+          plot_data <- plot_data |>
+            dplyr::select(
+              dplyr::all_of(treatment_name),
+              "IPW",
+              "covariate_values" = dplyr::all_of(names)
+            ) |>
+            dplyr::mutate(
+              "covariate_name" = names
+            )
+          covariate_values <- plot_data[["covariate_values"]]
+          p <- plot_data |>
+            ggplot2::ggplot() +
+            ggplot2::facet_grid(~ .data$covariate_name)
+          if (type == "bar") {
+            p <- p +
+              ggplot2::geom_bar(
+                ggplot2::aes(
+                  x = .data$covariate_values,
+                  weight = .data$IPW,
+                  fill = .data[[treatment_name]]
+                ),
+                alpha = 0.5,
+                position = "dodge",
+                width = cd_bar_width
+              )
+          } else {
+            p <- p +
+              ggplot2::geom_histogram(
+                ggplot2::aes(
+                  x = .data$covariate_values,
+                  y = ggplot2::after_stat(density),
+                  weight = .data$IPW,
+                  fill = .data[[treatment_name]]
+                ),
+                alpha = 0.5,
+                position = "identity",
+                binwidth = cd_bar_width
+              ) +
+              ggplot2::scale_x_continuous(
+                breaks = seq(
+                  floor_dec(
+                    min(covariate_values),
+                    digits = decimalplaces(cd_x_scale_width)
+                  ),
+                  ceiling_dec(
+                    max(covariate_values),
+                    digits = decimalplaces(cd_x_scale_width)
+                  ),
+                  cd_x_scale_width
+                )
+              )
+          }
+          p <- p +
+            ggplot2::xlab("") +
+            ggplot2::ylab("") +
+            cd_scale_fill
+        }
+      )
+      cd_plot_unadjusted <- cowplot::ggdraw(
+        arrangeGrob(
+          patchwork::patchworkGrob(
+            (
+              Reduce("+", cov_plots_unadjusted) +
+                patchwork::plot_layout(
+                  nrow = cd_nrow,
+                  ncol = cd_ncol,
+                  guides = "collect"
+                ) &
+                ggplot2::theme(legend.position = "top")
+            ) +
+              patchwork::plot_annotation(
+                title = "Covariate plots (before adjustment)"
+              )
+          ),
+          left = "density/count", bottom = "covariate values"
+        )
+      ) +
+        ggplot2::theme(
+          plot.background = ggplot2::element_rect(fill = "white", color = NA)
+        )
+      cd_plot_adjusted <- cowplot::ggdraw(
+        arrangeGrob(
+          patchwork::patchworkGrob(
+            (
+              Reduce("+", cov_plots_adjusted) +
+                patchwork::plot_layout(
+                  nrow = cd_nrow,
+                  ncol = cd_ncol,
+                  guides = "collect"
+                ) &
+                ggplot2::theme(legend.position = "top")
+            ) +
+              patchwork::plot_annotation(
+                title = "Covariate plots (after adjustment)"
+              )
+          ),
+          left = "density/count", bottom = "covariate values"
+        )
+      ) +
+        ggplot2::theme(
+          plot.background = ggplot2::element_rect(fill = "white", color = NA)
+        )
     }
 
-    if (is.null(cd_bar_width)) {
-      bar_width_dt <- cd_plot_data |>
-        dplyr::mutate(dplyr::across(dplyr::where(is.factor), as.numeric)) |>
-        data.table::as.data.table()
-      bar_width_dt <- bar_width_dt[
-        ,
-        (names(X_orig)) := purrr::map2(
-          .SD,
-          plot_type,
-          \(x, y) {
-            if (any(y == "bar")) {
-              0.9 * ggplot2::resolution(x)
+    if (ecdf) {
+      if (is.null(ec_scale_color)) {
+        if (requireNamespace("ggsci", quietly = TRUE)) {
+          ec_scale_color <- ggsci::scale_color_jama()
+        } else {
+          ec_scale_color <- ggplot2::scale_color_discrete()
+        }
+      }
+      X_type <- X_orig |>
+        dplyr::summarise(
+          dplyr::across(
+            dplyr::everything(), \(x) ifelse(is.factor(x), "dis", "con")
+          )
+        )
+      if (is.null(ec_x_scale_width)) {
+        nm_num <- names(X_orig)
+        if (exists("which_fct")) {
+          nm_num <- nm_num[!(names(X_orig) %in% names(names)[which_fct])]
+        }
+        if (length(nm_num) == 0) {
+          ec_x_scale_width <- vector("numeric", ncol(X_orig))
+        } else {
+          scale_width_dt <- data.table::as.data.table(plot_data)
+          scale_width_dt <- scale_width_dt[
+            ,
+            (nm_num) := lapply(.SD, \(x) signif(diff(range(x)), 1) / 5),
+            .SDcols = nm_num
+          ]
+          ec_x_scale_width <- suppressWarnings(
+            as.numeric(scale_width_dt[1])[seq_len(ncol(X_orig))]
+          )
+        }
+      } else if (length(ec_x_scale_width) == 1) {
+        ec_x_scale_width <- rep(
+          ec_x_scale_width,
+          ncol(X_orig)
+        )
+      }
+      # initialize mean and max eCDF in balance table
+      if (bal_tab) {
+        balance_table$unadjusted[["eCDF_mean"]] <- NA
+        balance_table$unadjusted[["eCDF_max"]] <- NA
+        balance_table$adjusted[["eCDF_mean"]] <- NA
+        balance_table$adjusted[["eCDF_max"]] <- NA
+      }
+      # generate eCDF plots
+      ec_plots <- purrr::pmap(
+        list(
+          names = names(X_orig),
+          ec_x_scale_width = ec_x_scale_width,
+          X_type = X_type
+        ),
+        \(names, ec_x_scale_width, X_type) {
+          plot_data <- plot_data |>
+            dplyr::select(
+              dplyr::all_of(treatment_name),
+              "IPW",
+              "covariate_values" = dplyr::all_of(names)
+            ) |>
+            dplyr::mutate(
+              "covariate_name" = names
+            ) |>
+            dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
+            dplyr::arrange(`covariate_values`) |>
+            dplyr::mutate(
+              cum_pct_ori = seq_len(n()) / n(),
+              cum_pct_wei = cumsum(IPW) / sum(IPW)
+            ) |>
+            dplyr::ungroup()
+          ## calculate mean diff and max diff of eCDF
+          if (bal_tab) {
+            if (!is.factor(plot_data$covariate_values)) {
+              cum_trt_ori <- cum_trt_wei <- cum_ctr_ori <- cum_ctr_wei <- 0
+              cov_val <- -Inf
+              covariate_values <- plot_data$covariate_values
+              eCDF_mean_ori <- eCDF_mean_wei <- eCDF_max_ori <- eCDF_max_wei <- 0
+              for (i in seq_len(nrow(plot_data))) {
+                if (!is.infinite(cov_val)) {
+                  cum_diff_ori <- abs(cum_trt_ori - cum_ctr_ori)
+                  cum_diff_wei <- abs(cum_trt_wei - cum_ctr_wei)
+                  eCDF_max_ori <- max(eCDF_max_ori, cum_diff_ori)
+                  eCDF_max_wei <- max(eCDF_max_wei, cum_diff_wei)
+                  eCDF_mean_ori <- eCDF_mean_ori +
+                    (covariate_values[i] - cov_val) * cum_diff_ori
+                  eCDF_mean_wei <- eCDF_mean_wei +
+                    (covariate_values[i] - cov_val) * cum_diff_wei
+                }
+                cov_val <- covariate_values[i]
+                if (plot_data[[treatment_name]][i] == 0) {
+                  cum_ctr_ori <- plot_data$cum_pct_ori[i]
+                  cum_ctr_wei <- plot_data$cum_pct_wei[i]
+                } else {
+                  cum_trt_ori <- plot_data$cum_pct_ori[i]
+                  cum_trt_wei <- plot_data$cum_pct_wei[i]
+                }
+              }
+              balance_table$unadjusted$eCDF_mean[
+                balance_table$unadjusted$name == names
+              ] <<- eCDF_mean_ori / diff(range(covariate_values))
+              balance_table$adjusted$eCDF_mean[
+                balance_table$adjusted$name == names
+              ] <<- eCDF_mean_wei / diff(range(covariate_values))
+              balance_table$unadjusted$eCDF_max[
+                balance_table$unadjusted$name == names
+              ] <<- eCDF_max_ori
+              balance_table$adjusted$eCDF_max[
+                balance_table$adjusted$name == names
+              ] <<- eCDF_max_wei
+            } else if (sum(grepl(names, names(X_orig_old))) == 1) {
+              eCDF_data <- plot_data |>
+                dplyr::group_by(
+                  covariate_values,
+                  dplyr::across(dplyr::all_of(treatment_name))
+                ) |>
+                dplyr::summarise(
+                  eCDF_mean_ori = n(),
+                  eCDF_mean_wei = sum(IPW),
+                  .groups = "drop"
+                ) |>
+                dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
+                dplyr::mutate(
+                  eCDF_mean_ori = eCDF_mean_ori / sum(eCDF_mean_ori),
+                  eCDF_mean_wei = eCDF_mean_wei / sum(eCDF_mean_wei)
+                ) |>
+                dplyr::group_by(covariate_values) |>
+                dplyr::summarise(
+                  dplyr::across(eCDF_mean_ori:eCDF_mean_wei, \(x) abs(diff(x)))
+                ) |>
+                dplyr::mutate(
+                  covariate = names,
+                  eCDF_max_ori = eCDF_mean_ori,
+                  eCDF_max_wei = eCDF_mean_wei
+                )
+              balance_table$unadjusted$eCDF_mean[
+                balance_table$unadjusted$name == names
+              ] <<- eCDF_data$eCDF_mean_ori[1]
+              balance_table$adjusted$eCDF_mean[
+                balance_table$adjusted$name == names
+              ] <<- eCDF_data$eCDF_mean_wei[1]
+              balance_table$unadjusted$eCDF_max[
+                balance_table$unadjusted$name == names
+              ] <<- eCDF_data$eCDF_max_ori[1]
+              balance_table$adjusted$eCDF_max[
+                balance_table$adjusted$name == names
+              ] <<- eCDF_data$eCDF_max_wei[1]
             } else {
-              diff(range(x)) / 50
+              eCDF_data <- plot_data |>
+                dplyr::group_by(
+                  covariate_values,
+                  dplyr::across(dplyr::all_of(treatment_name))
+                ) |>
+                dplyr::summarise(
+                  eCDF_mean_ori = n(),
+                  eCDF_mean_wei = sum(IPW),
+                  .groups = "drop"
+                ) |>
+                dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
+                dplyr::mutate(
+                  eCDF_mean_ori = eCDF_mean_ori / sum(eCDF_mean_ori),
+                  eCDF_mean_wei = eCDF_mean_wei / sum(eCDF_mean_wei)
+                ) |>
+                dplyr::group_by(covariate_values) |>
+                dplyr::summarise(
+                  dplyr::across(eCDF_mean_ori:eCDF_mean_wei, \(x) abs(diff(x)))
+                ) |>
+                dplyr::mutate(
+                  covariate = paste(names, "-", covariate_values),
+                  eCDF_max_ori = eCDF_mean_ori,
+                  eCDF_max_wei = eCDF_mean_wei
+                )
+              balance_table$unadjusted[
+                which(balance_table$unadjusted$name %in% eCDF_data$covariate),
+                "eCDF_mean"
+              ] <<-
+                eCDF_data$eCDF_mean_ori[
+                  na.omit(match(balance_table$unadjusted$name, eCDF_data$covariate))
+                ]
+              balance_table$unadjusted[
+                which(balance_table$unadjusted$name %in% eCDF_data$covariate),
+                "eCDF_max"
+              ] <<-
+                eCDF_data$eCDF_max_ori[
+                  na.omit(match(balance_table$unadjusted$name, eCDF_data$covariate))
+                  ]
+              balance_table$adjusted[
+                which(balance_table$adjusted$name %in% eCDF_data$covariate),
+                "eCDF_mean"
+              ] <<-
+                eCDF_data$eCDF_mean_wei[
+                  na.omit(match(balance_table$adjusted$name, eCDF_data$covariate))
+                ]
+              balance_table$adjusted[
+                which(balance_table$adjusted$name %in% eCDF_data$covariate),
+                "eCDF_max"
+              ] <<-
+                eCDF_data$eCDF_max_wei[
+                  na.omit(match(balance_table$adjusted$name, eCDF_data$covariate))
+                ]
             }
           }
-        ),
-        .SDcols = names(X_orig)
-      ]
-      cd_bar_width <- as.numeric(bar_width_dt[1])[seq_len(ncol(X_orig))]
-    } else if (length(cd_bar_width) == 1) {
-      cd_bar_width <- rep(
-        cd_bar_width,
-        ncol(X_orig)
+          ## plot eCDF
+          if (X_type == "dis") {
+            plot_data <- plot_data |>
+              dplyr::mutate(
+                "covariate_values_fct" = covariate_values,
+                covariate_values = as.numeric(covariate_values)
+              )
+            covariate_levels <- levels(plot_data[["covariate_values_fct"]])
+          }
+          covariate_values <- plot_data[["covariate_values"]]
+          p_ori <- plot_data |>
+            ggplot2::ggplot() +
+            ggplot2::facet_grid(~ .data$covariate_name) +
+            ggplot2::geom_step(
+              ggplot2::aes(
+                x = .data$covariate_values,
+                y = .data$cum_pct_ori,
+                color = .data[[treatment_name]]
+              )
+            ) +
+            ggplot2::xlab("") +
+            ggplot2::ylab("") +
+            ec_scale_color
+          p_wei <- plot_data |>
+            ggplot2::ggplot() +
+            ggplot2::facet_grid(~ .data$covariate_name) +
+            ggplot2::geom_step(
+              ggplot2::aes(
+                x = .data$covariate_values,
+                y = .data$cum_pct_wei,
+                color = .data[[treatment_name]]
+              )
+            ) +
+            ggplot2::xlab("") +
+            ggplot2::ylab("") +
+            ec_scale_color
+          if (X_type == "con") {
+            p_ori <- p_ori +
+              ggplot2::scale_x_continuous(
+                breaks = seq(
+                  floor_dec(
+                    min(covariate_values),
+                    digits = decimalplaces(ec_x_scale_width)
+                  ),
+                  ceiling_dec(
+                    max(covariate_values),
+                    digits = decimalplaces(ec_x_scale_width)
+                  ),
+                  ec_x_scale_width
+                )
+              )
+            p_wei <- p_wei +
+              ggplot2::scale_x_continuous(
+                breaks = seq(
+                  floor_dec(
+                    min(covariate_values),
+                    digits = decimalplaces(ec_x_scale_width)
+                  ),
+                  ceiling_dec(
+                    max(covariate_values),
+                    digits = decimalplaces(ec_x_scale_width)
+                  ),
+                  ec_x_scale_width
+                )
+              )
+          } else {
+            p_ori <- p_ori +
+              ggplot2::scale_x_continuous(
+                breaks = seq_along(covariate_levels),
+                labels = covariate_levels
+              )
+            p_wei <- p_wei +
+              ggplot2::scale_x_continuous(
+                breaks = seq_along(covariate_levels),
+                labels = covariate_levels
+              )
+          }
+          return(list(ori = p_ori, wei = p_wei))
+        }
       )
+      ec_plots_unadjusted <- purrr::list_transpose(ec_plots)[[1]]
+      ec_plots_adjusted <- purrr::list_transpose(ec_plots)[[2]]
+      ecdf_plot_unadjusted <- cowplot::ggdraw(
+        arrangeGrob(
+          patchwork::patchworkGrob(
+            (
+              Reduce("+", ec_plots_unadjusted) +
+                patchwork::plot_layout(
+                  nrow = ec_nrow,
+                  ncol = ec_ncol,
+                  guides = "collect"
+                ) &
+                ggplot2::theme(legend.position = "top")
+            ) +
+              patchwork::plot_annotation(
+                title = "eCDF plots (before adjustment)"
+              )
+          ),
+          left = "cumulative probability", bottom = "covariate values"
+        )
+      ) +
+        ggplot2::theme(
+          plot.background = ggplot2::element_rect(fill = "white", color = NA)
+        )
+      ecdf_plot_adjusted <- cowplot::ggdraw(
+        arrangeGrob(
+          patchwork::patchworkGrob(
+            (
+              Reduce("+", ec_plots_adjusted) +
+                patchwork::plot_layout(
+                  nrow = ec_nrow,
+                  ncol = ec_ncol,
+                  guides = "collect"
+                ) &
+                ggplot2::theme(legend.position = "top")
+            ) +
+              patchwork::plot_annotation(
+                title = "eCDF plots (after adjustment)"
+              )
+          ),
+          left = "cumulative probability", bottom = "covariate values"
+        )
+      ) +
+        ggplot2::theme(
+          plot.background = ggplot2::element_rect(fill = "white", color = NA)
+        )
     }
-    cov_plots_unadjusted <- purrr::pmap(
-      list(
-        names = names(X_orig),
-        type = plot_type,
-        cd_x_scale_width = cd_x_scale_width,
-        cd_bar_width = cd_bar_width
-      ),
-      \(names, type, cd_x_scale_width, cd_bar_width) {
-        plot_data <- cd_plot_data |>
-          dplyr::select(
-            dplyr::all_of(treatment_name),
-            "IPW",
-            "covariate_values" = dplyr::all_of(names)
-          ) |>
-          dplyr::mutate(
-            "covariate_name" = names
-          )
-        covariate_values <- plot_data[["covariate_values"]]
-        p <- plot_data |>
-          ggplot2::ggplot() +
-          ggplot2::facet_grid(~ .data$covariate_name)
-        if (type == "bar") {
-          p <- p +
-            ggplot2::geom_bar(
-              ggplot2::aes(
-                x = .data$covariate_values,
-                fill = .data[[treatment_name]]
-              ),
-              alpha = 0.5,
-              position = "dodge",
-              width = cd_bar_width
-            )
-        } else {
-          p <- p +
-            ggplot2::geom_histogram(
-              ggplot2::aes(
-                x = .data$covariate_values,
-                y = ggplot2::after_stat(density),
-                fill = .data[[treatment_name]]
-              ),
-              alpha = 0.5,
-              position = "identity",
-              binwidth = cd_bar_width
-            ) +
-            ggplot2::scale_x_continuous(
-              breaks = seq(
-                floor_dec(
-                  min(covariate_values),
-                  digits = decimalplaces(cd_x_scale_width)
-                ),
-                ceiling_dec(
-                  max(covariate_values),
-                  digits = decimalplaces(cd_x_scale_width)
-                ),
-                cd_x_scale_width
-              )
-            )
-        }
-        p <- p +
-          ggplot2::xlab("") +
-          ggplot2::ylab("") +
-          cd_scale_fill
-      }
-    )
-    cov_plots_adjusted <- purrr::pmap(
-      list(
-        names = names(X_orig),
-        type = plot_type,
-        cd_x_scale_width = cd_x_scale_width,
-        cd_bar_width = cd_bar_width
-      ),
-      \(names, type, cd_x_scale_width, cd_bar_width) {
-        plot_data <- cd_plot_data |>
-          dplyr::select(
-            dplyr::all_of(treatment_name),
-            "IPW",
-            "covariate_values" = dplyr::all_of(names)
-          ) |>
-          dplyr::mutate(
-            "covariate_name" = dplyr::all_of(names)
-          )
-        covariate_values <- plot_data[["covariate_values"]]
-        p <- plot_data |>
-          ggplot2::ggplot() +
-          ggplot2::facet_grid(~ .data$covariate_name)
-        if (type == "bar") {
-          p <- p +
-            ggplot2::geom_bar(
-              ggplot2::aes(
-                x = .data$covariate_values,
-                weight = .data$IPW,
-                fill = .data[[treatment_name]]
-              ),
-              alpha = 0.5,
-              position = "dodge",
-              width = cd_bar_width
-            )
-        } else {
-          p <- p +
-            ggplot2::geom_histogram(
-              ggplot2::aes(
-                x = .data$covariate_values,
-                y = ggplot2::after_stat(density),
-                weight = .data$IPW,
-                fill = .data[[treatment_name]]
-              ),
-              alpha = 0.5,
-              position = "identity",
-              binwidth = cd_bar_width
-            ) +
-            ggplot2::scale_x_continuous(
-              breaks = seq(
-                floor_dec(
-                  min(covariate_values),
-                  digits = decimalplaces(cd_x_scale_width)
-                ),
-                ceiling_dec(
-                  max(covariate_values),
-                  digits = decimalplaces(cd_x_scale_width)
-                ),
-                cd_x_scale_width
-              )
-            )
-        }
-        p <- p +
-          ggplot2::xlab("") +
-          ggplot2::ylab("") +
-          cd_scale_fill
-      }
-    )
-    cd_plot_unadjusted <- cowplot::ggdraw(
-      arrangeGrob(
-        patchwork::patchworkGrob(
-          (
-            Reduce("+", cov_plots_unadjusted) +
-              patchwork::plot_layout(
-                nrow = cd_nrow,
-                ncol = cd_ncol,
-                guides = "collect"
-              ) &
-              ggplot2::theme(legend.position = "top")
-          ) +
-            patchwork::plot_annotation(
-              title = "Covariate plots (before adjustment)"
-            )
-        ),
-        left = "density/count", bottom = "covariate values"
-      )
-    ) +
-      ggplot2::theme(
-        plot.background = ggplot2::element_rect(fill = "white", color = NA)
-      )
-    cd_plot_adjusted <- cowplot::ggdraw(
-      arrangeGrob(
-        patchwork::patchworkGrob(
-          (
-            Reduce("+", cov_plots_adjusted) +
-              patchwork::plot_layout(
-                nrow = cd_nrow,
-                ncol = cd_ncol,
-                guides = "collect"
-              ) &
-              ggplot2::theme(legend.position = "top")
-          ) +
-            patchwork::plot_annotation(
-              title = "Covariate plots (after adjustment)"
-            )
-        ),
-        left = "density/count", bottom = "covariate values"
-      )
-    ) +
-      ggplot2::theme(
-        plot.background = ggplot2::element_rect(fill = "white", color = NA)
-      )
   }
 
   # return list with plots
@@ -663,9 +1125,26 @@ display in the covariate distribution plots."
     out <- c(
       out,
       list(
-        cd_data = cd_plot_data,
+        cd_data = plot_data,
         cd_unadjusted = cd_plot_unadjusted,
         cd_adjusted = cd_plot_adjusted
+      )
+    )
+  }
+  if (ecdf) {
+    out <- c(
+      out,
+      list(
+        ecdf_unadjusted = ecdf_plot_unadjusted,
+        ecdf_adjusted = ecdf_plot_adjusted
+      )
+    )
+  }
+  if (bal_tab) {
+    out <- c(
+      out,
+      list(
+        balance_table = balance_table
       )
     )
   }
