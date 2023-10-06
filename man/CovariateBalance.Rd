@@ -6,9 +6,11 @@
 \usage{
 CovariateBalance(
   cf,
-  plots = c("all", "Love", "density"),
+  plots = c("all", "Love", "density", "ecdf"),
+  balance_table = TRUE,
   covariates = NULL,
   names = NULL,
+  factor = NULL,
   treatment_name = "W",
   love_breaks = NULL,
   love_xlim = NULL,
@@ -17,7 +19,11 @@ CovariateBalance(
   cd_ncol = NULL,
   cd_x_scale_width = NULL,
   cd_bar_width = NULL,
-  cd_scale_fill = NULL
+  cd_scale_fill = NULL,
+  ec_nrow = NULL,
+  ec_ncol = NULL,
+  ec_x_scale_width = NULL,
+  ec_scale_color = NULL
 )
 }
 \arguments{
@@ -25,6 +31,8 @@ CovariateBalance(
 
 \item{plots}{Character, \code{"all"} returns both Love plots and density plots,
 \code{"Love"} returns only Love plots, \code{"density"} returns only density plots.}
+
+\item{balance_table}{Boolean, TRUE to return a table with balance statistics.}
 
 \item{covariates}{A vector to select covariates to show in balance plots. If
 \code{cf$X.orig} is an unnamed matrix, use a numeric vector to select variables.
@@ -43,6 +51,11 @@ providing just the name of a discrete covariate will modify the name of all
 levels for plotting. If the vector is unnamed, the provided vector will act
 as the new covariate names, given in the order of \code{cf$X_orig}. If \code{NULL}
 (the default), the original names are used.}
+
+\item{factor}{A named list with covariates to be converted to factor. Note
+that one-hot encoded covariates are automatically converted, so need not be
+specified in the factor argument. Each component of the list must contain
+the factor levels, using a named vector to supply custom labels.}
 
 \item{treatment_name}{Character, name of treatment.}
 
@@ -80,6 +93,20 @@ in \code{covariates}.}
 
 \item{cd_scale_fill}{Function, \code{scale_fill_.} function to use in covariate
 distribution plots.}
+
+\item{ec_nrow, ec_ncol}{Numeric, the dimensions of the grid to create in
+empirical CDF plots. If both are \code{NULL} it will use the same logic
+as \link[ggplot2]{facet_wrap} to set the dimensions.}
+
+\item{ec_x_scale_width}{Numeric, the distance between major \code{x}-axis tics in
+the empirical CDF plots. If \code{NULL}, a width is chosen to display
+approximately six major tics. If length 1, the same width is used for all
+plots. If the same length as the number of covariates included, each number
+is used as the width for different covariates, in the order of the
+covariates after selection with the tidy-select expression in \code{covariates}.}
+
+\item{ec_scale_color}{Function, \code{scale_color_.} function to use in empirical
+CDF plots.}
 }
 \value{
 A list with up to five elements:
@@ -101,7 +128,7 @@ score weighting with a causal forest object.
 If an unnamed character vector is provided in \code{names}, it must have length
 \code{ncol(cf$X.orig)}. Names of covarates not selected by \code{covariates} can be set
 to \code{NA}. If a named character vector is provided in \code{names}, all renamed
-covariates will be keept regardless if they are selected in \code{covariates}.
+covariates will be kept regardless if they are selected in \code{covariates}.
 Thus to select only renamed covariates, \code{character(0)} can be used in
 \code{covariates}. The plot theme can be adjusted using ggplot2 active theme
 modifiers, see \link[ggplot2]{theme_get}.

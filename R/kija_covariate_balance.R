@@ -442,8 +442,8 @@ display in the covariate distribution plots."
       )
     love_plot_data <-
       dplyr::inner_join(
-        df_ori |> select(name, std_abs_mean_diff),
-        df_adj |> select(name, std_abs_mean_diff_adj),
+        df_ori |> dplyr::select(name, std_abs_mean_diff),
+        df_adj |> dplyr::select(name, std_abs_mean_diff_adj),
         by = "name",
         relationship = "one-to-one"
       ) |>
@@ -506,7 +506,7 @@ display in the covariate distribution plots."
 
     if (bal_tab) {
       balance_table$unadjusted <- df_ori |>
-        mutate(
+        dplyr::mutate(
           var_ratio = ifelse(
             grepl(" - ", name),
             NA_real_,
@@ -514,7 +514,7 @@ display in the covariate distribution plots."
           )
         )
       balance_table$adjusted <- df_adj |>
-        mutate(
+        dplyr::mutate(
           var_ratio = ifelse(
             grepl(" - ", name),
             NA_real_,
@@ -849,7 +849,7 @@ display in the covariate distribution plots."
             dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
             dplyr::arrange(`covariate_values`) |>
             dplyr::mutate(
-              cum_pct_ori = seq_len(n()) / n(),
+              cum_pct_ori = seq_len(dplyr::n()) / dplyr::n(),
               cum_pct_wei = cumsum(IPW) / sum(IPW)
             ) |>
             dplyr::ungroup()
@@ -899,7 +899,7 @@ display in the covariate distribution plots."
                   dplyr::across(dplyr::all_of(treatment_name))
                 ) |>
                 dplyr::summarise(
-                  eCDF_mean_ori = n(),
+                  eCDF_mean_ori = dplyr::n(),
                   eCDF_mean_wei = sum(IPW),
                   .groups = "drop"
                 ) |>
@@ -936,7 +936,7 @@ display in the covariate distribution plots."
                   dplyr::across(dplyr::all_of(treatment_name))
                 ) |>
                 dplyr::summarise(
-                  eCDF_mean_ori = n(),
+                  eCDF_mean_ori = dplyr::n(),
                   eCDF_mean_wei = sum(IPW),
                   .groups = "drop"
                 ) |>

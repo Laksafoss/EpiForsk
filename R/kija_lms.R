@@ -166,8 +166,7 @@ print.lms <- function (x, digits = max(3L, getOption("digits") - 3L), ...)
     cat("Coefficients:\n")
     print.default(format(coef(x), digits = digits), print.gap = 2L,
                   quote = FALSE)
-  }
-  else cat("No coefficients\n")
+  } else cat("No coefficients\n")
   cat("\n")
   invisible(x)
 }
