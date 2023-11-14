@@ -16,10 +16,8 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
     broom,
-    cli,
     cowplot,
     data.table,
-    doParallel,
     dplyr,
     forcats,
     foreach,
@@ -34,6 +32,7 @@ Imports:
     parallel,
     patchwork,
     policytree,
+    progress,
     purrr,
     rlang,
     stringr,
@@ -47,9 +46,12 @@ Depends:
     R (>= 4.2)
 LazyData: true
 Suggests: 
+    cli,
+    doSNOW,
     ggsci,
     knitr,
     rmarkdown,
+    snow,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

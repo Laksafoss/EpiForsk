@@ -53,11 +53,12 @@
 #'   confidence set of \eqn{\beta} can be mapped to the confidence set of the
 #'   transformed parameter.
 #'
-#'   To determine \eqn{C_{\beta}}, `fct_confint()` finds the boundary by taking
-#'   a number of points around \eqn{\hat\beta} and projecting them onto the
-#'   boundary. Therefore, the confidence set of the transformed parameter will
-#'   only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
-#'   of the confidence set for the transformed parameter.
+#'   To determine \eqn{C_{\beta}}, `fct_confint()` uses a convex optimization
+#'   program when f is follows DCP rules. Otherwise, it finds the boundary by
+#'   taking a number of points around \eqn{\hat\beta} and projecting them onto
+#'   the boundary. In this case, the confidence set of the transformed parameter
+#'   will only be valid if the boundary of \eqn{C_{\beta}} is mapped to the
+#'   boundary of the confidence set for the transformed parameter.
 #'
 #'   The points projected to the boundary are either laid out in a grid around
 #'   \eqn{\hat\beta}, with the number of points in each direction determined
@@ -103,23 +104,24 @@ fct_confint <- function(
 
 
 #' @rdname fct_confint
-#' @param len numeric, the radius of the sphere or box used to define directions
-#'   in which to look for boundary points of the parameter confidence set.
+#' @param return_beta Logical, if `TRUE` returns both the confidence limits and
+#'   the parameter values used from the boundary of the parameter confidence
+#'   set.
+#' @param verbose Logical, if `TRUE` prints a progress bar with information
+#'   about the fitting process. The progress bar uses extra resources, so if each
+#'   iteration is fast, consider verbose = FALSE.
 #' @param n_grid Either `NULL` or an integer vector of length 1 or the number of
-#'   `TRUE`/indices in which_parm. Specifies the number of grid points in
-#'   each dimension of a grid with endpoints defined by len. If `NULL` or `0L`,
-#'   will instead sample k points uniformly on a sphere.
+#'   `TRUE`/indices in which_parm. Specifies the number of grid points in each
+#'   dimension of a grid with endpoints defined by len. If `NULL` or `0L`, will
+#'   instead sample k points uniformly on a sphere.
 #' @param k If n_grid is `NULL` or `0L`, the number of points to sample
 #'   uniformly from a sphere.
+#' @param len numeric, the radius of the sphere or box used to define directions
+#'   in which to look for boundary points of the parameter confidence set.
 #' @param parallel Logical, if `TRUE` parallel computing is used when solving
 #'   for points on the boundary of the parameter confidence set.
 #' @param n_cores An integer specifying the number of threads to use for
 #'   parallel computing.
-#' @param return_beta Logical, if `TRUE` returns both the confidence limits and
-#'   the parameter values used from the boundary of the parameter confidence
-#'   set.
-#' @param verbose Logical, if `TRUE` prints information about the number of
-#'   points on the boundary used to calculate the confidence limits.
 #'
 #' @export
 
@@ -128,24 +130,20 @@ fct_confint.lm <- function(
     f,
     which_parm = rep(TRUE, length(coef(object))),
     level = 0.95,
-    len = 0.1,
-    n_grid = 0L,
-    k = 1000L,
-    parallel = FALSE,
-    n_cores = 10,
     return_beta = FALSE,
     verbose = FALSE,
+    n_grid = NULL,
+    k = NULL,
+    len = 0.1,
+    parallel = FALSE,
+    n_cores = 10L,
     ...
 ) {
-  if (parallel) {
-    nCores <- min(
-      parallel::detectCores(),
-      n_cores
-    )
-    cluster <- parallel::makeCluster(nCores)
-    registerDoParallel(cluster)
-    on.exit(parallel::stopCluster(cluster))
-  }
+  ### check input
+  # check object class
+  stopifnot("object must inherit from class 'lm'" = inherits(object, "lm"))
+  # check f is a function
+  stopifnot("f must be a function" = is.function(f))
   # convert which_parm to a logical vector
   if (!purrr::is_logical(which_parm)) {
     if (purrr::is_double(which_parm)) {
@@ -173,39 +171,99 @@ fct_confint.lm <- function(
     which_parm <- rep(FALSE, length(object$coefficients))
     which_parm[which_parm_ind] <- TRUE
   }
-  # extract MLE parameters and standard deviation
-  beta_hat <- coef(object)
-  # contruct points around the estimated parameter vector defining directions
-  # to look for points on the boundary of the confidence set.
-  if (is.null(n_grid) || any(n_grid) == 0L) {
-    # create k point uniformly on a sum(which_parm)-dimensional sphere
-    delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
-    norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
-    delta <- t(delta / rep(norm / len, ncol(delta)))
-    rownames(delta) <- names(beta_hat)[which_parm]
-  } else if (!purrr::is_integer(n_grid)) {
-    stop("'n_grid' must be an integer vector.")
-  } else if (!(match(length(n_grid), c(1L, sum(which_parm))))) {
-    stop(glue::glue("'n_grid' must have length 1 or {sum(which_parm)}."))
-  } else {
-    # create sum(which_parm)-dimensional grid with n_grid points in each direction
-    if (length(n_grid) == 1L) {
-      delta <- as.matrix(expand.grid(
-        rep(list(seq(-len, len, length.out = n_grid)), sum(which_parm))
-      ))
-    } else if(length(n_grid) == sum(which_parm)) {
-      delta <- as.matrix(expand.grid(
-        lapply(n_grid, function(y) seq(-len, len, length.out = y))
-      ))
-    } else {
-      stop(glue::glue("'n_grid' must be length 1 or {sum(which_parm)}"))
-    }
-    delta <- t(delta)
-    rownames(delta) <- names(beta_hat)[which_parm]
+  # check level is a double between 0 and 1
+  stopifnot(
+    "level must be a number between 0 and 1" =
+      is.numeric(level) && length(level) == 1 && level > 0 && level < 1
+  )
+  # check return_beta is a Boolean
+  stopifnot(
+    "return_beta must be Boolean" =
+      isTRUE(return_beta) | isFALSE(return_beta)
+  )
+  # check verbose is a Boolean
+  stopifnot("verbose must be Boolean" = isTRUE(verbose) | isFALSE(verbose))
+  # check n_grid
+  if (
+    !(is.null(n_grid) ||
+      is.integer(n_grid) &&
+      match(length(n_grid), c(1, sum(which_parm))) &&
+      all(n_grid > 0))
+  ) {
+    stop("n_grid must be either NULL, a positive integer, or a vector of ",
+         "\npositive integers the number of `TRUE`/indices in which_parm")
   }
-  # design matrix
+  # check k
+  if (
+    !(is.null(k) ||
+      is.integer(k) && length(k) == 1 && k > 0)
+  ) {
+    if (is.numeric(k) && length(k) == 1 && k > 0 && round(k) == k) {
+      k <- as.integer(k)
+    } else {
+      stop("k must be either NULL or a positive integer")
+    }
+  }
+  # check len is a positive real
+  stopifnot(
+    "len must be a number greater than 0" =
+      is.numeric(len) && length(len) == 1 && len > 0
+  )
+
+  ### request installation of required packages from suggested
+  if (parallel) {
+    p1 <- require("parallel", quietly = TRUE)
+    p2 <- require("snow", quietly = TRUE)
+    p3 <- require("doSNOW", quietly = TRUE)
+    if (!all(c(p1, p2, p3))) {
+      mp <- c("parallel", "snow", "doSNOW")[!c(p1, p2, p3)]
+      if (interactive()) {
+        for (i in 1:3) {
+        input <- readline(glue::glue(
+          "'parallel=TRUE' requires packages {mp} to be installed.",
+          "Attempt to install packages from CRAN? (y/n)"
+        ))
+        if (input == "y") {
+          install.packages(
+            pkgs = mp,
+            repos = "https://cloud.r-project.org"
+          )
+          p1 <- require("parallel", quietly = TRUE)
+          p2 <- require("snow", quietly = TRUE)
+          p3 <- require("doSNOW", quietly = TRUE)
+          if (!all(c(p1, p2, p3))) {
+            stop("Failed to install required packages")
+          }
+          break
+        } else if (input == "n") {
+          stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+        }
+        if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+        }
+      } else {
+        stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+      }
+    }
+  }
+
+  ### Initialize parallel clusters if needed
+  if (parallel) {
+    nCores <- min(
+      parallel::detectCores(),
+      n_cores
+    )
+    cluster <- snow::makeCluster(nCores)
+    doSNOW::registerDoSNOW(cluster)
+    on.exit(snow::stopCluster(cluster))
+  }
+
+  ### extract MLE parameters
+  beta_hat <- coef(object)
+
+  ### design matrix
   X <- model.matrix(object)[, which_parm, drop = FALSE]
-  # weight
+
+  ### weight matrix
   rdf <- object$df.residual
   if (is.null(object$weights)) {
     rss <- sum(object$residuals^2)
@@ -213,22 +271,179 @@ fct_confint.lm <- function(
     rss <- sum(object$weights * object$residuals^2)
   }
   W <- rss / rdf # equivalent to summary(object)$sigma^2
-  # solve equation for scaling of points to end up on boundary of confidence set
+
+  ### create object X^TWX on reduced set of covariates
   xtx_inv <- W * solve(crossprod(X))
   xtx_red <- solve(xtx_inv)
+
+  ### solve convex optimization problem (unless n_grid or k are specified)
+  if((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+    # total number of output dimensions
+    n_fout <- length(f(beta_hat))
+
+    # create progress bar if verbose = TRUE. A function to update the bar
+    # is defined for use if parallel = TRUE
+    # NOTE: the progress bar from the progress package is resource intensive
+    # compared with the one from cli. Progress is used here because it works
+    # with a parallel workflow, but a faster alternative would be preferred.
+    if (verbose & parallel) {
+      progress <- function(i) {
+        # first tick needs to be run twice for progress bar to show (why?)
+        if (i == 1) {
+          pb$tick(tokens = list(iteration = 1))
+        }
+        # running twice to initialize creates problems with termination
+        # terminate manually, then return
+        if (i == n_fout) {
+          pb$terminate()
+          return(invisible(pb))
+        }
+        pb$tick(tokens = list(iteration = i))
+      }
+      opts <- list(progress = progress)
+      pb <- progress::progress_bar$new(
+        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+        total = n_fout,
+        width = 80,
+        show_after = 0.2
+      )
+    } else if (verbose) {
+      pb <- progress::progress_bar$new(
+        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+        total = n_fout,
+        width = 80,
+        show_after = 0.2
+      )
+    } else if(parallel) {
+      opts <- list()
+    }
+
+    # run optimizer, either in parallel or in series
+    tryCatch(
+      {
+        if (parallel) {
+          ci_data <- foreach::`%dopar%`(
+            foreach::foreach(
+              i = seq_len(n_fout),
+              .combine = rbind,
+              .options.snow = opts
+            ),
+            ci_fct(i = i,
+                   verbose = verbose,
+                   parallel = parallel,
+                   xtx_red = xtx_red,
+                   beta_hat = beta_hat,
+                   which_parm = which_parm)
+          )
+        } else {
+          ci_data <- foreach::`%do%`(
+            foreach::foreach(
+              i = seq_len(n_fout),
+              .combine = rbind
+            ),
+            ci_fct(i = i,
+                   verbose = verbose,
+                   parallel = parallel,
+                   xtx_red = xtx_red,
+                   beta_hat = beta_hat,
+                   which_parm = which_parm)
+          )
+        }
+        # return results using convex optimization
+        return(ci_data)
+      },
+      # If an error occurs, check if the problem is f not following DCP rules
+      error = ci_fct_error_handler
+    )
+  }
+
+  ### contruct points around the estimated parameter vector defining directions
+  ### to look for points on the boundary of the confidence set if requested
+  if(!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
+    if (is.null(n_grid) || any(n_grid) == 0L) {
+      # create k point uniformly on a sum(which_parm)-dimensional sphere
+      delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
+      norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
+      delta <- t(delta / rep(norm / len, ncol(delta)))
+      rownames(delta) <- names(beta_hat)[which_parm]
+    } else {
+      # create sum(which_parm)-dimensional grid with n_grid points in each direction
+      if (length(n_grid) == 1L) {
+        delta <- as.matrix(expand.grid(
+          rep(list(seq(-len, len, length.out = n_grid)), sum(which_parm))
+        ))
+      } else {
+        delta <- as.matrix(expand.grid(
+          lapply(n_grid, function(y) seq(-len, len, length.out = y))
+        ))
+      }
+      delta <- t(delta)
+      rownames(delta) <- names(beta_hat)[which_parm]
+    }
+  }
+
+  # create progress bar if verbose = TRUE. A function to update the bar
+  # is defined for use if parallel = TRUE
+  if (verbose & parallel) {
+    progress <- function(i) {
+      # first tick needs to be run twice for progress bar to show (why?)
+      if (i == 1) {
+        pb$tick(tokens = list(iteration = 1))
+      }
+      # running twice to initialize creates problems with termination
+      # terminate manually, then return
+      if (i == ncol(delta)) {
+        pb$terminate()
+        return(invisible(pb))
+      }
+      pb$tick(tokens = list(iteration = i))
+    }
+    opts <- list(progress = progress)
+    pb <- progress::progress_bar$new(
+      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+      total = ncol(delta),
+      width = 80,
+      show_after = 0.2
+    )
+  } else if (verbose) {
+    pb <- progress::progress_bar$new(
+      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+      total = ncol(delta),
+      width = 80,
+      show_after = 0.2
+    )
+  } else if(parallel) {
+    opts <- list()
+  }
+
+  ### solve equation for scaling points to end up on boundary of confidence set
   if(parallel) {
     fn <- function(y) {
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+        as.numeric()
     }
-    a <- foreach(y = seq_len(ncol(delta))) %dopar% fn(y)
-    a <- unlist(a)
+    a <- foreach::`%dopar%`(
+      foreach::foreach(
+        y = seq_len(ncol(delta)),
+        .combine = c,
+        .options.snow = opts
+      ),
+      fn(y)
+    )
   } else {
-    a <- vapply(
-      seq_len(ncol(delta)),
-      function(y) {
-        t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
-      },
-      double(1L)
+    fn <- function(y, verbose) {
+      if (verbose) {
+        pb$tick(tokens = list(iteration = y))
+      }
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+        as.numeric()
+    }
+    a <- foreach::`%do%`(
+      foreach::foreach(
+        y = seq_len(ncol(delta)),
+        .combine = c
+      ),
+      fn(y, verbose = verbose)
     )
   }
   c <- rep(
@@ -242,7 +457,7 @@ fct_confint.lm <- function(
     alpha2 <- sqrt(c / a)
   )
   # remove delta values that lead to complex solutions
-  which_alpha <- which(!is.nan(alpha1))
+  which_alpha <- which(!(is.nan(alpha1) | is.infinite(alpha1)))
   alpha1 <- alpha1[which_alpha]
   alpha2 <- alpha2[which_alpha]
   delta_red <- delta[, which_alpha, drop = FALSE]
@@ -327,24 +542,20 @@ fct_confint.glm <- function(
     f,
     which_parm = rep(TRUE, length(coef(object))),
     level = 0.95,
-    len = 0.1,
-    n_grid = 0L,
-    k = 1000L,
-    parallel = FALSE,
-    n_cores = 10,
     return_beta = FALSE,
     verbose = FALSE,
+    n_grid = NULL,
+    k = NULL,
+    len = 0.1,
+    parallel = FALSE,
+    n_cores = 10L,
     ...
 ) {
-  if (parallel) {
-    nCores <- min(
-      parallel::detectCores(),
-      n_cores
-    )
-    cluster <- parallel::makeCluster(nCores)
-    registerDoParallel(cluster)
-    on.exit(parallel::stopCluster(cluster))
-  }
+  ### check input
+  # check object class
+  stopifnot("object must inherit from class 'glm'" = inherits(object, "glm"))
+  # check f is a function
+  stopifnot("f must be a function" = is.function(f))
   # convert which_parm to a logical vector
   if (!purrr::is_logical(which_parm)) {
     if (purrr::is_double(which_parm)) {
@@ -374,56 +585,274 @@ fct_confint.glm <- function(
     which_parm <- rep(FALSE, length(object$coefficients))
     which_parm[which_parm_ind] <- TRUE
   }
-  # extract MLE parameters and standard deviation
-  beta_hat <- coef(object)
-  # contruct points around the estimated parameter vector defining directions
-  # to look for points on the boundary of the confidence set.
-  if (is.null(n_grid) || any(n_grid) == 0L) {
-    # create k point uniformly on a sum(which_parm)-dimensional sphere
-    delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
-    norm <- apply(delta, 1, function(x) sqrt(sum(x^2)))
-    delta <- t(delta / rep(norm / len, ncol(delta)))
-    rownames(delta) <- names(beta_hat)[which_parm]
-  } else if (!purrr::is_integer(n_grid)) {
-    stop("'n_grid' must be an integer vector.")
-  } else if (!(length(n_grid) %in% c(1L, sum(which_parm)))) {
-    stop(glue::glue("'n_grid' must have length 1 or {sum(which_parm)}."))
-  } else {
-    # create sum(which_parm)-dimensional grid with n_grid points in each direction
-    if (length(n_grid) == 1L) {
-      delta <- as.matrix(expand.grid(
-        rep(list(seq(-len, len, length.out = n_grid)), sum(which_parm))
-      ))
-    } else if(length(n_grid) == sum(which_parm)) {
-      delta <- as.matrix(expand.grid(
-        lapply(n_grid, function(x) seq(-len, len, length.out = x))
-      ))
-    } else {
-      stop(glue::glue("'n_grid' must be length 1 or {sum(which_parm)}"))
-    }
-    delta <- t(delta)
-    rownames(delta) <- names(beta_hat)[which_parm]
+  # check level is a double between 0 and 1
+  stopifnot(
+    "level must be a number between 0 and 1" =
+      is.numeric(level) && length(level) == 1 && level > 0 && level < 1
+  )
+  # check return_beta is a Boolean
+  stopifnot(
+    "return_beta must be Boolean" =
+      isTRUE(return_beta) | isFALSE(return_beta)
+  )
+  # check verbose is a Boolean
+  stopifnot("verbose must be Boolean" = isTRUE(verbose) | isFALSE(verbose))
+  # check n_grid
+  if (
+    !(is.null(n_grid) ||
+      is.integer(n_grid) &&
+      match(length(n_grid), c(1, sum(which_parm))) &&
+      all(n_grid > 0))
+  ) {
+    stop("n_grid must be either NULL, a positive integer, or a vector of ",
+         "\npositive integers the number of `TRUE`/indices in which_parm")
   }
-  # design matrix
+  # check k
+  if (
+    !(is.null(k) ||
+      is.integer(k) && length(k) == 1 && k > 0)
+  ) {
+    if (is.numeric(k) && length(k) == 1 && k > 0 && round(k) == k) {
+      k <- as.integer(k)
+    } else {
+      stop("k must be either NULL or a positive integer")
+    }
+  }
+  # check len is a positive real
+  stopifnot(
+    "len must be a number greater than 0" =
+      is.numeric(len) && length(len) == 1 && len > 0
+  )
+
+  ### request installation of required packages from suggested
+  if (parallel) {
+    p1 <- require("parallel", quietly = TRUE)
+    p2 <- require("snow", quietly = TRUE)
+    p3 <- require("doSNOW", quietly = TRUE)
+    if (!all(c(p1, p2, p3))) {
+      mp <- c("parallel", "snow", "doSNOW")[!c(p1, p2, p3)]
+      if (interactive()) {
+        for (i in 1:3) {
+          input <- readline(glue::glue(
+            "'parallel=TRUE' requires packages {mp} to be installed.",
+            "Attempt to install packages from CRAN? (y/n)"
+          ))
+          if (input == "y") {
+            install.packages(
+              pkgs = mp,
+              repos = "https://cloud.r-project.org"
+            )
+            p1 <- require("parallel", quietly = TRUE)
+            p2 <- require("snow", quietly = TRUE)
+            p3 <- require("doSNOW", quietly = TRUE)
+            if (!all(c(p1, p2, p3))) {
+              stop("Failed to install required packages")
+            }
+            break
+          } else if (input == "n") {
+            stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+          }
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+        }
+      } else {
+        stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+      }
+    }
+  }
+
+  ### Initialize parallel clusters if needed
+  if (parallel) {
+    nCores <- min(
+      parallel::detectCores(),
+      n_cores
+    )
+    cluster <- snow::makeCluster(nCores)
+    doSNOW::registerDoSNOW(cluster)
+    on.exit(snow::stopCluster(cluster))
+  }
+
+  ### extract MLE parameters
+  beta_hat <- coef(object)
+
+  ### design matrix
   X <- model.matrix(object)[, which_parm, drop = FALSE]
-  # weight
+
+  ### weight matrix
   W <- object$weights
-  # solve equation for scaling of points to end up on boundary of confidence set
-  xtx_inv <- solve(crossprod(X * sqrt(W)))
+
+  ### create object X^TWX on reduced set of covariates
+  #xtx_inv <- solve(crossprod(X * sqrt(W)))
+  xtx_inv <- W * solve(crossprod(X))
   xtx_red <- solve(xtx_inv)
+
+  ### solve convex optimization problem (unless n_grid or k are specified)
+  if((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+    # total number of output dimensions
+    n_fout <- length(f(beta_hat))
+
+    # create progress bar if verbose = TRUE. A function to update the bar
+    # is defined for use if parallel = TRUE
+    # NOTE: the progress bar from the progress package is resource intensive
+    # compared with the one from cli. Progress is used here because it works
+    # with a parallel workflow, but a faster alternative would be preferred.
+    if (verbose & parallel) {
+      progress <- function(i) {
+        # first tick needs to be run twice for progress bar to show (why?)
+        if (i == 1) {
+          pb$tick(tokens = list(iteration = 1))
+        }
+        # running twice to initialize creates problems with termination
+        # terminate manually, then return
+        if (i == n_fout) {
+          pb$terminate()
+          return(invisible(pb))
+        }
+        pb$tick(tokens = list(iteration = i))
+      }
+      opts <- list(progress = progress)
+      pb <- progress::progress_bar$new(
+        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+        total = n_fout,
+        width = 80,
+        show_after = 0.2
+      )
+    } else if (verbose) {
+      pb <- progress::progress_bar$new(
+        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+        total = n_fout,
+        width = 80,
+        show_after = 0.2
+      )
+    } else if(parallel) {
+      opts <- list()
+    }
+
+    # run optimizer, either in parallel or in series
+    tryCatch(
+      {
+        if (parallel) {
+          ci_data <- foreach::`%dopar%`(
+            foreach::foreach(
+              i = seq_len(n_fout),
+              .combine = rbind,
+              .options.snow = opts
+            ),
+            ci_fct(i = i,
+                   verbose = verbose,
+                   parallel = parallel,
+                   xtx_red = xtx_red,
+                   beta_hat = beta_hat,
+                   which_parm = which_parm)
+          )
+        } else {
+          ci_data <- foreach::`%do%`(
+            foreach::foreach(
+              i = seq_len(n_fout),
+              .combine = rbind
+            ),
+            ci_fct(i = i,
+                   verbose = verbose,
+                   parallel = parallel,
+                   xtx_red = xtx_red,
+                   beta_hat = beta_hat,
+                   which_parm = which_parm)
+          )
+        }
+        # return results using convex optimization
+        return(ci_data)
+      },
+      # If an error occurs, check if the problem is f not following DCP rules
+      error = ci_fct_error_handler
+    )
+  }
+
+  ### contruct points around the estimated parameter vector defining directions
+  ### to look for points on the boundary of the confidence set if requested
+  if(!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
+    if (is.null(n_grid) || any(n_grid) == 0L) {
+      # create k point uniformly on a sum(which_parm)-dimensional sphere
+      delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
+      norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
+      delta <- t(delta / rep(norm / len, ncol(delta)))
+      rownames(delta) <- names(beta_hat)[which_parm]
+    } else {
+      # create sum(which_parm)-dimensional grid with n_grid points in each direction
+      if (length(n_grid) == 1L) {
+        delta <- as.matrix(expand.grid(
+          rep(list(seq(-len, len, length.out = n_grid)), sum(which_parm))
+        ))
+      } else {
+        delta <- as.matrix(expand.grid(
+          lapply(n_grid, function(y) seq(-len, len, length.out = y))
+        ))
+      }
+      delta <- t(delta)
+      rownames(delta) <- names(beta_hat)[which_parm]
+    }
+  }
+
+  # create progress bar if verbose = TRUE. A function to update the bar
+  # is defined for use if parallel = TRUE
+  if (verbose & parallel) {
+    progress <- function(i) {
+      # first tick needs to be run twice for progress bar to show (why?)
+      if (i == 1) {
+        pb$tick(tokens = list(iteration = 1))
+      }
+      # running twice to initialize creates problems with termination
+      # terminate manually, then return
+      if (i == ncol(delta)) {
+        pb$terminate()
+        return(invisible(pb))
+      }
+      pb$tick(tokens = list(iteration = i))
+    }
+    opts <- list(progress = progress)
+    pb <- progress::progress_bar$new(
+      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+      total = ncol(delta),
+      width = 80,
+      show_after = 0.2
+    )
+  } else if (verbose) {
+    pb <- progress::progress_bar$new(
+      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+      total = ncol(delta),
+      width = 80,
+      show_after = 0.2
+    )
+  } else if(parallel) {
+    opts <- list()
+  }
+
+  ### solve equation for scaling points to end up on boundary of confidence set
   if(parallel) {
     fn <- function(y) {
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+        as.numeric()
     }
-    a <- a <- foreach(y = seq_len(ncol(delta))) %dopar% fn(y)
-    a <- unlist(a)
+    a <- foreach::`%dopar%`(
+      foreach::foreach(
+        y = seq_len(ncol(delta)),
+        .combine = c,
+        .options.snow = opts
+      ),
+      fn(y)
+    )
   } else {
-    a <- vapply(
-      seq_len(ncol(delta)),
-      function(y) {
-        t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
-      },
-      double(1L)
+    fn <- function(y, verbose) {
+      if (verbose) {
+        pb$tick(tokens = list(iteration = y))
+      }
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+        as.numeric()
+    }
+    a <- foreach::`%do%`(
+      foreach::foreach(
+        y = seq_len(ncol(delta)),
+        .combine = c
+      ),
+      fn(y, verbose = verbose)
     )
   }
   c <- rep(
@@ -437,11 +866,13 @@ fct_confint.glm <- function(
     alpha2 <- sqrt(c / a)
   )
   # remove delta values that lead to complex solutions
-  which_alpha <- which(!is.nan(alpha1))
+  which_alpha <- which(!(is.nan(alpha1) | is.infinite(alpha1)))
   alpha1 <- alpha1[which_alpha]
   alpha2 <- alpha2[which_alpha]
   delta_red <- delta[, which_alpha, drop = FALSE]
   if (verbose) cat("points on the boundary:", 2 * length(which_alpha), "\n")
+
+
   # determine coefficient values on boundary of confidence set
   beta_1 <- matrix(
     rep(beta_hat[which_parm], length(which_alpha)),
@@ -531,19 +962,15 @@ fct_confint.lms <- function(
     verbose = FALSE,
     ...
 ) {
-  if (parallel) {
-    nCores <- min(
-      parallel::detectCores(),
-      n_cores
-    )
-    cluster <- parallel::makeCluster(nCores)
-    registerDoParallel(cluster)
-    on.exit(parallel::stopCluster(cluster))
-  }
+  ### check input
+  # check object class
+  stopifnot("object must inherit from class 'lm'" = inherits(object, "lm"))
+  # check f is a function
+  stopifnot("f must be a function" = is.function(f))
   # convert which_parm to a logical vector
   if (!purrr::is_logical(which_parm)) {
     if (purrr::is_double(which_parm)) {
-      which_parm_ind <- as.integer(round(which_parm))
+      which_parm_ind <- as.integer(trunc(which_parm))
       warning(
         "'which_parm' has type 'double', but type 'integer' is expected. ",
         "'which_parm' was\ntruncated and converted to an integer. ",
@@ -559,49 +986,107 @@ fct_confint.lms <- function(
       which_parm_ind <- which_parm
     } else {
       stop(
-        paste(
-          "which_parm must either be a logical vector the same length as the",
-          "coefficients or an integer vector with indices of the coefficient",
-          "vector."
-        )
+        "which_parm must either be a logical vector the same length as the ",
+        "coefficients\nor an integer vector with indices of the coefficient ",
+        "vector."
       )
     }
     which_parm <- rep(FALSE, length(object$coefficients))
     which_parm[which_parm_ind] <- TRUE
   }
-  # extract MLE parameters and standard deviation
-  beta_hat <- coef(object)
-  # contruct points around the estimated parameter vector defining directions
-  # to look for points on the boundary of the confidence set.
-  if (is.null(n_grid) || any(n_grid) == 0L) {
-    # create k point uniformly on a sum(which_parm)-dimensional sphere
-    delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
-    norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
-    delta <- t(delta / rep(norm / len, ncol(delta)))
-    rownames(delta) <- names(beta_hat)[which_parm]
-  } else if (!purrr::is_integer(n_grid)) {
-    stop("'n_grid' must be an integer vector.")
-  } else if (!(match(length(n_grid), c(1L, sum(which_parm))))) {
-    stop(glue::glue("'n_grid' must have length 1 or {sum(which_parm)}."))
-  } else {
-    # create sum(which_parm)-dimensional grid with n_grid points in each direction
-    if (length(n_grid) == 1L) {
-      delta <- as.matrix(expand.grid(
-        rep(list(seq(-len, len, length.out = n_grid)), sum(which_parm))
-      ))
-    } else if(length(n_grid) == sum(which_parm)) {
-      delta <- as.matrix(expand.grid(
-        lapply(n_grid, function(y) seq(-len, len, length.out = y))
-      ))
-    } else {
-      stop(glue::glue("'n_grid' must be length 1 or {sum(which_parm)}"))
-    }
-    delta <- t(delta)
-    rownames(delta) <- names(beta_hat)[which_parm]
+  # check level is a double between 0 and 1
+  stopifnot(
+    "level must be a number between 0 and 1" =
+      is.numeric(level) && length(level) == 1 && level > 0 && level < 1
+  )
+  # check return_beta is a Boolean
+  stopifnot(
+    "return_beta must be Boolean" =
+      isTRUE(return_beta) | isFALSE(return_beta)
+  )
+  # check verbose is a Boolean
+  stopifnot("verbose must be Boolean" = isTRUE(verbose) | isFALSE(verbose))
+  # check n_grid
+  if (
+    !(is.null(n_grid) ||
+      is.integer(n_grid) &&
+      match(length(n_grid), c(1, sum(which_parm))) &&
+      all(n_grid > 0))
+  ) {
+    stop("n_grid must be either NULL, a positive integer, or a vector of ",
+         "\npositive integers the number of `TRUE`/indices in which_parm")
   }
-  # design matrix
+  # check k
+  if (
+    !(is.null(k) ||
+      is.integer(k) && length(k) == 1 && k > 0)
+  ) {
+    if (is.numeric(k) && length(k) == 1 && k > 0 && round(k) == k) {
+      k <- as.integer(k)
+    } else {
+      stop("k must be either NULL or a positive integer")
+    }
+  }
+  # check len is a positive real
+  stopifnot(
+    "len must be a number greater than 0" =
+      is.numeric(len) && length(len) == 1 && len > 0
+  )
+
+  ### request installation of required packages from suggested
+  if (parallel) {
+    p1 <- require("parallel", quietly = TRUE)
+    p2 <- require("snow", quietly = TRUE)
+    p3 <- require("doSNOW", quietly = TRUE)
+    if (!all(c(p1, p2, p3))) {
+      mp <- c("parallel", "snow", "doSNOW")[!c(p1, p2, p3)]
+      if (interactive()) {
+        for (i in 1:3) {
+          input <- readline(glue::glue(
+            "'parallel=TRUE' requires packages {mp} to be installed.",
+            "Attempt to install packages from CRAN? (y/n)"
+          ))
+          if (input == "y") {
+            install.packages(
+              pkgs = mp,
+              repos = "https://cloud.r-project.org"
+            )
+            p1 <- require("parallel", quietly = TRUE)
+            p2 <- require("snow", quietly = TRUE)
+            p3 <- require("doSNOW", quietly = TRUE)
+            if (!all(c(p1, p2, p3))) {
+              stop("Failed to install required packages")
+            }
+            break
+          } else if (input == "n") {
+            stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+          }
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+        }
+      } else {
+        stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+      }
+    }
+  }
+
+  ### Initialize parallel clusters if needed
+  if (parallel) {
+    nCores <- min(
+      parallel::detectCores(),
+      n_cores
+    )
+    cluster <- snow::makeCluster(nCores)
+    doSNOW::registerDoSNOW(cluster)
+    on.exit(snow::stopCluster(cluster))
+  }
+
+  ### extract MLE parameters
+  beta_hat <- coef(object)
+
+  ### design matrix
   X <- model.matrix(object)[, which_parm, drop = FALSE]
-  # weight
+
+  ### weight matrix
   rdf <- object$df.residual
   if (is.null(object$weights)) {
     rss <- sum(object$residuals^2)
@@ -609,22 +1094,179 @@ fct_confint.lms <- function(
     rss <- sum(object$weights * object$residuals^2)
   }
   W <- rss / rdf # equivalent to summary(object)$sigma^2
-  # solve equation for scaling of points to end up on boundary of confidence set
+
+  ### create object X^TWX on reduced set of covariates
   xtx_inv <- W * solve(crossprod(X))
   xtx_red <- solve(xtx_inv)
+
+  ### solve convex optimization problem (unless n_grid or k are specified)
+  if((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+    # total number of output dimensions
+    n_fout <- length(f(beta_hat))
+
+    # create progress bar if verbose = TRUE. A function to update the bar
+    # is defined for use if parallel = TRUE
+    # NOTE: the progress bar from the progress package is resource intensive
+    # compared with the one from cli. Progress is used here because it works
+    # with a parallel workflow, but a faster alternative would be preferred.
+    if (verbose & parallel) {
+      progress <- function(i) {
+        # first tick needs to be run twice for progress bar to show (why?)
+        if (i == 1) {
+          pb$tick(tokens = list(iteration = 1))
+        }
+        # running twice to initialize creates problems with termination
+        # terminate manually, then return
+        if (i == n_fout) {
+          pb$terminate()
+          return(invisible(pb))
+        }
+        pb$tick(tokens = list(iteration = i))
+      }
+      opts <- list(progress = progress)
+      pb <- progress::progress_bar$new(
+        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+        total = n_fout,
+        width = 80,
+        show_after = 0.2
+      )
+    } else if (verbose) {
+      pb <- progress::progress_bar$new(
+        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+        total = n_fout,
+        width = 80,
+        show_after = 0.2
+      )
+    } else if(parallel) {
+      opts <- list()
+    }
+
+    # run optimizer, either in parallel or in series
+    tryCatch(
+      {
+        if (parallel) {
+          ci_data <- foreach::`%dopar%`(
+            foreach::foreach(
+              i = seq_len(n_fout),
+              .combine = rbind,
+              .options.snow = opts
+            ),
+            ci_fct(i = i,
+                   verbose = verbose,
+                   parallel = parallel,
+                   xtx_red = xtx_red,
+                   beta_hat = beta_hat,
+                   which_parm = which_parm)
+          )
+        } else {
+          ci_data <- foreach::`%do%`(
+            foreach::foreach(
+              i = seq_len(n_fout),
+              .combine = rbind
+            ),
+            ci_fct(i = i,
+                   verbose = verbose,
+                   parallel = parallel,
+                   xtx_red = xtx_red,
+                   beta_hat = beta_hat,
+                   which_parm = which_parm)
+          )
+        }
+        # return results using convex optimization
+        return(ci_data)
+      },
+      # If an error occurs, check if the problem is f not following DCP rules
+      error = ci_fct_error_handler
+    )
+  }
+
+  ### contruct points around the estimated parameter vector defining directions
+  ### to look for points on the boundary of the confidence set if requested
+  if(!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
+    if (is.null(n_grid) || any(n_grid) == 0L) {
+      # create k point uniformly on a sum(which_parm)-dimensional sphere
+      delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
+      norm <- apply(delta, 1, function(y) sqrt(sum(y^2)))
+      delta <- t(delta / rep(norm / len, ncol(delta)))
+      rownames(delta) <- names(beta_hat)[which_parm]
+    } else {
+      # create sum(which_parm)-dimensional grid with n_grid points in each direction
+      if (length(n_grid) == 1L) {
+        delta <- as.matrix(expand.grid(
+          rep(list(seq(-len, len, length.out = n_grid)), sum(which_parm))
+        ))
+      } else {
+        delta <- as.matrix(expand.grid(
+          lapply(n_grid, function(y) seq(-len, len, length.out = y))
+        ))
+      }
+      delta <- t(delta)
+      rownames(delta) <- names(beta_hat)[which_parm]
+    }
+  }
+
+  # create progress bar if verbose = TRUE. A function to update the bar
+  # is defined for use if parallel = TRUE
+  if (verbose & parallel) {
+    progress <- function(i) {
+      # first tick needs to be run twice for progress bar to show (why?)
+      if (i == 1) {
+        pb$tick(tokens = list(iteration = 1))
+      }
+      # running twice to initialize creates problems with termination
+      # terminate manually, then return
+      if (i == ncol(delta)) {
+        pb$terminate()
+        return(invisible(pb))
+      }
+      pb$tick(tokens = list(iteration = i))
+    }
+    opts <- list(progress = progress)
+    pb <- progress::progress_bar$new(
+      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+      total = ncol(delta),
+      width = 80,
+      show_after = 0.2
+    )
+  } else if (verbose) {
+    pb <- progress::progress_bar$new(
+      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
+      total = ncol(delta),
+      width = 80,
+      show_after = 0.2
+    )
+  } else if(parallel) {
+    opts <- list()
+  }
+
+  ### solve equation for scaling points to end up on boundary of confidence set
   if(parallel) {
     fn <- function(y) {
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+        as.numeric()
     }
-    a <- foreach(y = seq_len(ncol(delta))) %dopar% fn(y)
-    a <- unlist(a)
+    a <- foreach::`%dopar%`(
+      foreach::foreach(
+        y = seq_len(ncol(delta)),
+        .combine = c,
+        .options.snow = opts
+      ),
+      fn(y)
+    )
   } else {
-    a <- vapply(
-      seq_len(ncol(delta)),
-      function(y) {
-        t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE]
-      },
-      double(1L)
+    fn <- function(y, verbose) {
+      if (verbose) {
+        pb$tick(tokens = list(iteration = y))
+      }
+      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+        as.numeric()
+    }
+    a <- foreach::`%do%`(
+      foreach::foreach(
+        y = seq_len(ncol(delta)),
+        .combine = c
+      ),
+      fn(y, verbose = verbose)
     )
   }
   c <- rep(
@@ -638,7 +1280,7 @@ fct_confint.lms <- function(
     alpha2 <- sqrt(c / a)
   )
   # remove delta values that lead to complex solutions
-  which_alpha <- which(!is.nan(alpha1))
+  which_alpha <- which(!(is.nan(alpha1) | is.infinite(alpha1)))
   alpha1 <- alpha1[which_alpha]
   alpha2 <- alpha2[which_alpha]
   delta_red <- delta[, which_alpha, drop = FALSE]
