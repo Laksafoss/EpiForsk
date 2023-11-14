@@ -107,31 +107,8 @@ CForBenefit <- function(forest,
                         p_1 = NULL,
                         tau_hat = NULL,
                         ...) {
-  stopifnot(
-    "forest must be a causal_forest object" =
-      missing(forest) || is.null(forest) || "causal_forest" %in% class(forest)
-  )
-  if (is.null(Y)) Y <- forest$Y.orig
-  if (is.null(W)) W <- forest$W.orig
-  if (is.null(X)) X <- as.matrix(forest$X.orig)
-  if (is.null(p_0)) {
-    p_0 <- as.numeric(forest$Y.hat - forest$W.hat * forest$predictions)
-  }
-  if (is.null(p_1)) {
-    p_1 <- as.numeric(forest$Y.hat + (1 - forest$W.hat) * forest$predictions)
-  }
-  if (is.null(tau_hat)) tau_hat <- as.numeric(forest$predictions)
-  subclass <- NULL
-  # ensure correct data types
-  stopifnot("Y must be a numeric vector" = is.vector(Y) && is.numeric(Y))
-  stopifnot("W must be a numeric vector" = is.vector(W) && is.numeric(W))
-  stopifnot("X must be a numeric matrix" = is.matrix(X) && is.numeric(X))
-  stopifnot("p_0 must be a numeric vector" = is.vector(p_0) && is.numeric(p_0))
-  stopifnot("p_1 must be a numeric vector" = is.vector(p_1) && is.numeric(p_1))
-  stopifnot(
-    "tau_hat must be a numeric vector" =
-      is.vector(tau_hat) && is.numeric(tau_hat)
-  )
+  ### Check input
+  # ensure correct type of inputs controlling options
   stopifnot(
     "level must be a scalar between 0 and 1" =
       is.numeric(level) && length(level) == 1 && 0 < level && level < 1
@@ -150,22 +127,115 @@ CForBenefit <- function(forest,
   tau_hat_method <- match.arg(tau_hat_method)
   CI <- match.arg(CI)
 
+  # Check that suggested package cli is installed when verbose=TRUE
+  if (verbose) {
+    cli <- require("cli", quietly = TRUE)
+    if (!cli) {
+      if (interactive()) {
+        for (i in 1:3) {
+          input <- readline(glue::glue(
+            "'verbose=TRUE' requires package 'cli' to be installed.",
+            "Attempt to install package from CRAN? (y/n)"
+          ))
+          if (input == "y") {
+            install.packages(
+              pkgs = "cli",
+              repos = "https://cloud.r-project.org"
+            )
+            cli <- require("cli", quietly = TRUE)
+            if (!cli) {
+              stop("Failed to install package 'cli'")
+            }
+            break
+          } else if (input == "n") {
+            stop("When 'verbose=TRUE', package 'cli' is required")
+          }
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+        }
+      } else {
+        stop("When 'verbose=TRUE', package 'cli' is required")
+      }
+    }
+  }
+
+  # check forest is a causal_forest object (or missing or NULL)
+  stopifnot(
+    "forest must be a causal_forest object" =
+      missing(forest) || is.null(forest) || inherits(forest, "causal_forest")
+  )
+
+  # If forest is missing or NULL, check required inputs are provided
+  if (missing(forest) || is.null(forest)) {
+    if (is.null(Y) | is.null(W)) {
+      stop("Y and W must be provided")
+    }
+    if (match == "covariates" && is.null(X)) {
+      stop("X must be provided when match = 'covariates'")
+    }
+    if (tau_hat_method == "risk_diff" && (is.null(p_0) || is.null(p_1))) {
+      stop("p_0 and p_1 must be provided when tau_hat_method = 'risk_diff'")
+    }
+    if ((match == "CATE" || tau_hat_method == "tau_avg") && is.null(tau_hat)) {
+      stop("tau_hat must be provided when match = 'CATE' or tau_hat_method = 'tau_avg'")
+    }
+  }
+
+  # Extract quantities from causal forest object
+  if (is.null(Y)) Y <- forest$Y.orig
+  if (is.null(W)) W <- forest$W.orig
+  suppressMessages({
+    if (is.null(X)) X <- dplyr::as_tibble(forest$X.orig, .name_repair = "unique")
+  })
+  if (is.null(p_0)) {
+    p_0 <- as.numeric(forest$Y.hat - forest$W.hat * forest$predictions)
+  }
+  if (is.null(p_1)) {
+    p_1 <- as.numeric(forest$Y.hat + (1 - forest$W.hat) * forest$predictions)
+  }
+  if (is.null(tau_hat)) tau_hat <- as.numeric(forest$predictions)
+  subclass <- NULL
+
+  # ensure correct data types of data inputs
+  stopifnot("Y must be a numeric vector" = is.vector(Y) && is.numeric(Y))
+  stopifnot("W must be a numeric vector" = is.vector(W) && is.numeric(W))
+  if (match == "covariates") {
+    stopifnot("X must be a data frame" = is.data.frame(X))
+  }
+  if (tau_hat_method == "risk_diff") {
+    stopifnot("p_0 must be a numeric vector" = is.vector(p_0) && is.numeric(p_0))
+    stopifnot("p_1 must be a numeric vector" = is.vector(p_1) && is.numeric(p_1))
+  }
+  if (match == "CATE" || tau_hat_method == "tau_avg") {
+    stopifnot(
+      "tau_hat must be a numeric vector" =
+        is.vector(tau_hat) && is.numeric(tau_hat)
+    )
+  }
+
   # patient can only be matched to one other patient from other treatment arm
-  if (sum(W == 1) <= sum(W == 0)){
-    # ATT: all treated patients get matched with control patient
-    estimand_method <- "ATT"
-  } else if (sum(W == 1) > sum(W == 0)){
-    # ATC: all control patients get matched with treated patient
-    estimand_method <- "ATC"
+  if (!("estimand" %in% ...names())) {
+    if (sum(W == 1) <= sum(W == 0)){
+      # ATT: all treated patients get matched with control patient
+      estimand_method <- "ATT"
+    } else if (sum(W == 1) > sum(W == 0)){
+      # ATC: all control patients get matched with treated patient
+      estimand_method <- "ATC"
+    }
   }
 
   # combine all data in one tibble
-  data_tbl <- tibble::tibble(
-    match_id = 1:length(Y),
-    W = W, X = X, Y = Y,
-    p_0 = p_0, p_1 = p_1,
-    tau_hat = tau_hat
+  data_tbl <- dplyr::tibble(
+    match_id = seq_along(Y),
+    W = W,
+    Y = Y
   )
+  if (match == "covariates") data_tbl <- dplyr::mutate(data_tbl, X = X)
+  if (tau_hat_method == "risk_diff") {
+    data_tbl <- dplyr::mutate(data_tbl, p_0 = p_0, p_1 = p_1)
+  }
+  if (match == "CATE" || tau_hat_method == "tau_avg") {
+    data_tbl <- dplyr::mutate(data_tbl, tau_hat = tau_hat)
+  }
 
   # set time limit on calculating C for benefit
   on.exit({
@@ -175,27 +245,51 @@ CForBenefit <- function(forest,
 
   if (match == "covariates") {
     # match on covariates
-    matched <- MatchIt::matchit(
-      W ~ X,
-      data = data_tbl,
-      method = match_method,
-      distance = match_distance,
-      estimand = estimand_method,
-      ...
-    )
+    if ("estimand" %in% ...names()) {
+      matched <- MatchIt::matchit(
+        DF2formula(tidyr::unnest(dplyr::select(data_tbl, W, X), "X")),
+        data = tidyr::unnest(data_tbl, "X"),
+        method = match_method,
+        distance = match_distance,
+        ...
+      )
+    } else {
+      matched <- MatchIt::matchit(
+        DF2formula(tidyr::unnest(dplyr::select(data_tbl, W, X), "X")),
+        data = tidyr::unnest(data_tbl, "X"),
+        method = match_method,
+        distance = match_distance,
+        estimand = estimand_method,
+        ...
+      )
+    }
   } else if (match == "CATE") {
-    matched <- MatchIt::matchit(
-      W ~ tau_hat,
-      data = data_tbl,
-      method = match_method,
-      distance = match_distance,
-      estimand = estimand_method,
-      ...
-    )
+    # match on CATE
+    if ("estimand" %in% ...names()) {
+      matched <- MatchIt::matchit(
+        W ~ tau_hat,
+        data = data_tbl,
+        method = match_method,
+        distance = match_distance,
+        ...
+      )
+    } else {
+      matched <- MatchIt::matchit(
+        W ~ tau_hat,
+        data = data_tbl,
+        method = match_method,
+        distance = match_distance,
+        estimand = estimand_method,
+        ...
+      )
+    }
   }
   matched_patients <- MatchIt::match.data(matched)
   matched_patients$subclass <- as.numeric(matched_patients$subclass)
-  matched_patients <- tibble::as_tibble(matched_patients)
+  suppressMessages({
+    matched_patients <-
+      dplyr::as_tibble(matched_patients, .name_repair = "unique")
+  })
 
   # sort on subclass and W
   matched_patients <- matched_patients |>
@@ -204,35 +298,32 @@ CForBenefit <- function(forest,
   # matched observed treatment effect
   observed_te <- matched_patients |>
     dplyr::select(subclass, Y) |>
-    dplyr::group_by(subclass) |>
     dplyr::summarise(
       Y = diff(Y),
-      .groups = "drop"
+      .by = subclass
     ) |>
     dplyr::pull(Y)
   matched_patients$matched_tau_obs <- rep(observed_te, each = 2)
 
+  # matched predicted treatment effect
   if(tau_hat_method == "risk_diff") {
-  # matched p_0 = P[Y = 1| W = 0]
-  matched_p_0 <- (1 - matched_patients$W) * matched_patients$p_0
-  matched_patients$matched_p_0 <- rep(matched_p_0[matched_p_0 != 0], each = 2)
-
-  # matched p_1 = P[Y = 1| W = 1]
-  matched_p_1 <- matched_patients$W * matched_patients$p_1
-  matched_patients$matched_p_1 <- rep(matched_p_1[matched_p_1 != 0], each = 2)
-
-  # matched treatment effect (risk of treated - risk of control)
-  matched_patients$matched_tau_hat <-
-    matched_patients$matched_p_1 -
-    matched_patients$matched_p_0
-  } else if (tau_hat_method == "tau_avg") {
-    # matched treatment effect (average CATE)
+    # matched p_0 = P(Y = 1|W = 0)
+    # matched p_1 = P(Y = 1|W = 1)
     matched_patients <- matched_patients |>
       dplyr::group_by(subclass) |>
       dplyr::mutate(
-        matched_tau_hat = mean(tau_hat)
+        matched_p_0 = sum((1 - W) * p_0),
+        matched_p_1 = sum(W * p_1),
+        matched_tau_hat = matched_p_1 - matched_p_0
       ) |>
       dplyr::ungroup()
+  } else if (tau_hat_method == "tau_avg") {
+    # matched treatment effect (average CATE)
+    matched_patients <- matched_patients |>
+      dplyr::mutate(
+        matched_tau_hat = mean(tau_hat),
+        .by = subclass
+      )
   }
 
   # C-for-benefit
@@ -241,12 +332,11 @@ CForBenefit <- function(forest,
     matched_patients$matched_tau_obs[seq(1, nrow(matched_patients), 2)]
   )
   c_for_benefit <- cindex["C Index"][[1]]
+  c_for_benefit_se <- cindex["S.D."][[1]] / 2
 
   if (CI == "simple") {
-    lower_CI <- c_for_benefit +
-      qnorm(0.5 - level / 2) * cindex["S.D."][[1]] / 2
-    upper_CI <- c_for_benefit +
-      qnorm(0.5 + level / 2) * cindex["S.D."][[1]] / 2
+    lower_CI <- c_for_benefit + qnorm(0.5 - level / 2) * c_for_benefit_se
+    upper_CI <- c_for_benefit + qnorm(0.5 + level / 2) * c_for_benefit_se
   } else if (CI == "bootstrap") {
     CB_for_CI <- c()
     B <- 0
@@ -279,21 +369,20 @@ CForBenefit <- function(forest,
           if (
             grepl(
               "reached elapsed time limit|reached CPU time limit",
-              e$message)
-          ) {
-            input <- readline(
-              "Time limit reached. Do you want execution to continue (y/n) "
+              e$message
             )
-            if (input %in% c("y", "n")) {
-              if(input == "n") stop("Time limit reached, execution stopped")
-            } else {
+          ) {
+            for (i in 1:3) {
               input <- readline(
-                "Please input either 'y' to continue or 'n' to stop execution. "
+                "Time limit reached. Do you want execution to continue (y/n) "
               )
-              if (input %in% c("y", "n")) {
-                if(input == "n") stop("Time limit reached, execution stopped")
-              } else {
-                stop("Answer not 'y' or 'n'. Execution stopped.")
+              if (input =="y") {
+                break
+              } else if (input == "n") {
+                stop("Time limit reached")
+              }
+              if (i == 3) {
+                stop("Failed to answer 'y' or 'n' to many times")
               }
             }
           } else {
@@ -304,8 +393,7 @@ CForBenefit <- function(forest,
     }
     lower_CI <- as.numeric(quantile(CB_for_CI, 0.5 - level / 2))
     upper_CI <- as.numeric(quantile(CB_for_CI, 0.5 + level / 2))
-  }
-  else if (CI == "none") {
+  } else if (CI == "none") {
     lower_CI <- NA
     upper_CI <- NA
   }
@@ -315,7 +403,12 @@ CForBenefit <- function(forest,
       matched_patients = matched_patients,
       c_for_benefit = c_for_benefit,
       lower_CI = lower_CI,
-      upper_CI = upper_CI
+      upper_CI = upper_CI,
+      cfb_tbl = dplyr::tibble(
+        "ci_{0.5 - level / 2}" := lower_CI,
+        "estimate" = c_for_benefit,
+        "ci_{0.5 + level / 2}" := upper_CI
+      )
     )
   )
 }
