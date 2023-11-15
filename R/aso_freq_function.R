@@ -835,9 +835,12 @@ freq_function <- function(
         ),
         values_fill = "0 (0%)"
       )
-    func_table22 <- suppressMessages(
-      dplyr::full_join(func_table22_1, func_table22_2)
-    )
+
+    func_table22 <- dplyr::full_join(
+        func_table22_1,
+        func_table22_2,
+        by = {{ var1 }}
+        )
 
     if (chisquare == TRUE){
       # Calculating expected numbers for each cell
@@ -1350,8 +1353,10 @@ freq_function <- function(
         ),
         values_fill = "0 (0%)"
       )
-    func_table22 <- suppressMessages(
-      dplyr::full_join(func_table22_1, func_table22_2)
+    func_table22 <- dplyr::full_join(
+      func_table22_1,
+      func_table22_2,
+      by = c({{ by_vars }} , {{ var1 }})
     ) |>
       dplyr::arrange(dplyr::across(dplyr::all_of({{ by_vars }})))
 
