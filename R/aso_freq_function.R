@@ -376,7 +376,7 @@ freq_function <- function(
         Variable = .data$Variable1
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var",
         "Variable",
         "n",
@@ -398,7 +398,7 @@ freq_function <- function(
         n_weighted = .data$n_weighted_total
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var",
         "Variable",
         "n",
@@ -433,7 +433,7 @@ freq_function <- function(
         N_weighted = .data$n_weighted.1
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Level",
         "N",
         "N_weighted",
@@ -997,7 +997,7 @@ freq_function <- function(
         Func_var2 = var2
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1018,7 +1018,7 @@ freq_function <- function(
         Variable3 = "Total"
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Variable1",
         "Variable2" = "Variable3",
@@ -1038,7 +1038,7 @@ freq_function <- function(
         Variable3 = "Total"
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var2",
         "Variable1" = "Variable3",
         "Variable2",
@@ -1059,7 +1059,7 @@ freq_function <- function(
         Variable3 = "Total"
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable" = "Variable3",
@@ -1076,7 +1076,7 @@ freq_function <- function(
       .by = c({{ by_vars }}, "Func_var1", "Variable1")
     ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1095,7 +1095,7 @@ freq_function <- function(
       .by = c({{ by_vars }}, "Func_var1","Func_var2")
     ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1114,7 +1114,7 @@ freq_function <- function(
       .by = c({{ by_vars }}, "Func_var2","Variable2")
     ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1" = "Variable1.1",
@@ -1143,7 +1143,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1172,7 +1172,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1",
@@ -1201,7 +1201,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1" = "Variable3",
@@ -1223,7 +1223,7 @@ freq_function <- function(
         Row_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100)
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
         "Variable1" = "Variable3",
@@ -1285,7 +1285,7 @@ freq_function <- function(
         )
       ) |>
       dplyr::select(
-        dplyr::all_of({{ by_vars }}),
+        dplyr::all_of(by_vars),
         "Func_var2",
         "Variable1",
         "Variable2",
