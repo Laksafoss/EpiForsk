@@ -28,6 +28,7 @@
 #' @examples
 #'
 #' @export
+
 freq_function_repeated <- function(
     normaldata,
     var1,

@@ -149,6 +149,7 @@
 #' }
 #'
 #' @export
+
 charlson_score <- function(
     data,
     Person_ID,
@@ -161,7 +162,7 @@ charlson_score <- function(
   # ADLS has rewritten these ifelse statements for the func_table1 construction:
   # This has been done for the following reasons:
   #   - Testing if the data masked objects are null is not a good idea, as they
-  #     are not generally avalibe in the global or function environment. This
+  #     are not generally available in the global or function environment. This
   #     means that when specified is.null(<data masked input>) will always
   #     produce the "object <data masked input>' not found" error
   #   - I have imposed stricter error reporting to increase userfriendlyness:
@@ -226,10 +227,8 @@ charlson_score <- function(
       dplyr::select(ID = {{ Person_ID }}, Diagvar = {{ diagnosis_variable }})
   } else if (missing(time_variable) | missing(end_date)) {
     stop(
-      paste0(
-        "When imposing diagnosis-time restrictions both the 'time_variable' ",
-        "and the 'end_date' must be specified."
-      )
+      "When imposing diagnosis-time restrictions both the 'time_variable' ",
+      "and the\n'end_date' must be specified."
     )
   } else if (missing(days_before_end_date)) {
     func_table1 <- data |>
@@ -722,7 +721,6 @@ charlson_score <- function(
     #(who have data within the specified limits),
     #with all diangosis groups as 1 or 0
     func_table3 <- func_table2 |>
-      dplyr::group_by(.data$ID) |>
       dplyr::summarise(
         Myocardial_infarction_cc = max(
           .data$Myocardial_infarction_cc,
@@ -928,9 +926,8 @@ charlson_score <- function(
           .data$AIDS_HIV_cd,
           na.rm = TRUE
         ),
-        .groups="keep"
-      ) |>
-      dplyr::ungroup()
+        .by = .data$ID
+      )
     #Give points to all groups according the Charlson specifications AND
     #combine them to a final score (for each version)
     func_table4 <- func_table3 |>

@@ -87,6 +87,7 @@
 #' )
 #'
 #' @export
+
 freq_function <- function(
     normaldata,
     var1,
@@ -256,11 +257,10 @@ freq_function <- function(
   if (is.null(by_vars) & is.null(var2)) {
     # Getting unweighted and weighted n for each group
     func_table7 <- func_table6 |>
-      dplyr::group_by(.data$Variable1) |>
       dplyr::summarize(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .groups = 'drop'
+        .by = "Variable1"
       ) |>
       dplyr::mutate(
         Func_var = var1,
@@ -363,7 +363,6 @@ freq_function <- function(
       return(func_table12)
     }
   }
-
   else if (is.null(var2)) {
     # Getting unweighted and weighted n for each group
     func_table7 <- func_table6 |>
@@ -491,11 +490,10 @@ freq_function <- function(
   } else if (is.null(by_vars) & !is.null(var2)) {
     # Getting unweighted and weighted n for each combination
     func_table7 <- func_table6 |>
-      dplyr::group_by(.data$Variable1, .data$Variable2) |>
       dplyr::summarize(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .groups = 'drop'
+        .by = c("Variable1", "Variable2")
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -512,11 +510,10 @@ freq_function <- function(
 
     # Summation within variable1
     func_table8 <- func_table7 |>
-      dplyr::group_by(.data$Variable1) |>
       dplyr::summarize(
         n = sum(.data$n),
         n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .groups = 'drop'
+        .by = "Variable1"
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -532,11 +529,10 @@ freq_function <- function(
 
     # Summation within variable2
     func_table9 <- func_table7 |>
-      dplyr::group_by(.data$Variable2) |>
       dplyr::summarize(
         n = sum(.data$n),
         n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .groups = 'drop'
+        .by = "Variable2"
       ) |>
       dplyr::mutate(
         Func_var2 = var2,
@@ -1390,7 +1386,7 @@ freq_function <- function(
       chi_degree_freedom <- dplyr::full_join(
         chi_degree1,
         chi_degree2,
-        by = c({{ by_vars }})
+        by = {{ by_vars }}
       ) |>
         dplyr::mutate(
           chi_degree_total = ((.data$chi_degree1 - 1) * (.data$chi_degree2 - 1))

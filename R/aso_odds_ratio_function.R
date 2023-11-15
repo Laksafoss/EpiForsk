@@ -188,11 +188,10 @@ odds_ratio_function <- function(
 
   #Getting N for all levels of the outcome
   func_model_n_prp <- func_table4 |>
-    dplyr::group_by(.data$Outc) |>
     dplyr::summarize(
       Freq = dplyr::n(),
       Freqw = sum(.data$weight_used),
-      .groups = "drop"
+      .by = "Outc"
     ) |>
     tibble::rownames_to_column(var = "sortnr") |>
     dplyr::mutate(
@@ -256,8 +255,8 @@ odds_ratio_function <- function(
       term = "(Intercept)",
       sortnr = 0
     ) |> dplyr::select("term", "N", "sortnr") |>
-    dplyr::left_join(func_model_n_prp3_1, by = c("sortnr")) |>
-    dplyr::left_join(func_model_n_prp3_2, by = c("sortnr"))
+    dplyr::left_join(func_model_n_prp3_1, by = "sortnr") |>
+    dplyr::left_join(func_model_n_prp3_2, by = "sortnr")
 
   # Binomial outcome
   if (outcome_levels == 2){
@@ -353,7 +352,7 @@ odds_ratio_function <- function(
         func_model_n <- dplyr::full_join(
           func_model_n_prp1,
           func_model_n_prp2,
-          by = c("matchnum")
+          by = "matchnum"
         ) |>
           dplyr::mutate(
             term = "(Intercept)",
@@ -621,7 +620,7 @@ odds_ratio_function <- function(
   func_table7_final_prp <- dplyr::inner_join(
     func_table7_levels2,
     func_table7_var_types,
-    by = c("Variable")
+    by = "Variable"
   ) |>
     dplyr::mutate(
       term = paste0(.data$Variable, .data$Reference),
