@@ -101,16 +101,7 @@ odds_ratio_function_repeated <- function(
       func_table1_2 <- func_table1
     } else {
       by_var_level <- dplyr::nth(by_var3, n = k)
-      By_var_name <- gsub(
-        '"',
-        "",
-        paste(
-          deparse(substitute(by_var)),
-          "=",
-          deparse(substitute(by_var_level)),
-          collapse = ""
-        )
-      )
+      By_var_name <- paste(by_var, "=", by_var_level)
       print(paste0("By_var: ", By_var_name))
       func_table1_2 <- dplyr::filter(
         func_table1,
@@ -120,27 +111,17 @@ odds_ratio_function_repeated <- function(
 
     while (i <= outcome_var_count){
       j <- 1
-      outcome_func_var <- dplyr::nth(outcomevar, n = i)
-      Outcome_var_name <- gsub(
-        '"',
-        "",
-        paste(deparse(substitute(outcome_func_var)), collapse = "")
-      )
+      Outcome_var_name <- dplyr::nth(outcomevar, n = i)
       print(paste0("Outcome: ", Outcome_var_name))
 
       while (j <= expvars_var_count){
-        expvars_func_var <- dplyr::nth(expvars, n = j)
-        Expvar_var_name <- gsub(
-          '"',
-          "",
-          paste(deparse(substitute(expvars_func_var)), collapse = "")
-        )
+        Expvar_var_name <- dplyr::nth(expvars, n = j)
         print(paste0("Expvar: ", Expvar_var_name))
-        new_expvar <- unique(c(expvars_func_var, adjustment_fixed))
+        new_expvar <- unique(c(Expvar_var_name, adjustment_fixed))
         func_res1 <- try_catch_warnings(
           odds_ratio_function(
             normaldata = func_table1_2,
-            outcomevar = outcome_func_var,
+            outcomevar = Outcome_var_name,
             expvars = new_expvar,
             number_decimals = number_decimals,
             alpha = alpha,

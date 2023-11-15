@@ -204,6 +204,9 @@ charlson_score <- function(
         )
       )
     }
+    if(ncol(dplyr::select(data, {{ Person_ID }})) != 1L) {
+      stop("Person_ID name a single id variable.")
+    }
   } else {
     stop(
       paste0(
@@ -1120,11 +1123,7 @@ charlson_score <- function(
       func_table5 <- func_table4
     }
     #Change the name of the ID variable back to the original
-    Orig_ID_name <- gsub(
-      '"',
-      "",
-      paste(deparse(substitute(Person_ID)), collapse = "")
-    )
+    Orig_ID_name <- deparse(substitute(Person_ID))
     colnames(func_table5)[1] <- Orig_ID_name
     #Return final table
     return(func_table5)

@@ -54,11 +54,6 @@ freq_function_repeated <- function(
   i <- 1
   while (i <= var_count){
     func_var <- dplyr::nth(var1, n = i)
-    Orig_var_name <- gsub(
-      '"',
-      "",
-      paste(deparse(substitute(func_var)), collapse = "")
-    )
     func_freqs <- freq_function(
       normaldata = func_table1,
       var1 = func_var,
@@ -72,7 +67,9 @@ freq_function_repeated <- function(
       output = output,
       chisquare = chisquare
     )
-    func_freqs2 <- func_freqs |> dplyr::mutate(var_name = Orig_var_name)
+    func_freqs2 <- func_freqs |>
+      dplyr::mutate(var_name = func_var) |>
+      dplyr::rename("Level" = dplyr::all_of(func_var))
     if (i == 1){
       func_table2 <- func_freqs2
     } else {
@@ -81,8 +78,7 @@ freq_function_repeated <- function(
     i <- (i + 1)
   }
   func_table3 <- func_table2 |>
-    dplyr::relocate("var_name", .before = 1) |>
-    dplyr::rename("Level" = "func_var")
+    dplyr::relocate("var_name", .before = 1)
   return(func_table3)
 }
 

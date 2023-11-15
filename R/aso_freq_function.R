@@ -184,11 +184,7 @@ freq_function <- function(
   # End a added checks
 
   # Getting name of original Variable1 as a string (to be used below)
-  Orig_var1_name <- gsub(
-    '"',
-    "",
-    paste(deparse(substitute(var1)), collapse = "")
-  )
+  Orig_var1_name <- var1
 
   # Select only mentioned variables from called data (not using specifications)
   func_table1 <- normaldata |>
@@ -267,7 +263,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var = stringr::str_sub(deparse(quote({{ var1 }})), 2),
+        Func_var = var1,
         Variable = .data$Variable1
       ) |>
       dplyr::select("Func_var", "Variable", "n", "n_weighted")
@@ -279,7 +275,7 @@ freq_function <- function(
         n_weighted_total = sum(.data$n_weighted, na.rm = TRUE)
       ) |>
       dplyr::mutate(
-        Func_var = stringr::str_sub(deparse(quote({{ var1 }})),2),
+        Func_var = var1,
         Variable2 = "Total"
       ) |>
       dplyr::select(
@@ -378,7 +374,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var = stringr::str_sub(deparse(quote({{ var1 }})), 2),
+        Func_var = var1,
         Variable = .data$Variable1
       ) |>
       dplyr::select(
@@ -398,7 +394,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var = stringr::str_sub(deparse(quote({{ var1 }})), 2),
+        Func_var = var1,
         Variable2 = "Total",
         Variable = .data$Variable2,
         n = .data$n_total,
@@ -504,8 +500,8 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var1 = gsub('"', "", stringr::str_sub(deparse(quote({{ var1 }})), 2)),
-        Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2))
+        Func_var1 = var1,
+        Func_var2 = var2
       ) |>
       dplyr::select(
         "Func_var1",
@@ -525,7 +521,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var1 = gsub('"', "", stringr::str_sub(deparse(quote({{ var1 }})), 2)),
+        Func_var1 = var1,
         Variable3 = "Total"
       ) |>
       dplyr::select(
@@ -545,7 +541,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2)),
+        Func_var2 = var2,
         Variable3 = "Total"
       ) |>
       dplyr::select(
@@ -563,8 +559,8 @@ freq_function <- function(
         n_weighted = sum(.data$n_weighted, na.rm = TRUE)
       ) |>
       dplyr::mutate(
-        Func_var1 = gsub('"', "", stringr::str_sub(deparse(quote({{ var1 }})), 2)),
-        Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2)),
+        Func_var1 = var1,
+        Func_var2 = var2,
         Variable3 = "Total"
       ) |>
       dplyr::select(
@@ -1004,8 +1000,8 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var1 = gsub('"', "", stringr::str_sub(deparse(quote({{ var1 }})), 2)),
-        Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2))
+        Func_var1 = var1,
+        Func_var2 = var2
       ) |>
       dplyr::select(
         dplyr::all_of({{ by_vars }}),
@@ -1026,7 +1022,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var1 = gsub('"', "", stringr::str_sub(deparse(quote({{ var1 }})), 2)),
+        Func_var1 = var1,
         Variable3 = "Total"
       ) |>
       dplyr::select(
@@ -1047,7 +1043,7 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2)),
+        Func_var2 = var2,
         Variable3 = "Total"
       ) |>
       dplyr::select(
@@ -1068,8 +1064,8 @@ freq_function <- function(
         .groups = 'drop'
       ) |>
       dplyr::mutate(
-        Func_var1 = gsub('"', "", stringr::str_sub(deparse(quote({{ var1 }})), 2)),
-        Func_var2 = gsub('"', "", stringr::str_sub(deparse(quote({{ var2 }})), 2)),
+        Func_var1 = var1,
+        Func_var2 = var2,
         Variable3 = "Total"
       ) |>
       dplyr::select(
