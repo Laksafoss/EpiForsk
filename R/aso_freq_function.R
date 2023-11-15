@@ -487,7 +487,8 @@ freq_function <- function(
         dplyr::relocate("Description")
       return(func_table12)
     }
-  } else if (is.null(by_vars) & !is.null(var2)) {
+  }
+  else if (is.null(by_vars)) {
     # Getting unweighted and weighted n for each combination
     func_table7 <- func_table6 |>
       dplyr::summarize(
@@ -984,7 +985,8 @@ freq_function <- function(
         dplyr::relocate("Description")
       return(func_table27)
     }
-  } else if (!is.null(var2)) {
+  }
+  else {
     # Getting unweighted and weighted n for each combination
     func_table7 <- func_table6 |>
       dplyr::summarize(
