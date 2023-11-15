@@ -255,28 +255,28 @@ freq_function <- function(
     func_table9 <- dplyr::bind_rows(func_table7, func_table8)
 
     # Calculating percent of total
-    func_table10 <- many_merge(
-      by = c("Func_var"),
+    func_table10 <- multi_join(
       func_table9,
-      func_table8
+      func_table8,
+      .by = "Func_var"
     ) |>
       dplyr::mutate(
-        Column_pct = ((.data$n_weighted / .data$n_weighted.2) * 100),
+        Column_pct = ((.data$n_weighted.1 / .data$n_weighted.2) * 100),
         Freq_col_pct = paste0(
-          .data$n,
+          .data$n.1,
           " (",
           sprintf(paste0("%.",number_decimals,"f"), .data$Column_pct),
           "%)"
         ),
         Freqw_col_pct = paste0(
-          sprintf(paste0("%.",number_decimals,"f"), .data$n_weighted),
+          sprintf(paste0("%.",number_decimals,"f"), .data$n_weighted.1),
           " (",
           sprintf(paste0("%.",number_decimals,"f"), .data$Column_pct),
           "%)"
         ),
-        Level = .data$Variable,
-        N = .data$n,
-        N_weighted = .data$n_weighted,
+        Level = .data$Variable.1,
+        N = .data$n.1,
+        N_weighted = .data$n_weighted.1,
       ) |>
       dplyr::select(
         "Level",
@@ -378,29 +378,29 @@ freq_function <- function(
     func_table9 <- dplyr::bind_rows(func_table7, func_table8)
 
     # Calculating percent of total
-    func_table10 <- many_merge(
-      by = c({{ by_vars }}, "Func_var"),
+    func_table10 <- multi_join(
       func_table9,
-      func_table8
+      func_table8,
+      .by = c({{ by_vars }}, "Func_var")
     ) |>
       dplyr::mutate(
-        Column_pct = ((.data$n_weighted / .data$n_weighted.2) * 100),
+        Column_pct = ((.data$n_weighted.1 / .data$n_weighted.2) * 100),
         Freq_col_pct = paste0(
-          .data$n,
+          .data$n.1,
           " (",
           sprintf(paste0("%.",number_decimals,"f"), .data$Column_pct),
           "%)"
         ),
         Freqw_col_pct = paste0(
-          sprintf(paste0("%.",number_decimals,"f"), .data$n_weighted),
+          sprintf(paste0("%.",number_decimals,"f"), .data$n_weighted.1),
           " (",
           sprintf(paste0("%.",number_decimals,"f"), .data$Column_pct),
           "%)"
         ),
-        Level = .data$Variable,
-        N = .data$n,
-        N_weighted = .data$n_weighted
-      ) |> #,
+        Level = .data$Variable.1,
+        N = .data$n.1,
+        N_weighted = .data$n_weighted.1
+      ) |>
       dplyr::select(
         dplyr::all_of({{ by_vars }}),
         "Level",
@@ -540,50 +540,50 @@ freq_function <- function(
 
     # Getting N and weighted percent for Variable2:
     # N within variable1, percent = on that level of variable1
-    func_table11 <- many_merge(
-      by = c("Func_var1", "Variable1"),
+    func_table11 <- multi_join(
       func_table8,
-      func_table7
+      func_table7,
+      .by = c("Func_var1", "Variable1")
     ) |>
       dplyr::select(
         "Func_var1",
         "Func_var2",
         "Variable1",
         "Variable2" = "Variable2.2",
-        "Variable1_level_total" = "n",
-        "Variable1_level_total_weighted" = "n_weighted",
+        "Variable1_level_total" = "n.1",
+        "Variable1_level_total_weighted" = "n_weighted.1",
         "n" = "n.2",
         "n_weighted" = "n_weighted.2"
       )
 
     # Combining all numbers so percent etc. can be calculated in
     # several directions
-    func_table12 <- many_merge(
-      by = c("Func_var1","Func_var2"),
+    func_table12 <- multi_join(
       func_table11,
-      func_table10
+      func_table10,
+      .by = c("Func_var1","Func_var2")
     ) |>
       dplyr::select(
         "Func_var1",
         "Func_var2",
         "Variable1",
-        "Variable2",
+        "Variable2" = "Variable2.1",
         "Total_n" = "n.2",
         "Total_n_weighted" = "n_weighted.2",
         "Variable1_level_total",
         "Variable1_level_total_weighted",
-        "n",
-        "n_weighted")
+        "n" = "n.1",
+        "n_weighted" = "n_weighted.1")
 
-    func_table13 <- many_merge(
-      by = c("Func_var2","Variable2"),
+    func_table13 <- multi_join(
       func_table12,
-      func_table9
+      func_table9,
+      .by = c("Func_var2","Variable2")
     ) |>
       dplyr::select(
         "Func_var1",
         "Func_var2",
-        "Variable1",
+        "Variable1" = "Variable1.1",
         "Variable2",
         "Total_n",
         "Total_n_weighted",
@@ -591,8 +591,8 @@ freq_function <- function(
         "Variable1_level_total_weighted",
         "Variable2_level_total" = "n.2",
         "Variable2_level_total_weighted" = "n_weighted.2",
-        "n",
-        "n_weighted"
+        "n" = "n.1",
+        "n_weighted" = "n_weighted.1"
       )
 
     # Percent calculations for each Var1 and Var2 combination
@@ -1046,10 +1046,10 @@ freq_function <- function(
 
     # Getting N and weighted percent for Variable2:
     # N within variable1, percent = on that level of variable1
-    func_table11 <- many_merge(
-      by = c({{ by_vars }}, "Func_var1", "Variable1"),
+    func_table11 <- multi_join(
       func_table8,
-      func_table7
+      func_table7,
+      .by = c({{ by_vars }}, "Func_var1", "Variable1")
     ) |>
       dplyr::select(
         dplyr::all_of({{ by_vars }}),
@@ -1057,43 +1057,43 @@ freq_function <- function(
         "Func_var2",
         "Variable1",
         "Variable2" = "Variable2.2",
-        "Variable1_level_total" = "n",
-        "Variable1_level_total_weighted" = "n_weighted",
+        "Variable1_level_total" = "n.1",
+        "Variable1_level_total_weighted" = "n_weighted.1",
         "n" = "n.2",
         "n_weighted" = "n_weighted.2"
       )
 
     # Combining all numbers so percent etc. can be calculated in several
     # directions
-    func_table12 <- many_merge(
-      by = c({{ by_vars }}, "Func_var1","Func_var2"),
+    func_table12 <- multi_join(
       func_table11,
-      func_table10
+      func_table10,
+      .by = c({{ by_vars }}, "Func_var1","Func_var2")
     ) |>
       dplyr::select(
         dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
         "Variable1",
-        "Variable2",
+        "Variable2" = "Variable2.1",
         "Total_n" = "n.2",
         "Total_n_weighted" = "n_weighted.2",
         "Variable1_level_total",
         "Variable1_level_total_weighted",
-        "n",
-        "n_weighted"
+        "n" = "n.1",
+        "n_weighted" = "n_weighted.1"
       )
 
-    func_table13 <- many_merge(
-      by = c({{ by_vars }}, "Func_var2","Variable2"),
+    func_table13 <- multi_join(
       func_table12,
-      func_table9
+      func_table9,
+      .by = c({{ by_vars }}, "Func_var2","Variable2")
     ) |>
       dplyr::select(
         dplyr::all_of({{ by_vars }}),
         "Func_var1",
         "Func_var2",
-        "Variable1",
+        "Variable1" = "Variable1.1",
         "Variable2",
         "Total_n",
         "Total_n_weighted",
@@ -1101,8 +1101,8 @@ freq_function <- function(
         "Variable1_level_total_weighted",
         "Variable2_level_total" = "n.2",
         "Variable2_level_total_weighted" = "n_weighted.2",
-        "n",
-        "n_weighted"
+        "n" = "n.1",
+        "n_weighted" = "n_weighted.1"
       )
 
     # Percent calculations for each Var1 and Var2 combination
