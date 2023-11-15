@@ -93,9 +93,7 @@ odds_ratio_function_repeated <- function(
   outcome_var_count <- length(outcomevar)
   expvars_var_count <- length(expvars)
 
-  k <- 1
-  while (k <= by_var_level_count){
-    i <- 1
+  for (k in seq_len(by_var_level_count)) {
     if (is.null(by_var)){
       By_var_name <- c("None")
       func_table1_2 <- func_table1
@@ -109,12 +107,11 @@ odds_ratio_function_repeated <- function(
       )
     }
 
-    while (i <= outcome_var_count){
-      j <- 1
+    for (i in seq_len(outcome_var_count)) {
       Outcome_var_name <- dplyr::nth(outcomevar, n = i)
       print(paste0("Outcome: ", Outcome_var_name))
 
-      while (j <= expvars_var_count){
+      for (j in seq_len(expvars_var_count)) {
         Expvar_var_name <- dplyr::nth(expvars, n = j)
         print(paste0("Expvar: ", Expvar_var_name))
         new_expvar <- unique(c(Expvar_var_name, adjustment_fixed))
@@ -210,11 +207,8 @@ odds_ratio_function_repeated <- function(
             )
           }
         }
-        j <- (j + 1)
       }
-      i <- (i + 1)
     }
-    k <- (k+1)
   }
 
   if (model_object == FALSE) {

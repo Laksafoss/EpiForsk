@@ -52,8 +52,7 @@ freq_function_repeated <- function(
 
   var_count <- length(var1)
 
-  i <- 1
-  while (i <= var_count){
+  for (i in seq_along(var1)) {
     func_var <- dplyr::nth(var1, n = i)
     func_freqs <- freq_function(
       normaldata = func_table1,
@@ -76,7 +75,6 @@ freq_function_repeated <- function(
     } else {
       func_table2 <- dplyr::bind_rows(func_table2, func_freqs2)
     }
-    i <- (i + 1)
   }
   func_table3 <- func_table2 |>
     dplyr::relocate("var_name", .before = 1)
