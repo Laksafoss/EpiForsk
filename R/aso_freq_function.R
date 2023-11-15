@@ -322,7 +322,7 @@ freq_function <- function(
       )
 
     # Setting the name of the first variable correctly
-    colnames(func_table10)[1] <- noquote(Orig_var1_name)
+    colnames(func_table10)[1] <- Orig_var1_name
 
     if(output == "all") {
       func_table11 <- func_table10
@@ -448,7 +448,7 @@ freq_function <- function(
     num_by_vars <- length(by_vars)
 
     # Setting the name of the first variable correctly
-    colnames(func_table10)[(num_by_vars + 1)] <- noquote(Orig_var1_name)
+    colnames(func_table10)[(num_by_vars + 1)] <- Orig_var1_name
 
     if(output == "all"){
       func_table11 <- func_table10
