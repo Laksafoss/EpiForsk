@@ -367,11 +367,10 @@ freq_function <- function(
   else if (is.null(var2)) {
     # Getting unweighted and weighted n for each group
     func_table7 <- func_table6 |>
-      dplyr::group_by_at(append({{ by_vars }}, "Variable1")) |>
       dplyr::summarize(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .groups = 'drop'
+        .by = c({{ by_vars }}, "Variable1")
       ) |>
       dplyr::mutate(
         Func_var = var1,
@@ -387,11 +386,10 @@ freq_function <- function(
 
     # Summation within variables
     func_table8 <- func_table7 |>
-      dplyr::group_by_at({{  by_vars  }}) |>
       dplyr::summarize(
         n_total = sum(.data$n),
         n_weighted_total = sum(.data$n_weighted, na.rm = TRUE),
-        .groups = 'drop'
+        .by = {{ by_vars }}
       ) |>
       dplyr::mutate(
         Func_var = var1,
@@ -444,7 +442,7 @@ freq_function <- function(
         "Freq_col_pct",
         "Freqw_col_pct"
       ) |>
-      dplyr::arrange_at(append({{ by_vars }}, "Level"))
+      dplyr::arrange(dplyr::across(dplyr::all_of(c({{ by_vars }}, "Level"))))
 
     # Getting number of by-vars
     # (needed to be able to change the correct name below)
@@ -993,11 +991,10 @@ freq_function <- function(
   } else if (!is.null(var2)) {
     # Getting unweighted and weighted n for each combination
     func_table7 <- func_table6 |>
-      dplyr::group_by_at(append({{ by_vars }}, c("Variable1", "Variable2"))) |>
       dplyr::summarize(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .groups = 'drop'
+        .by = c({{ by_vars }}, "Variable1", "Variable2")
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -1015,11 +1012,10 @@ freq_function <- function(
 
     # Summation within variable1
     func_table8 <- func_table7 |>
-      dplyr::group_by_at(append({{ by_vars }}, "Variable1")) |>
       dplyr::summarize(
         n = sum(.data$n),
         n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .groups = 'drop'
+        .by = c({{ by_vars }}, "Variable1")
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -1036,11 +1032,10 @@ freq_function <- function(
 
     # Summation within variable2
     func_table9 <- func_table7 |>
-      dplyr::group_by_at(append({{ by_vars }},"Variable2")) |>
       dplyr::summarize(
         n = sum(.data$n),
         n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .groups = 'drop'
+        .by = c({{ by_vars }}, "Variable2")
       ) |>
       dplyr::mutate(
         Func_var2 = var2,
@@ -1057,11 +1052,10 @@ freq_function <- function(
 
     # Summation totals
     func_table10 <- func_table7 |>
-      dplyr::group_by_at({{ by_vars }}) |>
       dplyr::summarize(
         n = sum(.data$n),
         n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .groups = 'drop'
+        .by = {{ by_vars }}
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -1377,24 +1371,21 @@ freq_function <- function(
 
       # Summing up the total chi-square test statistic
       func_table24 <- func_table23 |>
-        dplyr::group_by_at({{ by_vars }}) |>
         dplyr::summarize(
           cell_chi_total = sum(.data$cell_chi, na.rm = TRUE),
-          .groups = 'drop'
+          .by = {{ by_vars }}
         )
 
       # Degrees of freedom, chi-square test
       chi_degree1 <- func_table6 |>
-        dplyr::group_by_at({{ by_vars }}) |>
         dplyr::summarize(
           chi_degree1 = dplyr::n_distinct(.data$Variable1),
-          .groups = 'drop'
+          .by = {{ by_vars }}
         )
       chi_degree2 <- func_table6 |>
-        dplyr::group_by_at({{ by_vars }}) |>
         dplyr::summarize(
           chi_degree2 = dplyr::n_distinct(.data$Variable2),
-          .groups = 'drop'
+          .by = {{ by_vars }}
         )
       chi_degree_freedom <- dplyr::full_join(
         chi_degree1,
