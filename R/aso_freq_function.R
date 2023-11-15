@@ -199,7 +199,7 @@ freq_function <- function(
   # the weight will be 1 for all observations
   if (!is.null(weightvar)){
     func_table2 <- func_table1 |>
-      dplyr::mutate("weight_used" := .data[[weightvar]]) |>
+      dplyr::mutate("weight_used" = .data[[weightvar]]) |>
       dplyr::filter(.data$weight_used > 0)
   }
   else {
@@ -209,13 +209,13 @@ freq_function <- function(
   # Rename the variable of interest to Variable1 so it can be used below (name
   # changed back in the end)
   func_table3 <- func_table2 |>
-    dplyr::mutate("Variable1" := as.character(.data[[var1]]))
+    dplyr::mutate("Variable1" = as.character(.data[[var1]]))
 
   # If there should be a two-way table, the second variable is called Variable2
   # below (name changed back in the end)
   if (!is.null(var2)){
     func_table4 <- func_table3 |>
-      dplyr::mutate("Variable2" := as.character(.data[[var2]]))
+      dplyr::mutate("Variable2" = as.character(.data[[var2]]))
   }
   else {
     func_table4 <- func_table3
