@@ -9,7 +9,7 @@
 #'   frequencies. If `NULL` (standard) a 1-way frequency table of only `var1` is
 #'   created, and if `var2` is specified a 2-way table is returned.
 #' @param by_vars An optional character vector naming variables in `normal_data`
-#'   to stratify the claculations and output by. That is, ALL calculations will
+#'   to stratify the calculations and output by. That is, ALL calculations will
 #'   be made within the combinations of variables in the vector, hence it's
 #'   possible to get N and % for many groups in one go.
 #' @param include_NA A logical. If `FALSE` (standard) missing variables (`NA`'s)
@@ -29,7 +29,7 @@
 #'   percentages and weighted frequencies in the combined frequency and percent
 #'   variables.
 #' @param output A character indicating the output type wanted:
-#'   * `"all" - will give ALL output from tables. In many cases unnecessary and
+#'   * `"all"` - will give ALL output from tables. In many cases unnecessary and
 #'   hard to get an overview of. This is set as the standard.
 #'   * `"numeric"` - will give frequencies and percents as numeric variables
 #'   only, thus the number_decimals option is not in effect. This option might
@@ -97,7 +97,7 @@ freq_function <- function(
     weightvar = NULL,
     textvar = NULL,
     number_decimals = 2,
-    output = "all",
+    output = c("all", "numeric", "colw", "row", "roww", "total", "totalW"),
     chisquare = FALSE
 ) {
 
@@ -112,7 +112,7 @@ freq_function <- function(
     stop(
       "'var1' must be a length 1 character vector naming ",
       "the first variable to get frequencies."
-      )
+    )
   }
   if (!(is.null(var2) || (is.character(var2) && length(var2) == 1))) {
     stop(
@@ -120,17 +120,52 @@ freq_function <- function(
       "vector naming the second\nvariable to get frequencies."
     )
   }
-  if (!inherits(include_NA, "logical")) {
-    stop("'include_NA' must be a logical.")
+  if (!is.null(by_vars)) {
+    if (!inherits(by_vars, "character")) {
+      stop(
+        "by_vars must be NULL or optionally a character vector ",
+        "naming variables in normal_data\n to stratify the ",
+        "calculations and output by."
+      )
+    } else if (!all(by_vars %in% names(normaldata))) {
+      stop(
+        glue::glue(
+          "by_vars must name variables in normaldata.\n",
+          "The following are not names of normaldata columns:\n",
+          "{paste(by_vars[!(by_vars %in% names(starwars))], collapse = ', ')}"
+        )
+      )
+    }
+  }
+  if (!(isTRUE(include_NA) || isFALSE(include_NA))) {
+    stop("'include_NA' must be a boolean.")
   }
   if (!is.null(values_to_remove)) {
     if (!inherits(values_to_remove, "character")) {
       stop(
-        "When 'values_to_remove' is specified it must be a character vector."
+        "'values_to_remove' must be NULL or optionally a character vector."
       )
     }
   }
-  # a check for 'weightvar' need to be made
+  if (!is.null(weightvar)) {
+    if (!inherits(weightvar, "character")) {
+      stop(
+        "weightvar must be NULL or optionally a character of length 1 ",
+        "naming a column\nin `normaldata` with numeric weights ",
+        "for each observation."
+      )
+    } else if (!(length(weightvar == 1 && weightvar %in% names(normaldata)))) {
+      stop(
+        "weightvar must name a single column in 'normaldata' with numeric",
+        "weights\nfor each observation."
+      )
+    } else if (!is.numeric(normaldata[[weightvar]])) {
+      stop(
+        "The column named in weightvar must contain numeric weights",
+        "for each observation."
+      )
+    }
+  }
   if (!is.null(textvar)) {
     if (!inherits(textvar, "character")) {
       stop("When 'textvar' is specified it must be a character.")
@@ -142,8 +177,11 @@ freq_function <- function(
   if (number_decimals < 0) {
     stop("'number_decimals' must be a non-negative integer.")
   }
+  output <- match.arg(output)
+  if (!(isTRUE(chisquare) || isFALSE(chisquare))) {
+    stop("'chisquare' must be a boolean.")
+  }
   # End a added checks
-
 
   # Getting name of original Variable1 as a string (to be used below)
   Orig_var1_name <- gsub(
