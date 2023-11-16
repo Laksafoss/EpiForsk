@@ -184,9 +184,6 @@ freq_function <- function(
   }
   # End a added checks
 
-  # Getting name of original Variable1 as a string (to be used below)
-  Orig_var1_name <- var1
-
   # Select only mentioned variables from called data (not using specifications)
   func_table1 <- normaldata |>
     dplyr::select(
@@ -322,7 +319,7 @@ freq_function <- function(
       )
 
     # Setting the name of the first variable correctly
-    colnames(func_table10)[1] <- Orig_var1_name
+    colnames(func_table10)[1] <- var1
 
     if(output == "all") {
       func_table11 <- func_table10
@@ -448,7 +445,7 @@ freq_function <- function(
     num_by_vars <- length(by_vars)
 
     # Setting the name of the first variable correctly
-    colnames(func_table10)[(num_by_vars + 1)] <- Orig_var1_name
+    colnames(func_table10)[(num_by_vars + 1)] <- var1
 
     if(output == "all"){
       func_table11 <- func_table10
@@ -792,7 +789,7 @@ freq_function <- function(
         "Freq_col_pct",
         "Freqw_col_pct"
       )
-    colnames(func_table21)[2] <- Orig_var1_name
+    colnames(func_table21)[2] <- var1
 
     # Change rotation on table, so the rows and columns are easier to follow
     func_table22_1 <- dplyr::select(
@@ -877,9 +874,9 @@ freq_function <- function(
         ) |>
         dplyr::ungroup() |>
         dplyr::mutate(var1 = "Total")
-      names(chi_p)[length(names(chi_p))] <- Orig_var1_name
+      names(chi_p)[length(names(chi_p))] <- var1
 
-      func_table25 <- dplyr::full_join(func_table22, chi_p, by = Orig_var1_name)
+      func_table25 <- dplyr::full_join(func_table22, chi_p, by = var1)
     } else {
       func_table25 <- func_table22
     }
@@ -1310,7 +1307,7 @@ freq_function <- function(
     # Getting number of by-vars
     # (needed to be able to change the correct name below)
     num_by_vars <- length(by_vars)
-    colnames(func_table21)[(num_by_vars+2)] <- Orig_var1_name
+    colnames(func_table21)[(num_by_vars+2)] <- var1
 
     # Change rotation on table, so the rows and columns are easier to follow
     func_table22_1 <- dplyr::select(
@@ -1415,7 +1412,7 @@ freq_function <- function(
         ) |>
         dplyr::ungroup() |>
         dplyr::mutate(var1 = "Total")
-      names(chi_p)[length(names(chi_p))] <- Orig_var1_name
+      names(chi_p)[length(names(chi_p))] <- var1
 
       func_table25 <- dplyr::full_join(
         func_table22,
