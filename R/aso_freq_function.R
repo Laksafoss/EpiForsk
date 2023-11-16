@@ -412,7 +412,7 @@ freq_function <- function(
     func_table10 <- multi_join(
       func_table9,
       func_table8,
-      .by = c({{ by_vars }}, "Func_var")
+      .by = c(by_vars, "Func_var")
     ) |>
       dplyr::mutate(
         Column_pct = ((.data$n_weighted.1 / .data$n_weighted.2) * 100),
@@ -839,7 +839,7 @@ freq_function <- function(
     func_table22 <- dplyr::full_join(
         func_table22_1,
         func_table22_2,
-        by = {{ var1 }}
+        by = var1
         )
 
     if (chisquare == TRUE){
@@ -1078,7 +1078,7 @@ freq_function <- function(
     func_table11 <- multi_join(
       func_table8,
       func_table7,
-      .by = c({{ by_vars }}, "Func_var1", "Variable1")
+      .by = c(by_vars, "Func_var1", "Variable1")
     ) |>
       dplyr::select(
         dplyr::all_of(by_vars),
@@ -1097,7 +1097,7 @@ freq_function <- function(
     func_table12 <- multi_join(
       func_table11,
       func_table10,
-      .by = c({{ by_vars }}, "Func_var1","Func_var2")
+      .by = c(by_vars, "Func_var1","Func_var2")
     ) |>
       dplyr::select(
         dplyr::all_of(by_vars),
@@ -1116,7 +1116,7 @@ freq_function <- function(
     func_table13 <- multi_join(
       func_table12,
       func_table9,
-      .by = c({{ by_vars }}, "Func_var2","Variable2")
+      .by = c(by_vars, "Func_var2","Variable2")
     ) |>
       dplyr::select(
         dplyr::all_of(by_vars),
@@ -1356,7 +1356,7 @@ freq_function <- function(
     func_table22 <- dplyr::full_join(
       func_table22_1,
       func_table22_2,
-      by = c({{ by_vars }} , {{ var1 }})
+      by = c(by_vars , var1)
     ) |>
       dplyr::arrange(dplyr::across(dplyr::all_of({{ by_vars }})))
 
@@ -1393,7 +1393,7 @@ freq_function <- function(
       chi_degree_freedom <- dplyr::full_join(
         chi_degree1,
         chi_degree2,
-        by = {{ by_vars }}
+        by = by_vars
       ) |>
         dplyr::mutate(
           chi_degree_total = ((.data$chi_degree1 - 1) * (.data$chi_degree2 - 1))
@@ -1403,7 +1403,7 @@ freq_function <- function(
       chi_p <- dplyr::full_join(
         func_table24,
         chi_degree_freedom,
-        by = c({{ by_vars }})
+        by = by_vars
       ) |>
         dplyr::rowwise() |>
         dplyr::mutate(
@@ -1420,7 +1420,7 @@ freq_function <- function(
       func_table25 <- dplyr::full_join(
         func_table22,
         chi_p,
-        by = c({{ by_vars }}, Orig_var1_name)
+        by = c(by_vars, var1)
       )
     } else {
       func_table25 <- func_table22
