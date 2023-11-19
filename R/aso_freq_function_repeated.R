@@ -1,31 +1,92 @@
-#Function intended for making it possible to get frequencies for many variables at one go,
-#   either as one way tables or two way tables were the second variable is fixed.
-#The function is a kind of wrapper for the Freq_function() with the same syntax but the FUNCTION
-#   of the "var1" argument have been changed: it should be a vector of one or more
-#   variable names (all will give a separate table). Example: var1=c("Age_group", "Sex", "Region")
-
-#The output will look slightly different from Freq_function() due to not only having one variable,
-#   but otherwise Freq_function_repeated should give the same.
-
-#' Title
+#' Wrapper for `freq_function()` to get frequencies for many variables in one
+#' go.
 #'
-#' @param normaldata
-#' @param var1
-#' @param var2
-#' @param by_vars
-#' @param include_NA
-#' @param values_to_remove
-#' @param weightvar
-#' @param textvar
-#' @param number_decimals
-#' @param output
-#' @param chisquare
+#' A method for making multiple 1- and 2-way frequency tables with percentages
+#' and odds ratios.
 #'
-#' @return
+#' @param normaldata A data frame or data frame extension (e.g. a tibble).
+#' @param var1 A character vector with the names of the first variable to get
+#'   frequencies from for each frequency table.
+#' @param var2 An optional character naming the second variable to get
+#'   frequencies. If `NULL` (standard) 1-way frequency tables of only variables
+#'   in `var1` are created, and if `var2` is specified 2-way tables are
+#'   returned.
+#' @param by_vars An optional character vector naming variables in `normal_data`
+#'   to stratify the calculations and output by. That is, ALL calculations will
+#'   be made within the combinations of variables in the vector, hence it's
+#'   possible to get N and % for many groups in one go.
+#' @param include_NA A logical. If `FALSE` (standard) missing variables (`NA`'s)
+#'   will be removed from `var1` and `var2`. Any missing values in `by_vars`
+#'   will not be removed. If `TRUE` all missing values will be included in
+#'   calculations and the output.
+#' @param values_to_remove An optional character vector. When specified all
+#'   values from `var1` and `var2` found in `values_to_remove` will be removed
+#'   from the calculations and output.
+#' @param weightvar An optional character naming a column in `normaldata` with
+#'   numeric weights for each observation. If `NULL` (standard) all observations
+#'   have weight 1.
+#' @param textvar An optional character. When specified `textvar` is added to
+#'   the resulting table as a comment. When `NULL` (standard) no such text
+#'   addition is made.
+#' @param number_decimals A numeric indicating the number of decimals to show on
+#'   percentages and weighted frequencies in the combined frequency and percent
+#'   variables.
+#' @param output A character indicating the output type wanted:
+#'   * `"all"` - will give ALL output from tables. In many cases unnecessary and
+#'   hard to get an overview of. This is set as the standard.
+#'   * `"numeric"` - will give frequencies and percents as numeric variables
+#'   only, thus the number_decimals option is not in effect. This option might
+#'   be useful when making figures/graphs.
+#'   * "col" - will only give unweighted number of observations and weighted
+#'   column percent (if weights are used, otherwise unweighted)
+#'   * `"colw"` - will only give weighted number of observations and weighted
+#'   column percent (if weights are used, otherwise unweighted)
+#'   * `"row"`- will only give unweighted number of observations and weighted
+#'   row percent (if weights are used, otherwise unweighted). Only works in
+#'   two-way tables (`var2` is specified)
+#'   * `"roww"` - will only give weighted number of oberservations and weighted
+#'   column percent (if weights are used, otherwise unweighted). Only works in
+#'   two-way tables (`var2` is specified)
+#'   * `"total"` - will only give unweighted number of observations and
+#'   weighted percent of the total (if weights are used, otherwise unweighted).
+#'   Only works in two-way tables (`var2` is specified)
+#'   * `"totalw"` - will only give weighted number of observations and
+#'   weighted percent of the total (if weights are used, otherwise unweighted).
+#'   Only works in two-way tables (`var2` is specified)
+#'   * Any other text will give the default ("all")
+#' @param chisquare A logical. `FALSE` (standard) will not calculate p-value for
+#'   the chi-square test for two-way tables (`var2` is specified). If `TRUE`,
+#'   the table will include the chi-square p-value as well as the chi-square
+#'   statistic and the corresponding degrees of freedom. It will be included in
+#'   the output whichever output option have been specified. No chi-square test
+#'   is performed or included in one-way tables (`var2` is unspecified)
+#'
+#' @return Multiple frequency tables stored in a data frame object.
 #'
 #' @author ASO
 #'
 #' @examples
+#' # Examples
+#' data("starwars", package = "dplyr")
+#' test_table1 <- freq_function_repeated(
+#'   starwars,
+#'   var1 = c("sex","homeworld","eye_color"),
+#'   include_NA = TRUE
+#' )
+#' test_table2 <- freq_function_repeated(
+#'   starwars,
+#'   var1 = c("homeworld","eye_color","skin_color"),
+#'   var2 = "sex",
+#'   output = "col",
+#'   number_decimals = 3
+#' )
+#' test_table3 <- freq_function_repeated(
+#'   starwars,
+#'   var1 = c("homeworld","eye_color","skin_color"),
+#'   var2 = "sex",
+#'   by_vars = c("gender"),
+#'   output = "row"
+#' )
 #'
 #' @export
 
@@ -80,13 +141,3 @@ freq_function_repeated <- function(
     dplyr::relocate("var_name", .before = 1)
   return(func_table3)
 }
-
-# #Examples
-# data(starwars)
-# test_table1 <- Freq_function_repeated(starwars, var1 = c("sex","homeworld","eye_color"), include_NA = TRUE)
-# test_table2 <- Freq_function_repeated(starwars, var1 = c("homeworld","eye_color","skin_color"), var2 = "sex",
-#                                       output = "col", number_decimals = 3)
-# test_table3 <- Freq_function_repeated(starwars, var1 = c("homeworld","eye_color","skin_color"), var2 = "sex",
-#                                       by_vars = c("gender"), output = "row")
-
-

@@ -1,50 +1,107 @@
-#Function intended for making it possible to get OR for several similar models in one go,
-#   where either same analysis is made except for one variable or the same analysis done but
-#   by a variable (each level of the variable is analysed separately).
-#The function is a kind of wrapper for the OR_function() with similar syntax but
-#   some additional arguments have been added and the MEANING of one of the arguments
-#   have changed compared to the original function:
-#   1)  outcomevar is here a vector of outcome-variables of interest that will each be run,
-#         with separate models. Note that all outcomes should be factors when calling the
-#         function. (at least one variable needed) (example: c("height_grp","weight_grp","bmi_grp"))
-#   2)  expvars is here a vector with variable names that will be run in separate models
-#         (at least one variable needed)
-#         (example: c("var1", "var2") will be run in two models, one including "var1" and
-#         another including "var2")
-#   3)  adjustment_fixed is a vector for all variables that will not change between models,
-#         usually some fixed adjustment for models (optional) (example: c("age","sex") will give
-#         models adjusted for age and sex)
-#   4)  by_var (optional) is the possibility to run the analyses completely separate for all
-#         levels of the specified variable. It only works with one variable (example: by_var="Grouping")
-#         NOTE: NA and "" levels will not be used but all other levels will have separate models
-#   5)  It's possible to have same variable in expvars() and adjustment_fixed()
-#   6)  When a model results in an error, the function will not stop - it continues with other
-#         models until done BUT in the output the error text can be seen.
-#Other restrictions from the OR_function() is still relevant here as well as all other options
-
-#' Title
+#' Wrapper for the `odds_ratio_function()`to perform several similar analyses
+#' in one go.
 #'
-#' @param normaldata
-#' @param outcomevar
-#' @param expvars
-#' @param adjustment_fixed
-#' @param by_var
-#' @param number_decimals
-#' @param alpha
-#' @param regtype
-#' @param matchgroup
-#' @param matchtiemethod
-#' @param values_to_remove
-#' @param weightvar
-#' @param surveydata
-#' @param textvar
-#' @param model_object
+#' The function is intended to make it easy to get OR's for several similar
+#' models in one go, where either the same analysis is performed except for one
+#' variable or the same analysis is performed but by each variable (each level
+#' of the variable is analysed separately).
 #'
-#' @return
+#' @param normaldata A data frame or data frame extension (e.g. a tibble).
+#' @param outcomevar A character vector naming factor variables in normaldata
+#'   to use as outcomes in separate models.
+#' @param expvars A character vector naming exposure variables (either numeric
+#'   or factors) to use in separate models.
+#' @param adjustment_fixed A character vector naming adjustment variables to
+#'   include in all models. NULL is the default resulting in no fixed
+#'   adjustment.
+#' @param by_var A character vector specifying a factor on which to run the
+#'   analyses completely separate for all levels. It only works with one
+#'   variable (default is NULL). NOTE: NA and "" levels will not be used but all
+#'   other levels will have separate models.
+#' @param number_decimals An integer giving the number of decimals to show in
+#'   the standardized output (default is two decimals).
+#' @param alpha A scalar, between 0 and 1 specifying the desired significance
+#'   level of the confidence intervals (default is 0.05 which will yield the
+#'   usual 95% confidence interval).
+#' @param regtype A character string specifying the analysis method. Can either
+#'   be "logistic" for logistic regression (the default) or "log-linear" for
+#'   log-linear regression. Log-linear regression can only be used with
+#'   binomial, unconditional analysis.
+#' @param matchgroup Character string specifying a variable in normaldata to
+#'   condition the analysis on. Can only be used in binomial logistic regression
+#'   models (default is NULL).
+#' @param matchtiemethod Character string specifying the method for ties when
+#'   using a matched/conditional analysis. The default options is "exact",
+#'   however this option does not take weights into account for the analysis, so
+#'   if weights (other than 1) are used, another option should be selected.
+#'   Other options are "approximate", "efron", and "breslow" - for further
+#'   explanations, see documentation for \link[survival]{clogit}.
+#' @param values_to_remove Character vector specifying values to remove from
+#'   ALL variables used in the regression before the analysis (default is NULL).
+#'   This is useful if some value(s) are used consistently to encode
+#'   missing/irrelevant in the data (e.g. c("888", "987") - normal missing (NA)
+#'   don't need to be specified as it will be removed automatically. Do NOT
+#'   remove the reference values as this will lead to unexpected results!
+#' @param weightvar A character string specifying a numeric variable in
+#'   normaldata with pre-calculated weights for observations in the analysis.
+#'   The default value NULL corresponds to weight 1 for all observations.
+#' @param surveydata A Boolean specifying whether the data comes from a survey
+#'   (default is FALSE).
+#' @param textvar A character string with text (like a note) to be added to the
+#'   output. The default value NULL corresponds to no added note.
+#' @param model_object A Boolean. If TRUE, returns the raw output object from
+#'   the analysis instead of the standard output. This might be useful to see
+#'   information not included in the standardized output (default is FALSE).
+#'
+#' @details ' It's possible to have same variable in `expvars` and
+#' `adjustment_fixed`. When a model results in an error, the function will not
+#' stop - it continues with other models until done BUT in the output the error
+#' text can be seen.
+#'
+#' @return A standardized analysis object with results from multiple models.
 #'
 #' @author ASO
 #'
 #' @examples
+#' # Data to use
+#' data("infert", package = "datasets")
+#' infert2 <- infert |>
+#'   dplyr::mutate(
+#'     Age_grp = relevel(as.factor(dplyr::case_when(
+#'       age < 25 ~ "<25",
+#'       25 <= age & age < 35 ~ "25-<35",
+#'       age >= 35 ~ "35+"
+#'     )), ref="25-<35"),
+#'     Parity_grp = relevel(as.factor(dplyr::case_when(
+#'       parity == 1 ~ "1",
+#'       parity >= 2 & parity <= 3 ~ "2-3",
+#'       parity > 3 ~ "4+"
+#'     )), ref="2-3"),
+#'     induced = relevel(as.factor(induced), ref="0"),
+#'     case = relevel(as.factor(case), ref="0"),
+#'     spontaneous = relevel(as.factor(spontaneous), ref="0")
+#'   )
+#'
+#' # Two outcomes (Parity_grp, case) with their own set of models, three
+#' # variables included in separate models (spontaneous,induced and education)
+#' # and one variable that is included in all models (Age_grp)
+#' test <- odds_ratio_function_repeated(
+#'   normaldata = infert2,
+#'   outcomevar = c("Parity_grp","case"),
+#'   expvars = c("spontaneous","induced","education"),
+#'   adjustment_fixed = c("Age_grp")
+#' )
+#'
+#' # One outcome (case), two variables included in separate models
+#' # (spontaneous and induced), one variable included in all models (Age_grp)
+#' # and all analyses made for each level of another variable (Parity_grp)
+#' test2 <- odds_ratio_function_repeated(
+#'   normaldata = infert2,
+#'   outcomevar = c("case"),
+#'   expvars = c("spontaneous","induced"),
+#'   adjustment_fixed = c("Age_grp"),
+#'   by_var = "Parity_grp"
+#' )
 #'
 #' @export
 
@@ -221,33 +278,3 @@ odds_ratio_function_repeated <- function(
   }
   return(func_table3)
 }
-
-# #Examples
-# #Data to use
-# data("infert")
-# infert2 <- infert |>
-#   mutate(Age_grp=case_when(age<25 ~ "<25", 25<=age & age<35 ~ "25-<35", age>=35 ~ "35+"),
-#          Parity_grp=case_when(parity==1 ~ "1", parity>=2 & parity<=3 ~ "2-3", parity>3 ~ "4+"))
-# infert2$Age_grp <- relevel(as.factor(infert2$Age_grp), ref="25-<35")
-# infert2$Parity_grp <- relevel(as.factor(infert2$Parity_grp), ref="2-3")
-# infert2$induced <- relevel(as.factor(infert2$induced), ref="0")
-# infert2$case <- relevel(as.factor(infert2$case), ref="0")
-# infert2$spontaneous <- relevel(as.factor(infert2$spontaneous), ref="0")
-#
-# #Two outcomes (Parity_grp, case) with their own set of models,
-# #three variables included in separate models (spontaneous,induced and education) and
-# #one variable that is included in all models (Age_grp)
-# test <- OR_function_repeated(normaldata = infert2, outcomevar = c("Parity_grp","case"),
-#                              expvars = c("spontaneous","induced","education"),
-#                              adjustment_fixed = c("Age_grp"))
-
-# #One outcome (case), two variables included in separate models (spontaneous and induced),
-# #one variable included in all models (Age_grp) and all analyses made for each
-# #level of another variable (Parity_grp)
-# test2 <- OR_function_repeated(normaldata = infert2, outcomevar = c("case"),
-#                               expvars = c("spontaneous","induced"),
-#                               adjustment_fixed = c("Age_grp"),
-#                               by_var = "Parity_grp")
-
-
-

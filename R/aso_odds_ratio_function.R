@@ -1,72 +1,149 @@
-#The function ASO_OR_function_v3 is intended to make it easier to perform logistic and log-linear regressions
-#   and giving a standardized output table using several different packages and functions depending on chosen options.
-
-#The function uses data and tries to analyse it given user specifications, including outcome, exposures and possible weights.
-#The function can also handle survey-data, but not complex sampling schemes (if specified as survey-data, the model will create
-#   a simple survey-object from the data, using weights as specified - if not specified, the weights are 1 for each observation)
-#The standard regression is logistic regression (yielding Odds Ratios=OR) but it is possible to perform a log-linear regression
-#   (yielding Risk Ratios=RR) instead, if specified and requirements are met
-
-#The options and specifications are as follows:
-# 1)  normaldata = data.frame to use with function (must be specified with no default)
-# 2)  outcomevar = name of factor variable in data that will be used as the outcome. (must be specified with no default AND
-#       there must be citation marks around the name): outcomevar = "Var"
-# 3)  expvars = a vector with the names of the exposure variables (numeric or factors) and may also include interactions.
-#       (must be specified and have citation marks around all elements): c("Var1", "Var2", "Var1:Var2", "Var3*Var4")
-# 4)  number_decimals = an integer telling how many decimals to show in the standardized output. (optional, standard is two):
-#       number_decimals=2
-# 5)  alpha = a value between 0 and 1 witch will influence the width of the confidence limits. (optional, standard is 0.05
-#       which will yield the usual 95% confidence limits): alpha=0.05
-# 6)  regtype = a vector option to select if the analysis should be logistic regression or log-linear regression. Log-linear
-#       regression can only be used when having binomial, unconditional analysis. (optional, standard is logistic regression):
-#       regtype = c("logistic") or regtype = c("log-linear")
-# 7)  matchgroup = an option to condition the analysis on a specific variable. can only be used in binomial logistic
-#       regression models (optional, standard is NULL but if given, the variable needs to be given within citation marks):
-#       matchgroup="condition_var"
-# 8)  matchtiemethod = an option to change method for ties when using a matched/conditional analysis. "exact" is used
-#       as a standard BUT this option does not take weights into account for the analysis, so if weights (other than 1) is
-#       to be used, another option should be selected (possible: "exact", "approximate", "efron", "breslow" - for further
-#       explanations, see documentation for clogit() from the survival package). (optional, standard is "exact"):
-#       matchtiemethod = c("exact") or matchtiemethod = c("approximate") or matchtiemethod = c("efron") or
-#       matchtiemethod = c("breslow")
-# 9)  values_to_remove = a vector option to remove one or several values from ALL variables used in the regression before
-#       the analysis. This might be useful if some value(s) are used consistently for missing/irrelevant in the data -
-#       normal missing (NA) don't need to be specified here as it will be removed automatically anyway from the analysis.
-#       (optional, standard is NULL, but if used should be given as a vector with each value within citation marks):
-#       values_to_remove = c("888","987") Do NOT remove the reference values due to this might give unexpected results!
-# 10) weightvar = an option to use pre-calculated weights for observations in the analysis. (optional, standard is NULL and hence
-#       uses weight=1 for all observations - if specified a variable name should be given within citation marks):
-#       weightvar = "weight_variable"
-# 11) surveydata = an option to specify if the data comes from a survey or not. (optional, standard is FALSE):
-#       surveydata = FALSE or surveydata = TRUE
-# 12) textvar = an option to add some extra text (like a note) to the output. (optional, standard is null, but if given it should
-#       be as a text surrounded by citation marks): textvar = "This is some text"
-# 13) model_object = an option to get the raw output object from the analysis instead of the standard output. This might be useful
-#       if wanting to see something else than the information included in the standardized output (optional, the standard is FALSE):
-#       model_object = FALSE or model_object = TRUE
-
-
-#' Title
+#' Easier to perform logistic and log-linear regressions giving a standardized
+#' output table
 #'
-#' @param normaldata
-#' @param outcomevar
-#' @param expvars
-#' @param number_decimals
-#' @param alpha
-#' @param regtype
-#' @param matchgroup
-#' @param matchtiemethod
-#' @param values_to_remove
-#' @param weightvar
-#' @param surveydata
-#' @param textvar
-#' @param model_object
+#' odds_ratio_function analyses specified data given user specifications,
+#' including outcome, exposures and possible weights. It can handle survey-data,
+#' but not complex sampling schemes (if specified as survey-data, the model will
+#' create a simple survey-object from the data, using weights as specified - if
+#' not specified, the weights are 1 for each observation) The standard
+#' regression is logistic regression (yielding Odds Ratios=OR) but it is
+#' possible to perform a log-linear regression (yielding Risk Ratios=RR)
+#' instead, if specified and requirements are met.
 #'
-#' @return
+#' @param normaldata A data frame or data frame extension (e.g. a tibble).
+#' @param outcomevar A character string naming of factor variable in normaldata
+#'   to use as the outcome.
+#' @param expvars A character vector with the names of the exposure variables
+#'   (either numeric or factors). Any transformations or interactions to be
+#'   included must also be specified, e.g.
+#'   `c("Var1", "I(Var1^2)", "Var2", "Var3*Var4")`.
+#' @param number_decimals An integer giving the number of decimals to show in
+#'   the standardized output (default is two decimals).
+#' @param alpha A scalar, between 0 and 1 specifying the desired significance
+#'   level of the confidence intervals (default is 0.05 which will yield the
+#'   usual 95% confidence interval).
+#' @param regtype A character string specifying the analysis method. Can either
+#'   be "logistic" for logistic regression (the default) or "log-linear" for
+#'   log-linear regression. Log-linear regression can only be used with
+#'   binomial, unconditional analysis.
+#' @param matchgroup Character string specifying a variable in normaldata to
+#'   condition the analysis on. Can only be used in binomial logistic regression
+#'   models (default is NULL).
+#' @param matchtiemethod Character string specifying the method for ties when
+#'   using a matched/conditional analysis. The default options is "exact",
+#'   however this option does not take weights into account for the analysis, so
+#'   if weights (other than 1) are used, another option should be selected.
+#'   Other options are "approximate", "efron", and "breslow" - for further
+#'   explanations, see documentation for \link[survival]{clogit}.
+#' @param values_to_remove A Character vector specifying values to remove from
+#'   ALL variables used in the regression before the analysis (default is NULL).
+#'   This is useful if some value(s) are used consistently to encode
+#'   missing/irrelevant in the data (e.g. c("888", "987") - normal missing (NA)
+#'   don't need to be specified as it will be removed automatically. Do NOT
+#'   remove the reference values as this will lead to unexpected results!
+#' @param weightvar A character string specifying a numeric variable in
+#'   normaldata with pre-calculated weights for observations in the analysis.
+#'   The default value NULL corresponds to weight 1 for all observations.
+#' @param surveydata A Boolean specifying whether the data comes from a survey
+#'   (default is FALSE).
+#' @param textvar A character string with text (like a note) to be added to the
+#'   output. The default value NULL corresponds to no added note.
+#' @param model_object A Boolean. If TRUE, returns the raw output object from
+#'   the analysis instead of the standard output. This might be useful to see
+#'   information not included in the standardized output (default is FALSE).
+#'
+#' @return A standardized analysis object with results from a model.
 #'
 #' @author ASO
 #'
 #' @examples
+#' ### Binomial outcome
+#' data(logan, package = "survival")
+#'
+#' resp <- levels(logan$occupation)
+#' n <- nrow(logan)
+#' indx <- rep(1:n, length(resp))
+#' logan2 <- data.frame(
+#'   logan[indx,],
+#'   id = indx,
+#'   tocc = factor(rep(resp, each=n))
+#' )
+#' logan2$case <- (logan2$occupation == logan2$tocc)
+#' logan2$case <- as.factor(logan2$case)
+#' logan2$case <- relevel(logan2$case, ref = "FALSE")
+#'
+#' # Standard binomial logistic regression but using interaction for exposures:
+#' func_est1 <- odds_ratio_function(
+#'   logan2,
+#'   outcomevar = "case",
+#'   expvars = c("tocc", "education", "tocc:education")
+#' )
+#'
+#' # Conditional binomial logistic regression with some extra text added:
+#' func_est2 <- odds_ratio_function(
+#'   logan2,
+#'   outcomevar = "case",
+#'   expvars = c("tocc", "tocc:education"),
+#'   matchgroup = "id",
+#'   textvar = "Testing function"
+#' )
+#'
+#' # Standard binomial logistic regression as survey data with no prepared
+#' # weights:
+#' func_est3 <- odds_ratio_function(
+#'   logan2,
+#'   outcomevar = "case",
+#'   expvars = c("tocc", "education"),
+#'   surveydata = TRUE
+#' )
+#'
+#' # Example changing significance level and the number of decimals in fixed
+#' # output and adding some text:
+#' func_est4 <- odds_ratio_function(
+#'   logan2,
+#'   outcomevar = "case",
+#'   expvars = c("tocc", "education"),
+#'   number_decimals = 5,
+#'   alpha = 0.01,
+#'   textvar = "Testing function"
+#' )
+#'
+#' # Getting raw output from the regression function:
+#' func_est5 <- odds_ratio_function(
+#'   logan2,
+#'   outcomevar = "case",
+#'   expvars = c("tocc", "education"),
+#'   model_object = TRUE
+#' )
+#'
+#' ### Polytomous/multinomial outcome
+#' data(api, package = "survey")
+#'
+#' # As normal data, but using weights:
+#' func_est6 <- odds_ratio_function(
+#'   apiclus2,
+#'   outcomevar = "stype",
+#'   expvars = c("ell", "meals", "mobility", "sch.wide"),
+#'   weightvar = "pw"
+#' )
+#'
+#' # As survey data with weights:
+#' func_est7 <- odds_ratio_function(
+#'   apiclus2,
+#'   outcomevar = "stype",
+#'   expvars = c("ell", "meals", "mobility"),
+#'   weightvar = "pw", surveydata = TRUE
+#' )
+#'
+#' # Binomial logistic regression with same data (by removing all observations
+#' # with a specific value of outcome):
+#' func_est8 <- odds_ratio_function(
+#'   apiclus2,
+#'   outcomevar = "stype",
+#'   expvars = c("ell", "meals", "mobility"),
+#'   weightvar = "pw",
+#'   values_to_remove = c("E")
+#' )
 #'
 #' @export
 
@@ -736,55 +813,3 @@ summary.svy_vglm <- function(object, ...) {
   class(object) <- "summary.svy_vglm"
   object
 }
-
-# #Examples
-# #Binomial outcome
-# data(logan)
-#
-# resp <- levels(logan$occupation)
-# n <- nrow(logan)
-# indx <- rep(1:n, length(resp))
-# logan2 <- data.frame(logan[indx,],
-#                      id = indx,
-#                      tocc = factor(rep(resp, each=n)))
-# logan2$case <- (logan2$occupation == logan2$tocc)
-# logan2$case <- as.factor(logan2$case)
-# logan2$case <- relevel(logan2$case, ref="FALSE")
-#
-# #clogit(case ~ tocc + tocc:education + strata(id), logan2)
-#
-# #Standard binomial logistic regression but using interaction for exposures
-# func_est1 <- OR_function_v3(logan2, outcomevar = "case", expvars = c("tocc", "education", "tocc:education"))
-# #Conditional binomial logistic regression (with som extra text added)
-# func_est2 <- OR_function_v3(logan2, outcomevar = "case", expvars = c("tocc", "tocc:education"), matchgroup = "id",
-#                             textvar = "Testing function")
-# #Standard binomial logistic regression as surveydata with no prepared weights
-# func_est3 <- OR_function_v3(logan2, outcomevar = "case", expvars = c("tocc", "education"), surveydata = TRUE)
-#
-# #Example changing alpha (in practice changing confidence interval) and the number of decimals in fixed output and adding some text:
-# #   those options will not change the models in any way but will change what is in the output
-# func_est4 <- OR_function_v3(logan2, outcomevar = "case", expvars = c("tocc", "education"), number_decimals = 5, alpha = 0.01,
-#                             textvar = "Testing function")
-#
-# #Getting RAW output from regression
-# func_est5 <- OR_function_v3(logan2, outcomevar = "case", expvars = c("tocc", "education"), model_object = TRUE)
-#
-# #Polytomous/multinomial outcome
-# data(api)
-# #As normal data, but using weights
-# func_est6 <- OR_function_v3(apiclus2, outcomevar = "stype", expvars = c("ell", "meals", "mobility", "sch.wide"),
-#                             weightvar = "pw")
-# #As survey data with weights
-# func_est7 <- OR_function_v3(apiclus2, outcomevar = "stype", expvars = c("ell", "meals", "mobility"),
-#                             weightvar = "pw", surveydata = TRUE)
-#
-# #Binomial logistic regression with same data (by removing all observations with a specific value of outcome)
-# func_est8 <- OR_function_v3(apiclus2, outcomevar = "stype", expvars = c("ell", "meals", "mobility"),
-#                             weightvar = "pw", values_to_remove = c("E"))
-#
-# #Example changing alpha (in practice changing confidence interval) and the number of decimals in fixed output and adding some text:
-# #   those options will not change the models in any way but will change what is in the output
-# func_est9 <- OR_function_v3(logan2, outcomevar = "case", expvars = c("tocc", "education"), number_decimals = 5, alpha = 0.01,
-#                             textvar = "Testing function")
-
-

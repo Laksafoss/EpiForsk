@@ -1,10 +1,10 @@
 #' Frequency Tables with Percentage and Odds Ratios
 #'
-#' A method for making 1 and 2 way frequency tables with percentages and odds
+#' A method for making 1- and 2-way frequency tables with percentages and odds
 #' ratios.
 #'
-#' @param normaldata A data frame.
-#' @param var1 A character naming the first variable to get frequencies.
+#' @param normaldata A data frame or data frame extension (e.g. a tibble).
+#' @param var1 A character string naming the first variable to get frequencies.
 #' @param var2 An optional character naming the second variable to get
 #'   frequencies. If `NULL` (standard) a 1-way frequency table of only `var1` is
 #'   created, and if `var2` is specified a 2-way table is returned.
@@ -58,7 +58,7 @@
 #'   the output whichever output option have been specified. No chi-square test
 #'   is performed or included in one-way tables (`var2` is unspecified)
 #'
-#' @return A data frame.
+#' @return A frequency table as a data frame object.
 #'
 #' @author ASO
 #'
@@ -102,7 +102,7 @@ freq_function <- function(
     chisquare = FALSE
 ) {
 
-  # ADLS: I have added a few checks
+  # Begin input checks
   if (missing(normaldata)) {
     stop("'normaldata' must be a data frame.")
   }
@@ -182,7 +182,7 @@ freq_function <- function(
   if (!(isTRUE(chisquare) || isFALSE(chisquare))) {
     stop("'chisquare' must be a boolean.")
   }
-  # End a added checks
+  # End input checks
 
   # Select only mentioned variables from called data (not using specifications)
   func_table1 <- normaldata |>
