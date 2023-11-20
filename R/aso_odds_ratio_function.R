@@ -429,6 +429,10 @@ odds_ratio_function <- function(
           family = binomial(link = "logit"),
           weights = func_table4$weight_used
         )
+        # return raw output if requested
+        if (model_object == TRUE) {
+          return(func_table5_prp)
+        }
 
         #Extract estimates and standard error etc. from model output
         func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
@@ -475,6 +479,10 @@ odds_ratio_function <- function(
             method = matchtiemethod,
             weights = func_table4model$weight_used
           )
+        }
+        # return raw output if requested
+        if (model_object == TRUE) {
+          return(func_table5_prp)
         }
 
         # Extract estimates and standard error etc. from model output
@@ -546,6 +554,10 @@ odds_ratio_function <- function(
           family = quasibinomial(link="logit")
         )
         func_table5 <- broom::tidy(func_table5_prp2, exponentiate = FALSE)
+        # return raw output if requested
+        if (model_object == TRUE) {
+          return(func_table5_prp2)
+        }
 
         #Getting p-values for included components in model
         func_table5_p <- drop1(func_table5_prp2, test = "Chisq") |>
@@ -569,6 +581,12 @@ odds_ratio_function <- function(
         family = binomial(link = "log"),
         weights = func_table4$weight_used
       )
+
+      # return raw output if requested
+      if (model_object == TRUE) {
+        return(func_table5_prp)
+      }
+
       func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
 
       # Getting p-values for included components in model
@@ -596,6 +614,12 @@ odds_ratio_function <- function(
         data = func_table4,
         weights = func_table4$weight_used
       )
+
+      # return raw output if requested
+      if (model_object == TRUE) {
+        return(func_table5_prp)
+      }
+
       func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
     } else if (surveydata == TRUE) {
       #Multionomial/polytomous logistic regression with surveydata
@@ -622,6 +646,11 @@ odds_ratio_function <- function(
         family = VGAM::multinomial(refLevel = 1),
         design = func_table5_prp_prp
       )
+
+      # return raw output if requested
+      if (model_object == TRUE) {
+        return(func_table5_prp)
+      }
 
       #Getting coefficients etc.
       func_table5_prp2 <- as.data.frame(
@@ -846,12 +875,9 @@ odds_ratio_function <- function(
     func_table9 <- func_table9 |> dplyr::rename("RR" = "OR")
   }
 
-  # Check type of output requested and if it's the "normal" output, if there
-  # should be some text/description added and if so,
-  #   the text-variable is added
-  if (model_object == TRUE){
-    return(func_table5_prp)
-  } else if (is.null(textvar)) {
+  # Check if there should be some text/description added and if so,
+  # the text-variable is added
+  if (is.null(textvar)) {
     return(func_table9)
   } else {
     #Adding text-variable
