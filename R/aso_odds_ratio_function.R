@@ -799,7 +799,7 @@ odds_ratio_function <- function(
     func_table8 <- func_table8_prp |>
       dplyr::mutate(
         sortnr = dplyr::case_when(
-          str_detect(.data$term, ":") == TRUE ~ 2,
+          grepl(":", .data$term) == TRUE ~ 2,
           .data$term == "(Intercept)" ~ 0,
           TRUE ~ 1
         )
@@ -812,7 +812,7 @@ odds_ratio_function <- function(
     func_table8 <- func_table8_prp |>
       dplyr::mutate(
         sortnr = dplyr::case_when(
-          str_detect(.data$term,":") == TRUE ~ 2,
+          grepl(":", .data$term) == TRUE ~ 2,
           .data$term == "(Intercept)" ~ 0,
           TRUE ~ 1
         )
