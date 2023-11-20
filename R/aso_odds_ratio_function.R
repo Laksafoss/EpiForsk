@@ -515,9 +515,9 @@ odds_ratio_function <- function(
                 as.numeric(.data$`func_table5_prp$nevent`)
             ),
             N = paste0(
-              "Non-outcome=", .data$non_outcome_level,
+              "Non-outcome=", non_outcome_level,
               " (n=", .data$n_nonevent,")",
-              ", Outcome=", .data$outcome_level,
+              ", Outcome=", outcome_level,
               " (n=", .data$`func_table5_prp$nevent`,")",
               ", Total n=", .data$`func_table5_prp$n`
             ),
@@ -731,15 +731,15 @@ odds_ratio_function <- function(
         sprintf(paste0("%.",number_decimals,"f"), exp(.data$estimate)),
         " (",
         sprintf(paste0("%.",number_decimals,"f"),
-                exp(.data$estimate - .data$std.error * .data$z)),
+                exp(.data$estimate - .data$std.error * z)),
         "-",
         sprintf(paste0("%.",number_decimals,"f"),
-                exp(.data$estimate + .data$std.error * .data$z)),
+                exp(.data$estimate + .data$std.error * z)),
         ")"
       ),
       Point_estimate = exp(.data$estimate),
-      Lower_confidence_limit = exp(.data$estimate - .data$std.error * .data$z),
-      Upper_confidence_limit = exp(.data$estimate + .data$std.error * .data$z)
+      Lower_confidence_limit = exp(.data$estimate - .data$std.error * z),
+      Upper_confidence_limit = exp(.data$estimate + .data$std.error * z)
     ) |>
     dplyr::select(
       dplyr::any_of(c(
