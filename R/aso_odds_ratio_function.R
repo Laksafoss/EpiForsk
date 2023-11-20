@@ -781,7 +781,8 @@ odds_ratio_function <- function(
     )
   }
   else{
-    func_table7_levels2 <- tibble::add_row(func_table7_levels2_prp, Variable = "") |>
+    func_table7_levels2 <- func_table7_levels2_prp |>
+      dplyr::add_row(Variable = "") |>
       dplyr::mutate(Reference = "")
   }
 
