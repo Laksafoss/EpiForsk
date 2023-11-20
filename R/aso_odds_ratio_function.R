@@ -775,7 +775,7 @@ odds_ratio_function <- function(
     dplyr::filter(.data$count_digit1 == "1")
   if(nrow(func_table7_levels2_prp) > 0) {
     func_table7_levels2 <- dplyr::select(
-      "func_table7_levels2_prp",
+      func_table7_levels2_prp,
       "Variable",
       "Reference" = "unlist(func_table7_levels)"
     )
