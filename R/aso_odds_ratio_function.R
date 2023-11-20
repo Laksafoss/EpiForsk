@@ -536,7 +536,7 @@ odds_ratio_function <- function(
 
         # Creating a survey object (i.e. a data frame with weights etc. that R
         # recognizes as survey data)
-        func_table5_prp <- survey::svydesign(
+        func_table5_prp_prp <- survey::svydesign(
           ~0,
           probs = NULL,
           strata = NULL,
@@ -548,19 +548,21 @@ odds_ratio_function <- function(
 
         # Running regression and getting estimates, standard errors etc. in a
         # table (survey data)
-        func_table5_prp2 <- survey::svyglm(
+        func_table5_prp <- svyglm(
           Model_call,
-          design = func_table5_prp,
-          family = quasibinomial(link="logit")
+          design = func_table5_prp_prp,
+          family = quasibinomial(link = "logit")
         )
-        func_table5 <- broom::tidy(func_table5_prp2, exponentiate = FALSE)
+
         # return raw output if requested
         if (model_object == TRUE) {
-          return(func_table5_prp2)
+          return(func_table5_prp)
         }
 
+        func_table5 <- broom::tidy(func_table5_prp, exponentiate = FALSE)
+
         #Getting p-values for included components in model
-        func_table5_p <- drop1(func_table5_prp2, test = "Chisq") |>
+        func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
           tibble::rownames_to_column(var = "Variable") |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
