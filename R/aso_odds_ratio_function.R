@@ -153,35 +153,104 @@ odds_ratio_function <- function(
     expvars,
     number_decimals = 2,
     alpha = 0.05,
-    regtype = c("logistic"),
+    regtype = c("logistic", "log-linear"),
     matchgroup = NULL,
-    matchtiemethod = c("exact"),
+    matchtiemethod = c("exact", "approximate", "efron", "breslow"),
     values_to_remove = NULL,
     weightvar = NULL,
     surveydata = FALSE,
     textvar = NULL,
     model_object = FALSE
-){
-  # Some logic checks to see if some of the specifications are supported -
-  # else an error with a message is shown
-  if (regtype != "logistic" & regtype != "log-linear") {
+) {
+  ### Start of Input checks
+  if (missing(normaldata)) {
+    stop("'normaldata' must be a data frame.")
+  }
+  if (!inherits(normaldata, "data.frame")) {
+    stop("'normaldata' must be a data frame.")
+  }
+  if (missing(outcomevar) ||
+      !(is.character(outcomevar) && length(outcomevar) == 1)) {
     stop(
-      "The regtype must be specified as 'logistic' (standard) or 'log-linear'"
+      "'outcomevar' must be a length 1 character vector naming ",
+      "a factor variable in 'normaldata' to use as outcome."
     )
-  } else if (surveydata != FALSE & !is.null(matchgroup)){
+  }
+  if (missing(expvars) || !(is.character(expvars))) {
     stop(
-      paste0(
-        "The combination of using surveydata and conditioning/matching is",
-        " not supported"
+      "'expvars' must be a character vector specifying exposure variables,",
+      "including transformations (e.g. I(a^2)) and interactions (e.g. a:b)."
+    )
+  }
+  if (!inherits(number_decimals, "numeric")) {
+    stop("'number_decimals' must be a non-negative integer.")
+  }
+  if (number_decimals < 0) {
+    stop("'number_decimals' must be a non-negative integer.")
+  }
+  if (!inherits(alpha, "numeric")) {
+    stop("'alpha' must specify a significance level between 0 and 1.")
+  }
+  if (alpha <= 0 || alpha >= 1) {
+    stop("'alpha' must specify a significance level between 0 and 1.")
+  }
+  regtype <- match.arg(regtype)
+  if (!(is.null(matchgroup) ||
+        (is.character(matchgroup) && length(matchgroup) == 1))) {
+    stop(
+      "'matchgroup' must be NULL or optionally a length 1 character ",
+      "vector\nnaming a variable in 'normaldata' to condition the analysis on."
+    )
+  }
+  matchtiemethod <- match.arg(matchtiemethod)
+  if (!is.null(values_to_remove)) {
+    if (!inherits(values_to_remove, "character")) {
+      stop(
+        "'values_to_remove' must be NULL or optionally a character vector."
       )
+    }
+  }
+  if (!is.null(weightvar)) {
+    if (!inherits(weightvar, "character")) {
+      stop(
+        "weightvar must be NULL or optionally a character of length 1 ",
+        "naming a column\nin `normaldata` with numeric weights ",
+        "for each observation."
+      )
+    } else if (!(length(weightvar == 1) && weightvar %in% names(normaldata))) {
+      stop(
+        "weightvar must name a single column in 'normaldata' with numeric",
+        "weights\nfor each observation."
+      )
+    } else if (!is.numeric(normaldata[[weightvar]])) {
+      stop(
+        "The column named in weightvar must contain numeric weights",
+        "for each observation."
+      )
+    }
+  }
+  if (!(isTRUE(surveydata) || isFALSE(surveydata))) {
+    stop("'surveydata' must be a boolean.")
+  }
+  if (!(is.null(textvar) || inherits(textvar, "character"))) {
+    stop("When 'textvar' is specified it must be a character.")
+  }
+  if (!(isTRUE(model_object) || isFALSE(model_object))) {
+    stop("'model_object' must be a boolean.")
+  }
+  if (isTRUE(surveydata) & !is.null(matchgroup)) {
+    stop(
+      "The combination of using surveydata and conditioning/matching is ",
+      "not supported."
     )
   }
-  if (regtype == "log-linear" & !is.null(matchgroup)) {
-    stop("When regtype is set to 'log-linear', no conditioning is supported")
+  if (regtype == "log-linear" && !is.null(matchgroup)) {
+    stop("When regtype is set to 'log-linear', no conditioning is supported.")
   }
-  if (regtype == "log-linear" & surveydata == TRUE) {
-    stop("When regtype is set to 'log-linear', surveydata is not supported")
+  if (regtype == "log-linear" && surveydata == TRUE) {
+    stop("When regtype is set to 'log-linear', surveydata is not supported.")
   }
+  ### End of input checks
 
   # Only keeping relevant variables
   # Make sure interaction variables are also included in the final data

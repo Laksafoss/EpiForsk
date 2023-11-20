@@ -109,7 +109,7 @@ freq_function <- function(
   if (!inherits(normaldata, "data.frame")) {
     stop("'normaldata' must be a data frame.")
   }
-  if (!(is.character(var1) && length(var1) == 1)) {
+  if (missing(var1) || !(is.character(var1) && length(var1) == 1)) {
     stop(
       "'var1' must be a length 1 character vector naming ",
       "the first variable to get frequencies."
@@ -155,7 +155,7 @@ freq_function <- function(
         "naming a column\nin `normaldata` with numeric weights ",
         "for each observation."
       )
-    } else if (!(length(weightvar == 1 && weightvar %in% names(normaldata)))) {
+    } else if (!(length(weightvar == 1) && weightvar %in% names(normaldata))) {
       stop(
         "weightvar must name a single column in 'normaldata' with numeric",
         "weights\nfor each observation."
@@ -167,10 +167,8 @@ freq_function <- function(
       )
     }
   }
-  if (!is.null(textvar)) {
-    if (!inherits(textvar, "character")) {
+  if (!(is.null(textvar) || inherits(textvar, "character"))) {
       stop("When 'textvar' is specified it must be a character.")
-    }
   }
   if (!inherits(number_decimals, "numeric")) {
     stop("'number_decimals' must be a non-negative integer.")

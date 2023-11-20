@@ -113,15 +113,17 @@ odds_ratio_function_repeated <- function(
     by_var = NULL,
     number_decimals = 2,
     alpha = 0.05,
-    regtype = c("logistic"),
+    regtype = c("logistic", "log-linear"),
     matchgroup = NULL,
-    matchtiemethod = c("exact"),
+    matchtiemethod = c("exact", "approximate", "efron", "breslow"),
     values_to_remove = NULL,
     weightvar = NULL,
     surveydata = FALSE,
     textvar = NULL,
     model_object = FALSE
 ){
+  regtype <- match.arg(regtype)
+  matchtiemethod <- match.arg(matchtiemethod)
   new_expvars_prp <- expvars
   new_expvars_prp2 <- unlist(strsplit(new_expvars_prp, ":"))
   new_expvars <- unlist(strsplit(new_expvars_prp2, "[*]"))

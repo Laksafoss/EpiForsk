@@ -100,9 +100,10 @@ freq_function_repeated <- function(
     weightvar = NULL,
     textvar = NULL,
     number_decimals = 2,
-    output = "all",
+    output = c("all", "numeric", "colw", "row", "roww", "total", "totalW"),
     chisquare = FALSE
 ) {
+  output <- match.arg(output)
   func_table1 <- normaldata |>
     dplyr::select(
       dplyr::all_of({{ var1 }}),
