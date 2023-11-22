@@ -165,6 +165,13 @@ freq_function <- function(
         "for each observation."
       )
     }
+    if (any(normaldata[[weightvar]] <= 0)) {
+      warning(glue::glue(
+        "Non-positive weights detected in row(s)\n",
+        "{paste(which(normaldata[[weightvar]] <= 0), collapse = ', ')}\n",
+        "Rows with non-positive weights are removed."
+      ))
+    }
   }
   if (!(is.null(textvar) || inherits(textvar, "character"))) {
     stop("When 'textvar' is specified it must be a character.")
@@ -182,112 +189,90 @@ freq_function <- function(
   # End input checks
 
   # Select only mentioned variables from called data (not using specifications)
-  func_table1 <- normaldata |>
+  func_table <- normaldata |>
     dplyr::select(
-      dplyr::all_of({{ var1 }}),
-      dplyr::all_of({{ var2 }}),
-      dplyr::all_of({{ weightvar }}),
-      dplyr::all_of({{ by_vars }})
+      dplyr::all_of(var1),
+      dplyr::all_of(var2),
+      dplyr::all_of(weightvar),
+      dplyr::all_of(by_vars)
     )
 
   # Encoding for weight variable - unless a precalculated weight should be used,
   # the weight will be 1 for all observations
-    func_table2 <- func_table1 |>
   if (!is.null(weightvar)) {
+    func_table <- func_table |>
       dplyr::mutate("weight_used" = .data[[weightvar]]) |>
       dplyr::filter(.data$weight_used > 0)
   }
   else {
-    func_table2 <- func_table1 |> dplyr::mutate(weight_used = as.numeric(1))
-  }
-
-  # Rename the variable of interest to Variable1 so it can be used below (name
-  # changed back in the end)
-  func_table3 <- func_table2 |>
-    dplyr::mutate("Variable1" = as.character(.data[[var1]]))
-
-  # If there should be a two-way table, the second variable is called Variable2
-  # below (name changed back in the end)
-  if (!is.null(var2)){
-    func_table4 <- func_table3 |>
-      dplyr::mutate("Variable2" = as.character(.data[[var2]]))
-  }
-  else {
-    func_table4 <- func_table3
+    func_table <- dplyr::mutate(func_table, weight_used = as.numeric(1))
   }
 
   # Keeping/removing missing (=NA) in the data depending on user specification
-  if (include_NA  ==  TRUE) {
-    func_table5 <- func_table4
-  } else if (include_NA == FALSE & is.null(var2)) {
-    func_table5 <- func_table4 |> dplyr::filter(!is.na(.data$Variable1))
+  if (include_NA == FALSE & is.null(var2)) {
+    func_table <- dplyr::filter(func_table, !is.na(.data[[var1]]))
   } else if (include_NA == FALSE & !is.null(var2)) {
-    func_table5 <- func_table4 |>
-      dplyr::filter(!is.na(.data$Variable1) & !is.na(.data$Variable2))
+    func_table <-
+      dplyr::filter(
+        func_table,
+        !is.na(.data[[var1]]) & !is.na(.data[[var2]])
+      )
   }
 
   # Remove specified values (if any) from the values used in tables before
   # calculations (by-variables NOT influenced)
-  if (is.null(values_to_remove)) {
-    func_table6 <- func_table5
-  } else if (is.null(var2)) {
-    func_table6 <- func_table5 |>
-      dplyr::filter(!.data$Variable1 %in% values_to_remove)
-  } else if (!is.null(var2)) {
-    func_table6 <- func_table5 |>
+  if (is.null(var2)) {
+    func_table <- func_table |>
+      dplyr::filter(!.data[[var1]] %in% values_to_remove)
+  } else {
+    func_table <- func_table |>
       dplyr::filter(
-        !.data$Variable1 %in% values_to_remove &
-          !.data$Variable2 %in% values_to_remove
+        !.data[[var1]] %in% values_to_remove &
+          !.data[[var2]] %in% values_to_remove
       )
   }
 
-
   # Change all factor variables in data to character variables
   # (basically it will be by-variables who are changed)
-  func_table6 <- func_table6 |>
+  func_table <- func_table |>
     dplyr::mutate(dplyr::across(dplyr::where(is.factor), as.character))
 
   # Making summations and calculations (n, % etc.)
   if (is.null(by_vars) && is.null(var2)) {
     # Getting unweighted and weighted n for each group
-    func_table7 <- func_table6 |>
-      dplyr::summarize(
+    func_table <- func_table |>
+      dplyr::summarise(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .by = "Variable1"
+        .by = dplyr::all_of(var1)
       ) |>
       dplyr::mutate(
-        Func_var = var1,
-        Variable = .data$Variable1
+        Func_var = var1
       ) |>
-      dplyr::select("Func_var", "Variable", "n", "n_weighted")
-
-    func_table8 <- func_table7 |>
-      dplyr::summarize(
-    # add summation within variables
-        n_total = sum(.data$n),
-        n_weighted_total = sum(.data$n_weighted, na.rm = TRUE)
-      ) |>
-      dplyr::mutate(
-        Func_var = var1,
-        Variable2 = "Total"
-      ) |>
-      dplyr::select(
-        "Func_var",
-        "Variable" = "Variable2",
-        "n" = "n_total",
-        "n_weighted" = "n_weighted_total"
-      )
-
-    # Combining func_table8 (total numbers) with func_table7 (grouped numbers)
-    func_table9 <- dplyr::bind_rows(func_table7, func_table8)
-
-    # Calculating percent of total
-    func_table10 <- multi_join(
-      func_table9,
-      func_table8,
-      .by = "Func_var"
-    ) |>
+      dplyr::select("Func_var", dplyr::all_of(var1), "n", "n_weighted") |>
+      # add summation within variables
+      (\(x) {
+        y <- x |>
+          dplyr::summarise(
+            n_total = sum(.data$n),
+            n_weighted_total = sum(.data$n_weighted, na.rm = TRUE)
+          ) |>
+          dplyr::mutate(
+            Func_var = var1,
+            "{var1}" := "Total"
+          ) |>
+          dplyr::select(
+            "Func_var",
+            dplyr::all_of(var1),
+            "n" = "n_total",
+            "n_weighted" = "n_weighted_total"
+          )
+        multi_join(
+          dplyr::bind_rows(x, y),
+          y,
+          .by = "Func_var"
+        )
+      })() |>
       dplyr::mutate(
         Column_pct = ((.data$n_weighted.1 / .data$n_weighted.2) * 100),
         Freq_col_pct = paste0(
@@ -302,12 +287,12 @@ freq_function <- function(
           sprintf(paste0("%.",number_decimals,"f"), .data$Column_pct),
           "%)"
         ),
-        Level = .data$Variable.1,
+        "{var1}" := .data[[glue::glue("{var1}.1")]],
         N = .data$n.1,
         N_weighted = .data$n_weighted.1,
       ) |>
       dplyr::select(
-        "Level",
+        dplyr::all_of(var1),
         "N",
         "N_weighted",
         "Column_pct",
@@ -315,98 +300,83 @@ freq_function <- function(
         "Freqw_col_pct"
       )
 
-    # Setting the name of the first variable correctly
-    colnames(func_table10)[1] <- var1
-
-    if(output == "all") {
-      func_table11 <- func_table10
-    } else if (output == "numeric") {
-      func_table11 <- dplyr::select(
-        func_table10,
+    if (output == "numeric") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("Freq")
       )
     } else if (output == "col") {
-      func_table11 <- dplyr::select(
-        func_table10,
+      func_table <- dplyr::select(
+        func_table,
         -"N",
         -"N_weighted",
         -"Column_pct",
         -"Freqw_col_pct"
       )
     } else if (output == "colw") {
-      func_table11 <- dplyr::select(
-        func_table10,
+      func_table <- dplyr::select(
+        func_table,
         -"N",
         -"N_weighted",
         -"Column_pct",
         -"Freq_col_pct"
       )
-    } else {
-      func_table11 <- func_table10
     }
 
-    # Adding text-variable IF text have been added to textvar at function call +
-    # return final table
-    if (is.null(textvar)){
-      return(func_table11)
-    } else {
+    # Adding text-variable IF text have been added to textvar
+    # at function call + return final table
+    if (!is.null(textvar)) {
       # Adding text-variable
-      func_table12 <- func_table11 |>
+      func_table <- func_table |>
         dplyr::mutate(Description = textvar) |>
         dplyr::relocate("Description")
-      return(func_table12)
     }
+    return(func_table)
   } else if (is.null(var2)) {
     # Getting unweighted and weighted n for each group
-    func_table7 <- func_table6 |>
+    func_table <- func_table |>
       dplyr::summarise(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .by = c({{ by_vars }}, "Variable1")
+        .by = c(dplyr::all_of(by_vars), dplyr::all_of(var1))
       ) |>
       dplyr::mutate(
-        Func_var = var1,
-        Variable = .data$Variable1
+        Func_var = var1
       ) |>
       dplyr::select(
         dplyr::all_of(by_vars),
         "Func_var",
-        "Variable",
+        dplyr::all_of(var1),
         "n",
         "n_weighted"
-      )
-
-    # Summation within variables
-    func_table8 <- func_table7 |>
-      dplyr::summarise(
-        n_total = sum(.data$n),
-        n_weighted_total = sum(.data$n_weighted, na.rm = TRUE),
-        .by = {{ by_vars }}
       ) |>
-      dplyr::mutate(
-        Func_var = var1,
-        Variable2 = "Total",
-        Variable = .data$Variable2,
-        n = .data$n_total,
-        n_weighted = .data$n_weighted_total
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var",
-        "Variable",
-        "n",
-        "n_weighted"
-      )
-
-    # Combining func_table8 (total numbers) with func_table9 (grouped numbers)
-    func_table9 <- dplyr::bind_rows(func_table7, func_table8)
-
-    # Calculating percent of total
-    func_table10 <- multi_join(
-      func_table9,
-      func_table8,
-      .by = c(by_vars, "Func_var")
-    ) |>
+      # Summation within variables
+      (\(x) {
+        y <- x |>
+          dplyr::summarise(
+            n_total = sum(.data$n),
+            n_weighted_total = sum(.data$n_weighted, na.rm = TRUE),
+            .by = dplyr::all_of(by_vars)
+          ) |>
+          dplyr::mutate(
+            Func_var = var1,
+            "{var1}" := "Total",
+            n = .data$n_total,
+            n_weighted = .data$n_weighted_total
+          ) |>
+          dplyr::select(
+            dplyr::all_of(by_vars),
+            "Func_var",
+            dplyr::all_of(var1),
+            "n",
+            "n_weighted"
+          )
+        multi_join(
+          dplyr::bind_rows(x, y),
+          y,
+          .by = c(by_vars, "Func_var")
+        )
+      })() |>
       dplyr::mutate(
         Column_pct = ((.data$n_weighted.1 / .data$n_weighted.2) * 100),
         Freq_col_pct = paste0(
@@ -421,73 +391,69 @@ freq_function <- function(
           sprintf(paste0("%.",number_decimals,"f"), .data$Column_pct),
           "%)"
         ),
-        Level = .data$Variable.1,
+        "{var1}" := .data[[glue::glue("{var1}.1")]],
         N = .data$n.1,
         N_weighted = .data$n_weighted.1
       ) |>
       dplyr::select(
         dplyr::all_of(by_vars),
-        "Level",
+        dplyr::all_of(var1),
         "N",
         "N_weighted",
         "Column_pct",
         "Freq_col_pct",
         "Freqw_col_pct"
       ) |>
-      dplyr::arrange(dplyr::across(dplyr::all_of(c({{ by_vars }}, "Level"))))
+      dplyr::arrange(
+        dplyr::across(c(dplyr::all_of(by_vars), dplyr::all_of(var1)))
+      )
 
-    # Getting number of by-vars
-    # (needed to be able to change the correct name below)
-    num_by_vars <- length(by_vars)
-
-    # Setting the name of the first variable correctly
-    colnames(func_table10)[(num_by_vars + 1)] <- var1
-
-    if(output == "all"){
-      func_table11 <- func_table10
-    } else if (output == "numeric"){
-      func_table11 <- dplyr::select(
-        func_table10,
+    if (output == "numeric") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("Freq")
       )
-      func_table11 <- dplyr::select(
-        func_table10,
     } else if (output == "col") {
+      func_table <- dplyr::select(
+        func_table,
         -"N",
         -"N_weighted",
         -"Column_pct",
         -"Freqw_col_pct"
       )
-      func_table11 <- dplyr::select(
-        func_table10,
     } else if (output == "colw") {
+      func_table <- dplyr::select(
+        func_table,
         -"N",
         -"N_weighted",
         -"Column_pct",
         -"Freq_col_pct"
       )
-    } else {
-      func_table11 <- func_table10
     }
 
     # Adding text if textvar is used + return final table
-      return(func_table11)
-    } else {
-      #Adding text-variable
-      func_table12 <- func_table11 |>
     if (!is.null(textvar)) {
+      func_table <- func_table |>
         dplyr::mutate(Description = textvar) |>
         dplyr::relocate("Description")
-      return(func_table12)
     }
+    return(func_table)
   }
   else if (is.null(by_vars)) {
+    if (chisquare == TRUE) {
+      # Degrees of freedom, chi-square test
+      chi_degree1 <- length(unique(func_table[[var1]]))
+      chi_degree2 <- length(unique(func_table[[var2]]))
+      chi_degree_total <- (chi_degree1 - 1) * (chi_degree2 - 1)
+      chi_degree_freedom <- as.data.frame(chi_degree_total)
+    }
+
     # Getting unweighted and weighted n for each combination
-    func_table7 <- func_table6 |>
-      dplyr::summarize(
+    func_table <- func_table |>
+      dplyr::summarise(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .by = c("Variable1", "Variable2")
+        .by = c(dplyr::all_of(var1), dplyr::all_of(var2))
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -496,241 +462,239 @@ freq_function <- function(
       dplyr::select(
         "Func_var1",
         "Func_var2",
-        "Variable1",
-        "Variable2",
+        dplyr::all_of(var1),
+        dplyr::all_of(var2),
         "n",
         "n_weighted"
-      )
-
-    # Summation within variable1
-    func_table8 <- func_table7 |>
-      dplyr::summarize(
-        n = sum(.data$n),
-        n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .by = "Variable1"
       ) |>
-      dplyr::mutate(
-        Func_var1 = var1,
-        Variable3 = "Total"
+      (\(x) {
+        multi_join(
+          # Summation within variable1
+          x |>
+            dplyr::summarise(
+              n = sum(.data$n),
+              n_weighted = sum(.data$n_weighted, na.rm = TRUE),
+              .by = dplyr::all_of(var1)
+            ) |>
+            dplyr::mutate(
+              Func_var1 = var1,
+              "{var2}" := "Total"
+            ) |>
+            dplyr::select(
+              "Func_var1",
+              dplyr::all_of(var1),
+              dplyr::all_of(var2),
+              "n",
+              "n_weighted"
+            ),
+          x,
+          .by = c("Func_var1", var1)
+        ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            dplyr::all_of(var1),
+            "{var2}" := glue::glue("{var2}.2"),
+            "{var1}_level_total" := "n.1",
+            "{var1}_level_total_weighted" := "n_weighted.1",
+            "n" = "n.2",
+            "n_weighted" = "n_weighted.2"
+          ) |>
+          multi_join(
+            # Summation totals
+            x |>
+              dplyr::summarise(
+                n = sum(.data$n),
+                n_weighted = sum(.data$n_weighted, na.rm = TRUE)
+              ) |>
+              dplyr::mutate(
+                Func_var1 = var1,
+                Func_var2 = var2,
+                Var_tot = "Total"
+              ) |>
+              dplyr::select(
+                "Func_var1",
+                "Func_var2",
+                "{var1}" := "Var_tot",
+                "{var2}" := "Var_tot",
+                "n",
+                "n_weighted"
+              ),
+            .by = c("Func_var1","Func_var2")
+          ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            "{var1}" := glue::glue("{var1}.1"),
+            "{var2}" := glue::glue("{var2}.1"),
+            "Total_n" = "n.2",
+            "Total_n_weighted" = "n_weighted.2",
+            glue::glue("{var1}_level_total"),
+            glue::glue("{var1}_level_total_weighted"),
+            "n" = "n.1",
+            "n_weighted" = "n_weighted.1"
+          ) |>
+          multi_join(
+            # Summation within variable2
+            x |>
+              dplyr::summarise(
+                n = sum(.data$n),
+                n_weighted = sum(.data$n_weighted, na.rm = TRUE),
+                .by = dplyr::all_of(var2)
+              ) |>
+              dplyr::mutate(
+                Func_var2 = var2,
+                "{var1}" := "Total"
+              ) |>
+              dplyr::select(
+                "Func_var2",
+                dplyr::all_of(var1),
+                dplyr::all_of(var2),
+                "n",
+                "n_weighted"
+              ),
+            .by = c("Func_var2", var2)
+          ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            "{var1}" := glue::glue("{var1}.1"),
+            dplyr::all_of(var2),
+            "Total_n",
+            "Total_n_weighted",
+            glue::glue("{var1}_level_total"),
+            glue::glue("{var1}_level_total_weighted"),
+            "{var2}_level_total" := "n.2",
+            "{var2}_level_total_weighted" := "n_weighted.2",
+            "n" = "n.1",
+            "n_weighted" = "n_weighted.1"
+          )
+      })()
+
+    if (chisquare == TRUE) {
+      # Calculating expected numbers for each cell
+      chi_table <- func_table |>
+        dplyr::mutate(
+          expected =
+            (.data[[glue::glue("{var1}_level_total_weighted")]] /
+               .data$Total_n_weighted) *
+            .data[[glue::glue("{var2}_level_total_weighted")]],
+          observed = .data$n_weighted,
+          cell_chi = (((.data$observed - .data$expected)^2) / .data$expected)
+        ) |>
+        dplyr::summarise(cell_chi_total = sum(.data$cell_chi, na.rm = TRUE))
+    }
+
+    func_table <-
+      list(
+        # Percent calculations for each Var1 and Var2 combination
+        var1_var2_comb = func_table |>
+          dplyr::mutate(
+            Total_pct = (
+              (.data$n_weighted / .data$Total_n_weighted) * 100
+            ),
+            Row_pct = (
+              (.data$n_weighted /
+                 .data[[glue::glue("{var1}_level_total_weighted")]]) * 100
+            ),
+            Column_pct = (
+              (.data$n_weighted /
+                 .data[[glue::glue("{var2}_level_total_weighted")]]) * 100
+            )
+          ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            dplyr::all_of(var1),
+            dplyr::all_of(var2),
+            "N" = "n",
+            "Weighted_N" = "n_weighted",
+            "Total_pct",
+            "Row_pct",
+            "Column_pct"
+          ),
+        # Percent calculations for each Var1 row totals (sum over var2)
+        var1_comb =  func_table |>
+          dplyr::mutate(
+            "{var2}" := "Total",
+            n = .data[[glue::glue("{var1}_level_total")]],
+            Total_pct = (
+              (.data[[glue::glue("{var1}_level_total_weighted")]] /
+                 .data$Total_n_weighted) * 100
+            ),
+            Column_pct = (
+              (.data[[glue::glue("{var1}_level_total_weighted")]] /
+                 .data$Total_n_weighted) * 100
+            ),
+            Row_pct = (
+              (.data[[glue::glue("{var1}_level_total_weighted")]] /
+                 .data[[glue::glue("{var1}_level_total_weighted")]]) * 100
+            )
+          ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            dplyr::all_of(var1),
+            dplyr::all_of(var2),
+            "N" = "n",
+            "Weighted_N" = glue::glue("{var1}_level_total_weighted"),
+            "Total_pct",
+            "Row_pct",
+            "Column_pct"
+          ) |>
+          dplyr::distinct(),
+        # Percent calculations for each Var2 row totals (sum over var1)
+        var2_comb = func_table |>
+          dplyr::mutate(
+            "{var1}" := "Total",
+            n = .data[[glue::glue("{var2}_level_total")]],
+            Total_pct =
+              (.data[[glue::glue("{var2}_level_total_weighted")]] /
+                 .data$Total_n_weighted) * 100,
+            Column_pct =
+              (.data[[glue::glue("{var2}_level_total_weighted")]] /
+                 .data[[glue::glue("{var2}_level_total_weighted")]]) * 100,
+            Row_pct =
+              (.data[[glue::glue("{var2}_level_total_weighted")]] /
+                 .data$Total_n_weighted) * 100
+          ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            dplyr::all_of(var1),
+            dplyr::all_of(var2),
+            "N" = "n",
+            "Weighted_N" = glue::glue("{var2}_level_total_weighted"),
+            "Total_pct",
+            "Row_pct",
+            "Column_pct"
+          ) |>
+          dplyr::distinct(),
+        # Percent calculations for total (complete total)
+        tot_comb = func_table |>
+          dplyr::mutate(
+            tot_var = "Total",
+            n = .data$Total_n,
+            Total_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
+            Column_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
+            Row_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100)
+          ) |>
+          dplyr::select(
+            "Func_var1",
+            "Func_var2",
+            "{var1}" := "tot_var",
+            "{var2}" := "tot_var",
+            "N" = "n",
+            "Weighted_N" = "Total_n_weighted",
+            "Total_pct",
+            "Row_pct",
+            "Column_pct"
+          ) |>
+          dplyr::distinct()
       ) |>
-      dplyr::select(
-        "Func_var1",
-        "Variable1",
-        "Variable2" = "Variable3",
-        "n",
-        "n_weighted"
-      )
-
-    # Summation within variable2
-    func_table9 <- func_table7 |>
-      dplyr::summarize(
-        n = sum(.data$n),
-        n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .by = "Variable2"
-      ) |>
-      dplyr::mutate(
-        Func_var2 = var2,
-        Variable3 = "Total"
-      ) |>
-      dplyr::select(
-        "Func_var2",
-        "Variable1" = "Variable3",
-        "Variable2",
-        "n",
-        "n_weighted"
-      )
-
-    # Summation totals
-    func_table10 <- func_table7 |>
-      dplyr::summarize(
-        n = sum(.data$n),
-        n_weighted = sum(.data$n_weighted, na.rm = TRUE)
-      ) |>
-      dplyr::mutate(
-        Func_var1 = var1,
-        Func_var2 = var2,
-        Variable3 = "Total"
-      ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable" = "Variable3",
-        "Variable2" = "Variable3",
-        "n",
-        "n_weighted"
-      )
-
-    # Getting N and weighted percent for Variable2:
-    # N within variable1, percent = on that level of variable1
-    func_table11 <- multi_join(
-      func_table8,
-      func_table7,
-      .by = c("Func_var1", "Variable1")
-    ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2" = "Variable2.2",
-        "Variable1_level_total" = "n.1",
-        "Variable1_level_total_weighted" = "n_weighted.1",
-        "n" = "n.2",
-        "n_weighted" = "n_weighted.2"
-      )
-
-    # Combining all numbers so percent etc. can be calculated in
-    # several directions
-    func_table12 <- multi_join(
-      func_table11,
-      func_table10,
-      .by = c("Func_var1","Func_var2")
-    ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2" = "Variable2.1",
-        "Total_n" = "n.2",
-        "Total_n_weighted" = "n_weighted.2",
-        "Variable1_level_total",
-        "Variable1_level_total_weighted",
-        "n" = "n.1",
-        "n_weighted" = "n_weighted.1")
-
-    func_table13 <- multi_join(
-      func_table12,
-      func_table9,
-      .by = c("Func_var2","Variable2")
-    ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1" = "Variable1.1",
-        "Variable2",
-        "Total_n",
-        "Total_n_weighted",
-        "Variable1_level_total",
-        "Variable1_level_total_weighted",
-        "Variable2_level_total" = "n.2",
-        "Variable2_level_total_weighted" = "n_weighted.2",
-        "n" = "n.1",
-        "n_weighted" = "n_weighted.1"
-      )
-
-    # Percent calculations for each Var1 and Var2 combination
-    func_table14 <- func_table13 |>
-      dplyr::mutate(
-        Total_pct = (
-          (.data$n_weighted / .data$Total_n_weighted) * 100
-        ),
-        Row_pct = (
-          (.data$n_weighted / .data$Variable1_level_total_weighted) * 100
-        ),
-        Column_pct = (
-          (.data$n_weighted / .data$Variable2_level_total_weighted) * 100
-        )
-      ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2",
-        "N" = "n",
-        "Weighted_N" = "n_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Percent calculations for each Var1 row totals (sum over var2)
-    func_table15 <- func_table13 |>
-      dplyr::mutate(
-        Variable3 = "Total",
-        n = .data$Variable1_level_total,
-        Total_pct = (
-          (.data$Variable1_level_total_weighted / .data$Total_n_weighted) * 100
-        ),
-        Column_pct = (
-          (.data$Variable1_level_total_weighted / .data$Total_n_weighted) * 100
-        ),
-        Row_pct = (
-          (.data$Variable1_level_total_weighted /
-             .data$Variable1_level_total_weighted) * 100
-        )
-      ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2" = "Variable3",
-        "N" = "n",
-        "Weighted_N" = "Variable1_level_total_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Percent calculations for each Var2 row totals (sum over var1)
-    func_table16 <- func_table13 |>
-      dplyr::mutate(
-        Variable3 = "Total",
-        n = .data$Variable2_level_total,
-        Total_pct = (
-          (.data$Variable2_level_total_weighted / .data$Total_n_weighted) * 100
-        ),
-        Column_pct = (
-          (.data$Variable2_level_total_weighted /
-             .data$Variable2_level_total_weighted) * 100
-        ),
-        Row_pct = (
-          (.data$Variable2_level_total_weighted / .data$Total_n_weighted) * 100
-        )
-      ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1" = "Variable3",
-        "Variable2",
-        "N" = "n",
-        "Weighted_N" = "Variable2_level_total_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Percent calculations for total (complete total)
-    func_table17 <- func_table13 |>
-      dplyr::mutate(
-        Variable3 = "Total",
-        n = .data$Total_n,
-        Total_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
-        Column_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
-        Row_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100)
-      ) |>
-      dplyr::select(
-        "Func_var1",
-        "Func_var2",
-        "Variable1" = "Variable3",
-        "Variable2" = "Variable3",
-        "N" = "n",
-        "Weighted_N" = "Total_n_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Remove duplicate lines for totals
-    func_table18 <- dplyr::distinct(func_table15)
-    func_table19 <- dplyr::distinct(func_table16)
-    func_table20 <- dplyr::distinct(func_table17)
-
-    # Combine all n/percentages in one table
-    func_table21 <- dplyr::bind_rows(
-      func_table14,
-      func_table18,
-      func_table19,
-      func_table20
-    ) |>
+      (\(x) {
+        dplyr::bind_rows(x[[1]], x[[2]], x[[3]], x[[4]])
+      })() |>
       dplyr::mutate(
         Freq_col_pct = paste0(
           .data$N,
@@ -771,8 +735,8 @@ freq_function <- function(
       ) |>
       dplyr::select(
         "Func_var2",
-        "Variable1",
-        "Variable2",
+        dplyr::all_of(var1),
+        dplyr::all_of(var2),
         "N",
         "Weighted_N",
         "Row_pct",
@@ -785,11 +749,10 @@ freq_function <- function(
         "Freq_col_pct",
         "Freqw_col_pct"
       )
-    colnames(func_table21)[2] <- var1
 
     # Change rotation on table, so the rows and columns are easier to follow
-    func_table22_1 <- dplyr::select(
-      func_table21,
+    func_table <- dplyr::select(
+      func_table,
       -"Freq_total_pct",
       -"Freqw_total_pct",
       -"Freq_row_pct",
@@ -798,7 +761,7 @@ freq_function <- function(
       -"Freqw_col_pct"
     ) |>
       tidyr::pivot_wider(
-        names_from = c("Func_var2", "Variable2"),
+        names_from = c("Func_var2", dplyr::all_of(var2)),
         values_from = c(
           "N",
           "Weighted_N",
@@ -807,58 +770,34 @@ freq_function <- function(
           "Total_pct"
         ),
         values_fill = 0
-      )
-    func_table22_2 <- dplyr::select(
-      func_table21,
-      -"N",
-      -"Weighted_N",
-      -"Row_pct",
-      -"Column_pct",
-      -"Total_pct"
-    ) |>
-      tidyr::pivot_wider(
-        names_from = c("Func_var2", "Variable2"),
-        values_from = c(
-          "Freq_total_pct",
-          "Freqw_total_pct",
-          "Freq_row_pct",
-          "Freqw_row_pct",
-          "Freq_col_pct",
-          "Freqw_col_pct"
-        ),
-        values_fill = "0 (0%)"
-      )
-
-    func_table22 <- dplyr::full_join(
-        func_table22_1,
-        func_table22_2,
-        by = var1
-        )
-
-    if (chisquare == TRUE){
-      # Calculating expected numbers for each cell
-      func_table23 <- func_table13 |>
-        dplyr::mutate(
-          expected = (
-            (.data$Variable1_level_total_weighted / .data$Total_n_weighted) *
-              .data$Variable2_level_total_weighted
+      ) |>
+      dplyr::full_join(
+        dplyr::select(
+          func_table,
+          -"N",
+          -"Weighted_N",
+          -"Row_pct",
+          -"Column_pct",
+          -"Total_pct"
+        ) |>
+          tidyr::pivot_wider(
+            names_from = c("Func_var2", dplyr::all_of(var2)),
+            values_from = c(
+              "Freq_total_pct",
+              "Freqw_total_pct",
+              "Freq_row_pct",
+              "Freqw_row_pct",
+              "Freq_col_pct",
+              "Freqw_col_pct"
+            ),
+            values_fill = "0 (0%)"
           ),
-          observed = .data$n_weighted,
-          cell_chi = (((.data$observed - .data$expected)^2) / .data$expected)
-        )
+        by = var1
+      )
 
-      # Summing up the total chi-square test statistic
-      func_table24 <- func_table23 |>
-        dplyr::summarize(cell_chi_total = sum(.data$cell_chi, na.rm = TRUE))
-
+    if (chisquare == TRUE) {
       # Degrees of freedom, chi-square test
-      chi_degree1 <- length(unique(func_table6$Variable1))
-      chi_degree2 <- length(unique(func_table6$Variable2))
-      chi_degree_total <- (chi_degree1 - 1) * (chi_degree2 - 1)
-      chi_degree_freedom <- as.data.frame(chi_degree_total)
-
-      chi_p_prp <- dplyr::bind_cols(func_table24, chi_degree_freedom)
-
+      chi_p_prp <- dplyr::bind_cols(chi_table, chi_degree_freedom)
       chi_p <- chi_p_prp |>
         dplyr::rowwise() |>
         dplyr::mutate(
@@ -869,24 +808,19 @@ freq_function <- function(
           )
         ) |>
         dplyr::ungroup() |>
-        dplyr::mutate(var1 = "Total")
-      names(chi_p)[length(names(chi_p))] <- var1
+        dplyr::mutate("{var1}" := "Total")
 
-      func_table25 <- dplyr::full_join(func_table22, chi_p, by = var1)
-    } else {
-      func_table25 <- func_table22
+      func_table <- dplyr::full_join(func_table, chi_p, by = var1)
     }
 
-    if(output == "all") {
-      func_table26 <- func_table25
-    } else if (output == "numeric") {
-      func_table26 <- dplyr::select(
-        func_table25,
+    if (output == "numeric") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("Freq")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "col") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -898,9 +832,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "colw") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -912,9 +846,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freq_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "row") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -926,9 +860,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "roww") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -940,9 +874,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "total") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -954,9 +888,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "totalw") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -968,27 +902,46 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else {
-      func_table26 <- func_table25
     }
 
-    if (is.null(textvar)){
-      return(func_table26)
-    } else {
+    if (!is.null(textvar)) {
       # Adding text-variable
-      func_table27 <- func_table26 |>
+      func_table <- func_table |>
         dplyr::mutate(Description = textvar) |>
         dplyr::relocate("Description")
-      return(func_table27)
     }
-  }
-  else {
+
+    return(func_table)
+  } else {
+    if (chisquare == TRUE) {
+      # Degrees of freedom, chi-square test
+      chi_degree1 <- func_table |>
+        dplyr::summarise(
+          chi_degree1 = dplyr::n_distinct(.data[[var1]]),
+          .by = dplyr::all_of(by_vars)
+        )
+      chi_degree2 <- func_table |>
+        dplyr::summarise(
+          chi_degree2 = dplyr::n_distinct(.data[[var2]]),
+          .by = dplyr::all_of(by_vars)
+        )
+      chi_degree_freedom <- dplyr::full_join(
+        chi_degree1,
+        chi_degree2,
+        by = by_vars
+      ) |>
+        dplyr::mutate(
+          chi_degree_total = ((.data$chi_degree1 - 1) * (.data$chi_degree2 - 1))
+        ) |>
+        dplyr::select(-"chi_degree1", -"chi_degree2")
+    }
+
     # Getting unweighted and weighted n for each combination
-    func_table7 <- func_table6 |>
+    func_table <- func_table |>
       dplyr::summarise(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
-        .by = c({{ by_vars }}, "Variable1", "Variable2")
+        .by = c(dplyr::all_of(by_vars), dplyr::all_of(var1), dplyr::all_of(var2))
       ) |>
       dplyr::mutate(
         Func_var1 = var1,
@@ -998,253 +951,246 @@ freq_function <- function(
         dplyr::all_of(by_vars),
         "Func_var1",
         "Func_var2",
-        "Variable1",
-        "Variable2",
+        dplyr::all_of(var1),
+        dplyr::all_of(var2),
         "n",
         "n_weighted"
-      )
-
-    # Summation within variable1
-    func_table8 <- func_table7 |>
-      dplyr::summarize(
-        n = sum(.data$n),
-        n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .by = c({{ by_vars }}, "Variable1")
       ) |>
-      dplyr::mutate(
-        Func_var1 = var1,
-        Variable3 = "Total"
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Variable1",
-        "Variable2" = "Variable3",
-        "n",
-        "n_weighted"
-      )
+      (\(x) {
+        multi_join(
+          # Summation within variable1
+          x |>
+            dplyr::summarise(
+              n = sum(.data$n),
+              n_weighted = sum(.data$n_weighted, na.rm = TRUE),
+              .by = c(dplyr::all_of(by_vars), dplyr::all_of(var1))
+            ) |>
+            dplyr::mutate(
+              Func_var1 = var1,
+              "{var2}" := "Total"
+            ) |>
+            dplyr::select(
+              dplyr::all_of(by_vars),
+              "Func_var1",
+              dplyr::all_of(var1),
+              dplyr::all_of(var2),
+              "n",
+              "n_weighted"
+            ),
+          x,
+          .by = c(by_vars, "Func_var1", var1)
+        ) |>
+          dplyr::select(
+            dplyr::all_of(by_vars),
+            "Func_var1",
+            "Func_var2",
+            dplyr::all_of(var1),
+            "{var2}" := glue::glue("{var2}.2"),
+            "{var1}_level_total" := "n.1",
+            "{var1}_level_total_weighted" := "n_weighted.1",
+            "n" = "n.2",
+            "n_weighted" = "n_weighted.2"
+          ) |>
+          multi_join(
+            # Summation totals
+            x |>
+              dplyr::summarise(
+                n = sum(.data$n),
+                n_weighted = sum(.data$n_weighted, na.rm = TRUE),
+                .by = dplyr::all_of(by_vars)
+              ) |>
+              dplyr::mutate(
+                Func_var1 = var1,
+                Func_var2 = var2,
+                tot_var = "Total"
+              ) |>
+              dplyr::select(
+                dplyr::all_of(by_vars),
+                "Func_var1",
+                "Func_var2",
+                "{var1}" := "tot_var",
+                "{var2}" := "tot_var",
+                "n",
+                "n_weighted"
+              ),
+            .by = c(by_vars, "Func_var1","Func_var2")
+          ) |>
+          dplyr::select(
+            dplyr::all_of(by_vars),
+            "Func_var1",
+            "Func_var2",
+            "{var1}" := glue::glue("{var1}.1"),
+            "{var2}" := glue::glue("{var2}.1"),
+            "Total_n" = "n.2",
+            "Total_n_weighted" = "n_weighted.2",
+            glue::glue("{var1}_level_total"),
+            glue::glue("{var1}_level_total_weighted"),
+            "n" = "n.1",
+            "n_weighted" = "n_weighted.1"
+          ) |>
+          multi_join(
+            # Summation within variable2
+            x |>
+              dplyr::summarise(
+                n = sum(.data$n),
+                n_weighted = sum(.data$n_weighted, na.rm = TRUE),
+                .by = c(dplyr::all_of(by_vars), dplyr::all_of(var2))
+              ) |>
+              dplyr::mutate(
+                Func_var2 = var2,
+                "{var1}" := "Total"
+              ) |>
+              dplyr::select(
+                dplyr::all_of(by_vars),
+                "Func_var2",
+                dplyr::all_of(var1),
+                dplyr::all_of(var2),
+                "n",
+                "n_weighted"
+              ),
+            .by = c(by_vars, "Func_var2", var2)
+          ) |>
+          dplyr::select(
+            dplyr::all_of(by_vars),
+            "Func_var1",
+            "Func_var2",
+            "{var1}" := glue::glue("{var1}.1"),
+            dplyr::all_of(var2),
+            "Total_n",
+            "Total_n_weighted",
+            glue::glue("{var1}_level_total"),
+            glue::glue("{var1}_level_total_weighted"),
+            "{var2}_level_total" := "n.2",
+            "{var2}_level_total_weighted" := "n_weighted.2",
+            "n" = "n.1",
+            "n_weighted" = "n_weighted.1"
+          )
+      })()
 
-    # Summation within variable2
-    func_table9 <- func_table7 |>
-      dplyr::summarize(
-        n = sum(.data$n),
-        n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .by = c({{ by_vars }}, "Variable2")
-      ) |>
-      dplyr::mutate(
-        Func_var2 = var2,
-        Variable3 = "Total"
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var2",
-        "Variable1" = "Variable3",
-        "Variable2",
-        "n",
-        "n_weighted"
-      )
-
-    # Summation totals
-    func_table10 <- func_table7 |>
-      dplyr::summarize(
-        n = sum(.data$n),
-        n_weighted = sum(.data$n_weighted, na.rm = TRUE),
-        .by = {{ by_vars }}
-      ) |>
-      dplyr::mutate(
-        Func_var1 = var1,
-        Func_var2 = var2,
-        Variable3 = "Total"
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable" = "Variable3",
-        "Variable2" = "Variable3",
-        "n",
-        "n_weighted"
-      )
-
-    # Getting N and weighted percent for Variable2:
-    # N within variable1, percent = on that level of variable1
-    func_table11 <- multi_join(
-      func_table8,
-      func_table7,
-      .by = c(by_vars, "Func_var1", "Variable1")
-    ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2" = "Variable2.2",
-        "Variable1_level_total" = "n.1",
-        "Variable1_level_total_weighted" = "n_weighted.1",
-        "n" = "n.2",
-        "n_weighted" = "n_weighted.2"
-      )
-
-    # Combining all numbers so percent etc. can be calculated in several
-    # directions
-    func_table12 <- multi_join(
-      func_table11,
-      func_table10,
-      .by = c(by_vars, "Func_var1","Func_var2")
-    ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2" = "Variable2.1",
-        "Total_n" = "n.2",
-        "Total_n_weighted" = "n_weighted.2",
-        "Variable1_level_total",
-        "Variable1_level_total_weighted",
-        "n" = "n.1",
-        "n_weighted" = "n_weighted.1"
-      )
-
-    func_table13 <- multi_join(
-      func_table12,
-      func_table9,
-      .by = c(by_vars, "Func_var2","Variable2")
-    ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1" = "Variable1.1",
-        "Variable2",
-        "Total_n",
-        "Total_n_weighted",
-        "Variable1_level_total",
-        "Variable1_level_total_weighted",
-        "Variable2_level_total" = "n.2",
-        "Variable2_level_total_weighted" = "n_weighted.2",
-        "n" = "n.1",
-        "n_weighted" = "n_weighted.1"
-      )
-
-    # Percent calculations for each Var1 and Var2 combination
-    func_table14 <- func_table13 |>
-      dplyr::mutate(
-        Total_pct = (
-          (.data$n_weighted / .data$Total_n_weighted) * 100
-        ),
-        Row_pct = (
-          (.data$n_weighted / .data$Variable1_level_total_weighted) * 100
-        ),
-        Column_pct = (
-          (.data$n_weighted / .data$Variable2_level_total_weighted) * 100
+    if (chisquare == TRUE) {
+      # Calculating expected numbers for each cell
+      chi_table <- func_table |>
+        dplyr::mutate(
+          expected = (
+            (.data[[glue::glue("{var1}_level_total_weighted")]] / .data$Total_n_weighted) *
+              .data[[glue::glue("{var2}_level_total_weighted")]]
+          ),
+          observed = .data$n_weighted,
+          cell_chi = (((.data$observed - .data$expected)^2) / .data$expected)
+        ) |>
+        dplyr::summarise(
+          cell_chi_total = sum(.data$cell_chi, na.rm = TRUE),
+          .by = dplyr::all_of(by_vars)
         )
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2",
-        "N" = "n",
-        "Weighted_N" = "n_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
+    }
 
-    # Percent calculations for each Var1 row totals (sum over var2)
-    func_table15 <- func_table13 |>
-      dplyr::mutate(
-        Variable3 = "Total",
-        n = .data$Variable1_level_total,
-        Total_pct = (
-          (.data$Variable1_level_total_weighted / .data$Total_n_weighted) * 100
+    func_table <- list(
+      # Percent calculations for each Var1 and Var2 combination
+      var1_var2_comb = func_table |>
+        dplyr::mutate(
+          Total_pct =
+            (.data$n_weighted / .data$Total_n_weighted) * 100,
+          Row_pct =
+            (.data$n_weighted /
+               .data[[glue::glue("{var1}_level_total_weighted")]]) * 100,
+          Column_pct =
+            (.data$n_weighted /
+               .data[[glue::glue("{var2}_level_total_weighted")]]) * 100
+        ) |>
+        dplyr::select(
+          dplyr::all_of(by_vars),
+          "Func_var1",
+          "Func_var2",
+          dplyr::all_of(var1),
+          dplyr::all_of(var2),
+          "N" = "n",
+          "Weighted_N" = "n_weighted",
+          "Total_pct",
+          "Row_pct",
+          "Column_pct"
         ),
-        Column_pct = (
-          (.data$Variable1_level_total_weighted / .data$Total_n_weighted) * 100
-        ),
-        Row_pct = (
-          (.data$Variable1_level_total_weighted /
-             .data$Variable1_level_total_weighted) * 100
-        )
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1",
-        "Variable2" = "Variable3",
-        "N" = "n",
-        "Weighted_N" = "Variable1_level_total_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Percent calculations for each Var2 row totals (sum over var1)
-    func_table16 <- func_table13 |>
-      dplyr::mutate(
-        Variable3 = "Total",
-        n = .data$Variable2_level_total,
-        Total_pct = (
-          (.data$Variable2_level_total_weighted / .data$Total_n_weighted) * 100
-        ),
-        Column_pct = (
-          (.data$Variable2_level_total_weighted /
-             .data$Variable2_level_total_weighted) * 100
-        ),
-        Row_pct = (
-          (.data$Variable2_level_total_weighted / .data$Total_n_weighted) * 100
-        )
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1" = "Variable3",
-        "Variable2",
-        "N" = "n",
-        "Weighted_N" = "Variable2_level_total_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Percent calculations for total (complete total)
-    func_table17 <- func_table13 |>
-      dplyr::mutate(
-        Variable3 = "Total",
-        n = .data$Total_n,
-        Total_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
-        Column_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
-        Row_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100)
-      ) |>
-      dplyr::select(
-        dplyr::all_of(by_vars),
-        "Func_var1",
-        "Func_var2",
-        "Variable1" = "Variable3",
-        "Variable2" = "Variable3",
-        "N" = "n",
-        "Weighted_N" = "Total_n_weighted",
-        "Total_pct",
-        "Row_pct",
-        "Column_pct"
-      )
-
-    # Remove duplicate lines for totals
-    func_table18 <- dplyr::distinct(func_table15)
-    func_table19 <- dplyr::distinct(func_table16)
-    func_table20 <- dplyr::distinct(func_table17)
-
-    # Combine all n/percentages in one table
-    func_table21 <- dplyr::bind_rows(
-      func_table14,
-      func_table18,
-      func_table19,
-      func_table20
+      # Percent calculations for each Var1 row totals (sum over var2)
+      var1_comb =  func_table |>
+        dplyr::mutate(
+          "{var2}" := "Total",
+          n = .data[[glue::glue("{var1}_level_total")]],
+          Total_pct =
+            (.data[[glue::glue("{var1}_level_total_weighted")]] /
+               .data$Total_n_weighted) * 100,
+          Column_pct =
+            (.data[[glue::glue("{var1}_level_total_weighted")]] /
+               .data$Total_n_weighted) * 100,
+          Row_pct =
+            (.data[[glue::glue("{var1}_level_total_weighted")]] /
+               .data[[glue::glue("{var1}_level_total_weighted")]]) * 100
+        ) |>
+        dplyr::select(
+          dplyr::all_of(by_vars),
+          "Func_var1",
+          "Func_var2",
+          dplyr::all_of(var1),
+          dplyr::all_of(var2),
+          "N" = "n",
+          "Weighted_N" = glue::glue("{var1}_level_total_weighted"),
+          "Total_pct",
+          "Row_pct",
+          "Column_pct"
+        ) |>
+        dplyr::distinct(),
+      # Percent calculations for each Var2 row totals (sum over var1)
+      var2_comb = func_table |>
+        dplyr::mutate(
+          "{var1}" := "Total",
+          n = .data[[glue::glue("{var2}_level_total")]],
+          Total_pct =
+            (.data[[glue::glue("{var2}_level_total_weighted")]] /
+               .data$Total_n_weighted) * 100,
+          Column_pct =
+            (.data[[glue::glue("{var2}_level_total_weighted")]] /
+               .data[[glue::glue("{var2}_level_total_weighted")]]) * 100,
+          Row_pct =
+            (.data[[glue::glue("{var2}_level_total_weighted")]] /
+               .data$Total_n_weighted) * 100
+        ) |>
+        dplyr::select(
+          dplyr::all_of(by_vars),
+          "Func_var1",
+          "Func_var2",
+          dplyr::all_of(var1),
+          dplyr::all_of(var2),
+          "N" = "n",
+          "Weighted_N" = glue::glue("{var2}_level_total_weighted"),
+          "Total_pct",
+          "Row_pct",
+          "Column_pct"
+        ) |>
+        dplyr::distinct(),
+      # Percent calculations for total (complete total)
+      tot_comb = func_table |>
+        dplyr::mutate(
+          tot_var = "Total",
+          n = .data$Total_n,
+          Total_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
+          Column_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100),
+          Row_pct = ((.data$Total_n_weighted / .data$Total_n_weighted) * 100)
+        ) |>
+        dplyr::select(
+          dplyr::all_of(by_vars),
+          "Func_var1",
+          "Func_var2",
+          "{var1}" := "tot_var",
+          "{var2}" := "tot_var",
+          "N" = "n",
+          "Weighted_N" = "Total_n_weighted",
+          "Total_pct",
+          "Row_pct",
+          "Column_pct"
+        ) |>
+        dplyr::distinct()
     ) |>
+      (\(x) {
+        dplyr::bind_rows(x[[1]], x[[2]], x[[3]], x[[4]])
+      })() |>
       dplyr::mutate(
         Freq_col_pct = paste0(
           .data$N,
@@ -1285,8 +1231,8 @@ freq_function <- function(
       dplyr::select(
         dplyr::all_of(by_vars),
         "Func_var2",
-        "Variable1",
-        "Variable2",
+        dplyr::all_of(var1),
+        dplyr::all_of(var2),
         "N",
         "Weighted_N",
         "Row_pct",
@@ -1300,14 +1246,9 @@ freq_function <- function(
         "Freqw_col_pct"
       )
 
-    # Getting number of by-vars
-    # (needed to be able to change the correct name below)
-    num_by_vars <- length(by_vars)
-    colnames(func_table21)[(num_by_vars+2)] <- var1
-
     # Change rotation on table, so the rows and columns are easier to follow
-    func_table22_1 <- dplyr::select(
-      func_table21,
+    func_table <- dplyr::select(
+      func_table,
       -"Freq_total_pct",
       -"Freqw_total_pct",
       -"Freq_row_pct",
@@ -1316,7 +1257,7 @@ freq_function <- function(
       -"Freqw_col_pct"
     ) |>
       tidyr::pivot_wider(
-        names_from = c("Func_var2", "Variable2"),
+        names_from = c("Func_var2", dplyr::all_of(var2)),
         values_from = c(
           "N",
           "Weighted_N",
@@ -1325,76 +1266,37 @@ freq_function <- function(
           "Total_pct"
         ),
         values_fill = 0
-      )
-    func_table22_2 <- dplyr::select(
-      func_table21,
-      -"N",
-      -"Weighted_N",
-      -"Row_pct",
-      -"Column_pct",
-      -"Total_pct"
-    ) |>
-      tidyr::pivot_wider(
-        names_from = c("Func_var2", "Variable2"),
-        values_from = c(
-          "Freq_total_pct",
-          "Freqw_total_pct",
-          "Freq_row_pct",
-          "Freqw_row_pct",
-          "Freq_col_pct",
-          "Freqw_col_pct"
-        ),
-        values_fill = "0 (0%)"
-      )
-    func_table22 <- dplyr::full_join(
-      func_table22_1,
-      func_table22_2,
-      by = c(by_vars , var1)
-    ) |>
-      dplyr::arrange(dplyr::across(dplyr::all_of({{ by_vars }})))
+      ) |>
+      dplyr::full_join(
+        dplyr::select(
+          func_table,
+          -"N",
+          -"Weighted_N",
+          -"Row_pct",
+          -"Column_pct",
+          -"Total_pct"
+        ) |>
+          tidyr::pivot_wider(
+            names_from = c("Func_var2", dplyr::all_of(var2)),
+            values_from = c(
+              "Freq_total_pct",
+              "Freqw_total_pct",
+              "Freq_row_pct",
+              "Freqw_row_pct",
+              "Freq_col_pct",
+              "Freqw_col_pct"
+            ),
+            values_fill = "0 (0%)"
+          ),
+        by = c(by_vars , var1)
+      ) |>
+      dplyr::arrange(dplyr::across(dplyr::all_of(by_vars)))
+
 
     if (chisquare == TRUE) {
-      # Calculating expected numbers for each cell
-      func_table23 <- func_table13 |>
-        dplyr::mutate(
-          expected = (
-            (.data$Variable1_level_total_weighted / .data$Total_n_weighted) *
-              .data$Variable2_level_total_weighted
-          ),
-          observed = .data$n_weighted,
-          cell_chi = (((.data$observed - .data$expected)^2) / .data$expected)
-        )
-
-      # Summing up the total chi-square test statistic
-      func_table24 <- func_table23 |>
-        dplyr::summarize(
-          cell_chi_total = sum(.data$cell_chi, na.rm = TRUE),
-          .by = {{ by_vars }}
-        )
-
       # Degrees of freedom, chi-square test
-      chi_degree1 <- func_table6 |>
-        dplyr::summarize(
-          chi_degree1 = dplyr::n_distinct(.data$Variable1),
-          .by = {{ by_vars }}
-        )
-      chi_degree2 <- func_table6 |>
-        dplyr::summarize(
-          chi_degree2 = dplyr::n_distinct(.data$Variable2),
-          .by = {{ by_vars }}
-        )
-      chi_degree_freedom <- dplyr::full_join(
-        chi_degree1,
-        chi_degree2,
-        by = by_vars
-      ) |>
-        dplyr::mutate(
-          chi_degree_total = ((.data$chi_degree1 - 1) * (.data$chi_degree2 - 1))
-        ) |>
-        dplyr::select(-"chi_degree1", -"chi_degree2")
-
       chi_p <- dplyr::full_join(
-        func_table24,
+        chi_table,
         chi_degree_freedom,
         by = by_vars
       ) |>
@@ -1407,28 +1309,23 @@ freq_function <- function(
           )
         ) |>
         dplyr::ungroup() |>
-        dplyr::mutate(var1 = "Total")
-      names(chi_p)[length(names(chi_p))] <- var1
+        dplyr::mutate("{var1}" := "Total")
 
-      func_table25 <- dplyr::full_join(
-        func_table22,
+      func_table <- dplyr::full_join(
+        func_table,
         chi_p,
         by = c(by_vars, var1)
       )
-    } else {
-      func_table25 <- func_table22
     }
 
-    if(output == "all"){
-      func_table26 <- func_table25
-    } else if (output == "numeric"){
-      func_table26 <- dplyr::select(
-        func_table25,
+    if (output == "numeric") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("Freq")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "col") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1440,9 +1337,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "colw") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1454,9 +1351,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freq_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "row") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1468,9 +1365,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "roww") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1482,9 +1379,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "total") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1496,9 +1393,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-      func_table26 <- dplyr::select(
-        func_table25,
     } else if (output == "totalw") {
+      func_table <- dplyr::select(
+        func_table,
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1510,18 +1407,14 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else {
-      func_table26 <- func_table25
     }
 
-      return(func_table26)
-    }else {
     if (!is.null(textvar)) {
       # Adding text-variable
-      func_table27 <- func_table26 |>
+      func_table <- func_table |>
         dplyr::mutate(Description = textvar) |>
         dplyr::relocate("Description")
-      return(func_table27)
     }
+    return(func_table)
   }
 }
