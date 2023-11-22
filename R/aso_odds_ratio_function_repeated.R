@@ -121,7 +121,7 @@ odds_ratio_function_repeated <- function(
     surveydata = FALSE,
     textvar = NULL,
     model_object = FALSE
-){
+) {
   regtype <- match.arg(regtype)
   matchtiemethod <- match.arg(matchtiemethod)
   new_expvars_prp <- expvars
@@ -134,16 +134,16 @@ odds_ratio_function_repeated <- function(
   func_table1 <- normaldata |>
     dplyr::select(dplyr::all_of(func_var_names))
 
-  if (is.null(by_var)){
+  if (is.null(by_var)) {
     by_var_level_count <- 1
   } else {
     by_var2 <- dplyr::pull(
       unique(dplyr::distinct(dplyr::select(func_table1, {{ by_var }})))
     )
-    if (is.numeric(by_var2)){
+    if (is.numeric(by_var2)) {
       by_var3 <- by_var2[!is.na(by_var2)]
     }
-    if (is.factor(by_var2) | is.character(by_var2)){
+    if (is.factor(by_var2) | is.character(by_var2)) {
       by_var3 <- as.character(by_var2[!is.na(by_var2) & by_var2 != ""])
     }
     by_var_level_count <- length(by_var3)
@@ -153,7 +153,7 @@ odds_ratio_function_repeated <- function(
   expvars_var_count <- length(expvars)
 
   for (k in seq_len(by_var_level_count)) {
-    if (is.null(by_var)){
+    if (is.null(by_var)) {
       By_var_name <- c("None")
       func_table1_2 <- func_table1
     } else {
@@ -192,14 +192,14 @@ odds_ratio_function_repeated <- function(
           ),
           character = TRUE
         )
-        if (model_object == FALSE & func_res1$error == ''){
+        if (model_object == FALSE & func_res1$error == '') {
           func_res2_prp <- func_res1$value |>
             dplyr::mutate(
               By_name = By_var_name,
               Outcome_name = Outcome_var_name,
               Expvar_name = Expvar_var_name
             )
-          if (func_res1$warning != ''){
+          if (func_res1$warning != '') {
             func_res2 <- func_res2_prp |>
               dplyr::mutate(
                 Warning = dplyr::case_when(
@@ -210,13 +210,13 @@ odds_ratio_function_repeated <- function(
           } else {
             func_res2 <- func_res2_prp
           }
-          if (k==1 & i==1 & j==1){
+          if (k==1 & i==1 & j==1) {
             func_table2 <- func_res2
           } else {
             func_table2 <- dplyr::bind_rows(func_table2, func_res2)
           }
-        } else if (model_object == TRUE & func_res1$error == ''){
-          if (k==1 & i==1 & j==1){
+        } else if (model_object == TRUE & func_res1$error == '') {
+          if (k==1 & i==1 & j==1) {
             func_table2 <- c(
               "By" = By_var_name,
               "Outcome" = Outcome_var_name,
@@ -234,7 +234,7 @@ odds_ratio_function_repeated <- function(
               func_res1$value
             )
           }
-        } else if (model_object == FALSE & func_res1$error != ''){
+        } else if (model_object == FALSE & func_res1$error != '') {
           func_res2 <- as.data.frame(func_res1$error) |>
             dplyr::rename(Error = 1) |>
             dplyr::mutate(
@@ -243,13 +243,13 @@ odds_ratio_function_repeated <- function(
               Expvar_name = Expvar_var_name
             ) |>
             dplyr::relocate("Error", .after = dplyr::last_col())
-          if (k == 1 & i == 1 & j == 1){
+          if (k == 1 & i == 1 & j == 1) {
             func_table2 <- func_res2
           } else {
             func_table2 <- dplyr::bind_rows(func_table2, func_res2)
           }
-        } else if (model_object == TRUE & func_res1$error != ''){
-          if(k == 1 & i == 1 & j == 1){
+        } else if (model_object == TRUE & func_res1$error != '') {
+          if (k == 1 & i == 1 & j == 1) {
             func_table2 <- c(
               "By" = By_var_name,
               "Outcome" = Outcome_var_name,

@@ -132,7 +132,7 @@ freq_function_repeated <- function(
     func_freqs2 <- func_freqs |>
       dplyr::mutate(var_name = func_var) |>
       dplyr::rename("Level" = dplyr::all_of(func_var))
-    if (i == 1){
+    if (i == 1) {
       func_table2 <- func_freqs2
     } else {
       func_table2 <- dplyr::bind_rows(func_table2, func_freqs2)

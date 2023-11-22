@@ -309,8 +309,8 @@ odds_ratio_function <- function(
 
   # Stops the function if outcome is not binary (since it's not developed for
   # polytomous/multinomial regressions)
-  if (outcome_levels < 2){
-    stop("The function was stopped due to the outcome is the same for all!")
+  if (outcome_levels < 2) {
+    stop("The outcome was the same for all samples!")
   }
   if (outcome_levels > 2 & !is.null(matchgroup)) {
     stop("Matched polytomous/multinomial models are not supported!")
@@ -405,14 +405,14 @@ odds_ratio_function <- function(
     dplyr::left_join(func_model_n_prp3_2, by = "sortnr")
 
   # Binomial outcome
-  if (outcome_levels == 2){
+  if (outcome_levels == 2) {
 
     Outcome_type <- c("Binomial") # Used to create information of model used
 
     # "Normal" binomial logistic regression
-    if (regtype == "logistic"){
+    if (regtype == "logistic") {
 
-      if (surveydata == FALSE & is.null(matchgroup)){
+      if (surveydata == FALSE & is.null(matchgroup)) {
 
         Regression_type <- c("logistic regression,") #Used to create information of model used
         Model_info <- c("glm(), stats package") #Used to create information of model used
@@ -444,7 +444,7 @@ odds_ratio_function <- function(
           dplyr::filter(!is.na(.data$P_anova)) |>
           dplyr::rename("P_drop1" = "P_anova")
 
-      } else if (surveydata == FALSE){
+      } else if (surveydata == FALSE) {
 
         #Conditional logistic regression
         # Matched data, the clogit() (each matched group have a common ID) is
@@ -524,7 +524,7 @@ odds_ratio_function <- function(
             sortnr = 0
           ) |>
           dplyr::select("term", "N", "sortnr")
-      } else if (surveydata == TRUE){
+      } else if (surveydata == TRUE) {
         #Logistic regression with data from survey
 
         Regression_type <- c("logistic regression with surveydata,") #Used to create information of model used
@@ -568,7 +568,7 @@ odds_ratio_function <- function(
           dplyr::filter(!is.na(.data$P_anova)) |>
           dplyr::rename("P_drop1" = "P_anova")
       }
-    } else if (regtype == "log-linear"){
+    } else if (regtype == "log-linear") {
 
       Regression_type <- c("log-linear regression,")
       Model_info <- c("glm(), stats package") #Used to create information of model used
@@ -773,7 +773,7 @@ odds_ratio_function <- function(
       Variable = substr(.data$Variable_prp, 1, (nchar(.data$Variable_prp) - 1))
     ) |>
     dplyr::filter(.data$count_digit1 == "1")
-  if(nrow(func_table7_levels2_prp) > 0) {
+  if (nrow(func_table7_levels2_prp) > 0) {
     func_table7_levels2 <- dplyr::select(
       func_table7_levels2_prp,
       "Variable",
@@ -807,10 +807,10 @@ odds_ratio_function <- function(
     ) |>
     dplyr::select("term", "OR", "Point_estimate")
 
-  if (outcome_levels == 2){
+  if (outcome_levels == 2) {
     func_table7_final <- func_table7_final_prp
   }
-  else if (outcome_levels > 2){
+  else if (outcome_levels > 2) {
     func_table7_final_prp2 <- dplyr::distinct(
       dplyr::select(func_table6, "y.level")
     )
@@ -822,8 +822,8 @@ odds_ratio_function <- function(
 
   # Due to problems withe the anova for survey-data, the p-values from a
   # survey-model is disregarded at the moment
-  # if(surveydata==FALSE & outcome_levels==2){
-  if (outcome_levels == 2){
+  # if (surveydata == FALSE && outcome_levels == 2) {
+  if (outcome_levels == 2) {
     # Adding the reference level of the exposure variable
     # (so all levels can be seen in output)
     func_table8_prp <- dplyr::bind_rows(func_table6, func_table7_final) |>
@@ -859,11 +859,12 @@ odds_ratio_function <- function(
     dplyr::select("term", "Model_info" = 1, "sortnr")
 
   #Adding number of observations and model information
-  func_table9 <- dplyr::full_join(
-    func_table8,
-    func_model_n,
-    by = c("term", "sortnr")
-  ) |>
+  func_table9 <-
+    dplyr::full_join(
+      func_table8,
+      func_model_n,
+      by = c("term", "sortnr")
+    ) |>
     dplyr::full_join(Full_model_info, by = c("term", "sortnr")) |>
     dplyr::relocate("Model_info", .after = "N") |>
     dplyr::rename(dplyr::any_of(c("Outcome_level"="y.level"))) |>
@@ -874,7 +875,7 @@ odds_ratio_function <- function(
 
   # Due to log-linear regression don't give Odds Ratios but Risk Ratios, result
   # variable OR is renamed RR in those cases
-  if (regtype == "log-linear"){
+  if (regtype == "log-linear") {
     func_table9 <- func_table9 |> dplyr::rename("RR" = "OR")
   }
 

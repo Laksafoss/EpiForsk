@@ -158,16 +158,16 @@ charlson_score <- function(
     end_date = NULL,
     days_before_end_date = NULL,
     amount_output = "total"
-){
+) {
   # ADLS has rewritten these ifelse statements for the func_table1 construction:
   # This has been done for the following reasons:
   #   - Testing if the data masked objects are null is not a good idea, as they
   #     are not generally available in the global or function environment. This
   #     means that when specified is.null(<data masked input>) will always
   #     produce the "object <data masked input>' not found" error
-  #   - I have imposed stricter error reporting to increase userfriendlyness:
-  #     It is my opinion that a function should throw an error, rather then
-  #     delibriatly ignore user input.
+  #   - I have imposed stricter error reporting to increase user friendliness:
+  #     It is my opinion that a function should throw an error, rather than
+  #     deliberately ignore user input.
   if (missing(data) | missing(Person_ID) | missing(diagnosis_variable)) {
     stop(
       paste0(
@@ -184,15 +184,16 @@ charlson_score <- function(
   #     dplyr::mutate("{end_Date}" = as.Date(end_date, origin = "1970-01-01"))
   # }
   if (inherits(data, "data.frame")) {
-    data_names_test <- try(
-      data |>
-        dplyr::select(
-          {{ Person_ID }},
-          {{ diagnosis_variable }},
-          {{ time_variable }}
-        ),
-      silent = TRUE
-    )
+    data_names_test <-
+      try(
+        data |>
+          dplyr::select(
+            {{ Person_ID }},
+            {{ diagnosis_variable }},
+            {{ time_variable }}
+          ),
+        silent = TRUE
+      )
     if (inherits(data_names_test, "try-error")) {
       stop(
         paste0(
@@ -205,7 +206,7 @@ charlson_score <- function(
         )
       )
     }
-    if(ncol(dplyr::select(data, {{ Person_ID }})) != 1L) {
+    if (ncol(dplyr::select(data, {{ Person_ID }})) != 1L) {
       stop("Person_ID name a single id variable.")
     }
   } else {
@@ -224,7 +225,10 @@ charlson_score <- function(
     missing(time_variable) & missing(end_date) & missing(days_before_end_date)
   ) {
     func_table1 <- data |>
-      dplyr::select(ID = {{ Person_ID }}, Diagvar = {{ diagnosis_variable }})
+      dplyr::select(
+        ID = {{ Person_ID }},
+        Diagvar = {{ diagnosis_variable }}
+      )
   } else if (missing(time_variable) | missing(end_date)) {
     stop(
       "When imposing diagnosis-time restrictions both the 'time_variable' ",
@@ -256,61 +260,15 @@ charlson_score <- function(
       dplyr::select("ID", "Diagvar")
   }
 
-  # OLD NON-FUNCTIONAL CODE REMOVED AT THE INITIAL PACKAGE UPLOAD
-  # #Selecting data of interest, discarding variables and data not fitting the
-  # #specifications for the function
-  # #Basic call
-  #   if (is.null(time_variable)) {
-  #     func_table1 <- data |>
-  #       dplyr::select(ID = {{ Person_ID }}, Diagvar = {{ diagnosis_variable }})
-  #   }
-  #   #A date variable given, but not used
-  #   else if(is.null(end_date) & is.null(days_before_end_date)) {
-  #     func_table1 <- data |>
-  #       dplyr::select(ID = {{ Person_ID }}, Diagvar = {{ diagnosis_variable }})
-  #   }
-  #   #Date variable given as well as a date for final date of interest AND
-  #   #have a specified time-frame for look back
-  #   else if(!is.null(end_date) & !is.null(days_before_end_date)) {
-  #     func_table1 <- data |>
-  #       dplyr::mutate(
-  #         ID = {{ Person_ID }},
-  #         Diagvar = {{ diagnosis_variable }},
-  #         diagdate = {{ time_variable }},
-  #         stop_time = as.Date({{ end_date }}, origin = "1970-01-01"),
-  #         lookback = as.numeric({{ days_before_end_date}} )
-  #       ) |>
-  #       dplyr::filter(
-  #         (.data$stop_time - .data$diagdate) > 0 &
-  #           (.data$diagdate - (.data$stop_time - .data$lookback)) >= 0
-  #       ) |>
-  #       dplyr::select("ID", "Diagvar")
-  #   }
-  #   #Date varaible given as well as an end date, but no time-frame: hence all
-  #   #records before end date used
-  #   else if(!is.null(end_date) & is.null(days_before_end_date)) {
-  #     func_table1 <- data |>
-  #       dplyr::mutate(
-  #         ID = {{ Person_ID }},
-  #         Diagvar = {{ diagnosis_variable }},
-  #         diagdate = {{ time_variable }},
-  #         stop_time = as.Date({{ end_date }}, origin = "1970-01-01")
-  #       ) |>
-  #       dplyr::filter((.data$stop_time - .data$diagdate) > 0) |>
-  #       dplyr::select("ID", "Diagvar")
-  #   }
-  # END OF OLD NON-FUNCTIONAL CODE
-
-    #Classify all diagnoses into different groups (some will not give any
-    #points, and will therefore have 0 in all groups)
-    func_table2 <- func_table1 |>
-      dplyr::mutate(
-
-        #I (ADLS) moved all sub string calculations up here
-        Diagvar_2 = substr(.data$Diagvar, 1, 2),
-        Diagvar_3 = substr(.data$Diagvar, 1, 3),
-        Diagvar_4 = substr(.data$Diagvar, 1, 4),
-        Diagvar_5 = substr(.data$Diagvar, 1, 5),
+  # Classify all diagnoses into different groups (some will not give any
+  # points, and will therefore have 0 in all groups)
+  func_table2 <- func_table1 |>
+    dplyr::mutate(
+      # I (ADLS) moved all sub string calculations up here
+      Diagvar_2 = substr(.data$Diagvar, 1, 2),
+      Diagvar_3 = substr(.data$Diagvar, 1, 3),
+      Diagvar_4 = substr(.data$Diagvar, 1, 4),
+      Diagvar_5 = substr(.data$Diagvar, 1, 5),
 
         #Parts, original Quan paper (ICD-10 only)
         Myocardial_infarction_cc = dplyr::case_when(
@@ -1110,18 +1068,23 @@ charlson_score <- function(
             .data$AIDS_HIV_cd
         )
       )
-    #Select variables for output - decreased output as standard (otherwise over
-    #50 variables will be retained to the output)
-    if(amount_output == "total") {
-      func_table5 <- func_table4 |>
-        dplyr::select("ID", "CCI_Quan", "CCI_Christiensen", "CCI_Charlson_Deyo")
-    }
-    else {
-      func_table5 <- func_table4
-    }
-    #Change the name of the ID variable back to the original
-    Orig_ID_name <- deparse(substitute(Person_ID))
-    colnames(func_table5)[1] <- Orig_ID_name
-    #Return final table
-    return(func_table5)
+    )
+
+  # Select variables for output - decreased output as standard
+  # (otherwise over 50 variables will be retained to the output)
+  if (amount_output == "total") {
+    func_table5 <- func_table4 |>
+      dplyr::select("ID", "CCI_Quan", "CCI_Christiensen", "CCI_Charlson_Deyo")
+  }
+  else {
+    func_table5 <- func_table4
+  }
+
+  # Change the name of the ID variable back to the original
+  # rlang alternative: rlang::as_string(rlang::ensym(Person_ID))
+  Orig_ID_name <- deparse(substitute(Person_ID))
+  colnames(func_table5)[1] <- Orig_ID_name
+
+  # Return final table
+  return(func_table5)
 }

@@ -81,7 +81,7 @@
 #'   starwars,
 #'   var1 = "hair_color",
 #'   var2 = "skin_color",
-#'   by_vars = c("gender"),
+#'   by_vars = "gender",
 #'   output = "col",
 #'   number_decimals = 5
 #' )
@@ -101,7 +101,6 @@ freq_function <- function(
     output = c("all", "numeric", "colw", "row", "roww", "total", "totalW"),
     chisquare = FALSE
 ) {
-
   # Begin input checks
   if (missing(normaldata)) {
     stop("'normaldata' must be a data frame.")
@@ -168,7 +167,7 @@ freq_function <- function(
     }
   }
   if (!(is.null(textvar) || inherits(textvar, "character"))) {
-      stop("When 'textvar' is specified it must be a character.")
+    stop("When 'textvar' is specified it must be a character.")
   }
   if (!inherits(number_decimals, "numeric")) {
     stop("'number_decimals' must be a non-negative integer.")
@@ -193,8 +192,8 @@ freq_function <- function(
 
   # Encoding for weight variable - unless a precalculated weight should be used,
   # the weight will be 1 for all observations
-  if (!is.null(weightvar)){
     func_table2 <- func_table1 |>
+  if (!is.null(weightvar)) {
       dplyr::mutate("weight_used" = .data[[weightvar]]) |>
       dplyr::filter(.data$weight_used > 0)
   }
@@ -249,7 +248,7 @@ freq_function <- function(
     dplyr::mutate(dplyr::across(dplyr::where(is.factor), as.character))
 
   # Making summations and calculations (n, % etc.)
-  if (is.null(by_vars) & is.null(var2)) {
+  if (is.null(by_vars) && is.null(var2)) {
     # Getting unweighted and weighted n for each group
     func_table7 <- func_table6 |>
       dplyr::summarize(
@@ -263,9 +262,9 @@ freq_function <- function(
       ) |>
       dplyr::select("Func_var", "Variable", "n", "n_weighted")
 
-    # Summation within variables
     func_table8 <- func_table7 |>
       dplyr::summarize(
+    # add summation within variables
         n_total = sum(.data$n),
         n_weighted_total = sum(.data$n_weighted, na.rm = TRUE)
       ) |>
@@ -357,11 +356,10 @@ freq_function <- function(
         dplyr::relocate("Description")
       return(func_table12)
     }
-  }
-  else if (is.null(var2)) {
+  } else if (is.null(var2)) {
     # Getting unweighted and weighted n for each group
     func_table7 <- func_table6 |>
-      dplyr::summarize(
+      dplyr::summarise(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
         .by = c({{ by_vars }}, "Variable1")
@@ -380,7 +378,7 @@ freq_function <- function(
 
     # Summation within variables
     func_table8 <- func_table7 |>
-      dplyr::summarize(
+      dplyr::summarise(
         n_total = sum(.data$n),
         n_weighted_total = sum(.data$n_weighted, na.rm = TRUE),
         .by = {{ by_vars }}
@@ -452,17 +450,17 @@ freq_function <- function(
         func_table10,
         -dplyr::starts_with("Freq")
       )
-    } else if (output == "col"){
       func_table11 <- dplyr::select(
         func_table10,
+    } else if (output == "col") {
         -"N",
         -"N_weighted",
         -"Column_pct",
         -"Freqw_col_pct"
       )
-    } else if (output == "colw"){
       func_table11 <- dplyr::select(
         func_table10,
+    } else if (output == "colw") {
         -"N",
         -"N_weighted",
         -"Column_pct",
@@ -473,11 +471,11 @@ freq_function <- function(
     }
 
     # Adding text if textvar is used + return final table
-    if (is.null(textvar)){
       return(func_table11)
     } else {
       #Adding text-variable
       func_table12 <- func_table11 |>
+    if (!is.null(textvar)) {
         dplyr::mutate(Description = textvar) |>
         dplyr::relocate("Description")
       return(func_table12)
@@ -886,9 +884,9 @@ freq_function <- function(
         func_table25,
         -dplyr::starts_with("Freq")
       )
-    } else if (output == "col"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "col") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -900,9 +898,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "colw"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "colw") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -914,9 +912,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freq_col_")
       )
-    } else if (output == "row"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "row") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -928,9 +926,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "roww"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "roww") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -942,9 +940,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "total"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "total") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -956,9 +954,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "totalw"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "totalw") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -987,7 +985,7 @@ freq_function <- function(
   else {
     # Getting unweighted and weighted n for each combination
     func_table7 <- func_table6 |>
-      dplyr::summarize(
+      dplyr::summarise(
         n = dplyr::n(),
         n_weighted = sum(.data$weight_used, na.rm = TRUE),
         .by = c({{ by_vars }}, "Variable1", "Variable2")
@@ -1428,9 +1426,9 @@ freq_function <- function(
         func_table25,
         -dplyr::starts_with("Freq")
       )
-    } else if (output == "col"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "col") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1442,9 +1440,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "colw"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "colw") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1456,9 +1454,9 @@ freq_function <- function(
         -dplyr::starts_with("Freqw_row_"),
         -dplyr::starts_with("Freq_col_")
       )
-    } else if (output == "row"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "row") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1470,9 +1468,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "roww"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "roww") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1484,9 +1482,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "total"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "total") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1498,9 +1496,9 @@ freq_function <- function(
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
-    } else if (output == "totalw"){
       func_table26 <- dplyr::select(
         func_table25,
+    } else if (output == "totalw") {
         -dplyr::starts_with("N_"),
         -dplyr::starts_with("Weighted_N_"),
         -dplyr::starts_with("Row_pct_"),
@@ -1516,9 +1514,9 @@ freq_function <- function(
       func_table26 <- func_table25
     }
 
-    if (is.null(textvar)){
       return(func_table26)
     }else {
+    if (!is.null(textvar)) {
       # Adding text-variable
       func_table27 <- func_table26 |>
         dplyr::mutate(Description = textvar) |>
