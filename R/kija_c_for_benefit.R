@@ -129,12 +129,12 @@ CForBenefit <- function(forest,
 
   # Check that suggested package cli is installed when verbose=TRUE
   if (verbose) {
-    cli <- require("cli", quietly = TRUE)
+    cli <- requireNamespace("cli", quietly = TRUE)
     if (!cli) {
       if (interactive()) {
         for (i in 1:3) {
           input <- readline(glue::glue(
-            "'verbose=TRUE' requires package 'cli' to be installed.",
+            "'verbose=TRUE' requires package 'cli' to be installed.\n",
             "Attempt to install package from CRAN? (y/n)"
           ))
           if (input == "y") {
@@ -142,18 +142,18 @@ CForBenefit <- function(forest,
               pkgs = "cli",
               repos = "https://cloud.r-project.org"
             )
-            cli <- require("cli", quietly = TRUE)
+            cli <- requireNamespace("cli", quietly = TRUE)
             if (!cli) {
               stop("Failed to install package 'cli'")
             }
             break
           } else if (input == "n") {
-            stop("When 'verbose=TRUE', package 'cli' is required")
+            stop("When 'verbose=TRUE', package 'cli' is required.")
           }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
         }
       } else {
-        stop("When 'verbose=TRUE', package 'cli' is required")
+        stop("When 'verbose=TRUE', package 'cli' is required.")
       }
     }
   }
@@ -293,16 +293,16 @@ CForBenefit <- function(forest,
 
   # sort on subclass and W
   matched_patients <- matched_patients |>
-    dplyr::arrange(subclass, W)
+    dplyr::arrange(.data$subclass, .data$W)
 
   # matched observed treatment effect
   observed_te <- matched_patients |>
     dplyr::select(subclass, Y) |>
     dplyr::summarise(
-      Y = diff(Y),
+      Y = diff(.data$Y),
       .by = subclass
     ) |>
-    dplyr::pull(Y)
+    dplyr::pull(.data$Y)
   matched_patients$matched_tau_obs <- rep(observed_te, each = 2)
 
   # matched predicted treatment effect
@@ -310,18 +310,17 @@ CForBenefit <- function(forest,
     # matched p_0 = P(Y = 1|W = 0)
     # matched p_1 = P(Y = 1|W = 1)
     matched_patients <- matched_patients |>
-      dplyr::group_by(subclass) |>
       dplyr::mutate(
-        matched_p_0 = sum((1 - W) * p_0),
-        matched_p_1 = sum(W * p_1),
-        matched_tau_hat = matched_p_1 - matched_p_0
-      ) |>
-      dplyr::ungroup()
+        matched_p_0 = sum((1 - .data$W) * .data$p_0),
+        matched_p_1 = sum(.data$W * .data$p_1),
+        matched_tau_hat = .data$matched_p_1 - .data$matched_p_0,
+        .by = subclass
+      )
   } else if (tau_hat_method == "tau_avg") {
     # matched treatment effect (average CATE)
     matched_patients <- matched_patients |>
       dplyr::mutate(
-        matched_tau_hat = mean(tau_hat),
+        matched_tau_hat = mean(.data$tau_hat),
         .by = subclass
       )
   }
@@ -355,7 +354,7 @@ CForBenefit <- function(forest,
           # matched_patients is ordered by subclass
           # (and each subclass has 2 members)
           duplicated_matched_patients <- matched_patients |>
-            dplyr::slice(sample_subclass * 2)
+            dplyr::slice({{ sample_subclass }} * 2)
           # calculate C-for-benefit for duplicated matched pairs
           duplicated_cindex <- Hmisc::rcorr.cens(
             duplicated_matched_patients$matched_tau_hat,
