@@ -16,9 +16,6 @@
 #'   \item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
 #' }
 #'
-#' @importFrom doParallel registerDoParallel
-#' @importFrom foreach foreach
-#' @importFrom foreach %dopar%
 #' @importFrom gridExtra arrangeGrob
 #' @importFrom methods hasArg
 #' @importFrom rlang .data

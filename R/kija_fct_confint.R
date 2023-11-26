@@ -212,36 +212,38 @@ fct_confint.lm <- function(
 
   ### request installation of required packages from suggested
   if (parallel) {
-    p1 <- require("parallel", quietly = TRUE)
-    p2 <- require("snow", quietly = TRUE)
-    p3 <- require("doSNOW", quietly = TRUE)
-    if (!all(c(p1, p2, p3))) {
-      mp <- c("parallel", "snow", "doSNOW")[!c(p1, p2, p3)]
+    p1 <- requireNamespace("parallel", quietly = TRUE)
+    p2 <- requireNamespace("snow", quietly = TRUE)
+    p3 <- requireNamespace("doSNOW", quietly = TRUE)
+    p4 <- requireNamespace("foreach", quietly = TRUE)
+    if (!all(c(p1, p2, p3, p4))) {
+      mp <- c("parallel", "snow", "doSNOW", "foreach")[!c(p1, p2, p3, p4)]
       if (interactive()) {
         for (i in 1:3) {
-        input <- readline(glue::glue(
-          "'parallel=TRUE' requires packages {mp} to be installed.",
-          "Attempt to install packages from CRAN? (y/n)"
-        ))
-        if (input == "y") {
-          install.packages(
-            pkgs = mp,
-            repos = "https://cloud.r-project.org"
-          )
-          p1 <- require("parallel", quietly = TRUE)
-          p2 <- require("snow", quietly = TRUE)
-          p3 <- require("doSNOW", quietly = TRUE)
-          if (!all(c(p1, p2, p3))) {
-            stop("Failed to install required packages")
+          input <- readline(glue::glue(
+            "'parallel=TRUE' requires packages {mp} to be installed.\n",
+            "Attempt to install packages from CRAN? (y/n)"
+          ))
+          if (input == "y") {
+            install.packages(
+              pkgs = mp,
+              repos = "https://cloud.r-project.org"
+            )
+            p1 <- requireNamespace("parallel", quietly = TRUE)
+            p2 <- requireNamespace("snow", quietly = TRUE)
+            p3 <- requireNamespace("doSNOW", quietly = TRUE)
+            p4 <- requireNamespace("foreach", quietly = TRUE)
+            if (!all(c(p1, p2, p3, p4))) {
+              stop("Failed to install required packages.")
+            }
+            break
+          } else if (input == "n") {
+            stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
           }
-          break
-        } else if (input == "n") {
-          stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
-        }
-        if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
         }
       } else {
-        stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+        stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
       }
     }
   }
@@ -277,7 +279,7 @@ fct_confint.lm <- function(
   xtx_red <- solve(xtx_inv)
 
   ### solve convex optimization problem (unless n_grid or k are specified)
-  if((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+  if ((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
     # total number of output dimensions
     n_fout <- length(f(beta_hat))
 
@@ -314,11 +316,46 @@ fct_confint.lm <- function(
         width = 80,
         show_after = 0.2
       )
-    } else if(parallel) {
+    } else if (parallel) {
+      pb <- NULL
       opts <- list()
+    } else {
+      pb <- NULL
+    }
+
+    ### request installation of required package from suggested
+    if (is.null(n_grid) && is.null(k)) {
+      p1 <- requireNamespace("CVXR", quietly = TRUE)
+      if (!p1) {
+        if (interactive()) {
+          for (i in 1:3) {
+            input <- readline(glue::glue(
+              "package 'CVXR' must be installed when 'n_grid' and 'k' are NULL.\n",
+              "Attempt to install package from CRAN? (y/n)"
+            ))
+            if (input == "y") {
+              install.packages(
+                pkgs = "CVXR",
+                repos = "https://cloud.r-project.org"
+              )
+              p1 <- requireNamespace("CVXR", quietly = TRUE)
+              if (!p1) {
+                stop("Failed to install required package.")
+              }
+              break
+            } else if (input == "n") {
+              stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
+            }
+            if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
+          }
+        } else {
+          stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
+        }
+      }
     }
 
     # run optimizer, either in parallel or in series
+    env <- rlang::current_env()
     tryCatch(
       {
         if (parallel) {
@@ -329,11 +366,16 @@ fct_confint.lm <- function(
               .options.snow = opts
             ),
             ci_fct(i = i,
+                   f = f,
                    verbose = verbose,
                    parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
-                   which_parm = which_parm)
+                   which_parm = which_parm,
+                   level = level,
+                   pb = pb,
+                   n_grid = n_grid,
+                   k = k)
           )
         } else {
           ci_data <- foreach::`%do%`(
@@ -342,24 +384,29 @@ fct_confint.lm <- function(
               .combine = rbind
             ),
             ci_fct(i = i,
+                   f = f,
                    verbose = verbose,
                    parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
-                   which_parm = which_parm)
+                   which_parm = which_parm,
+                   level = level,
+                   pb = pb,
+                   n_grid = n_grid,
+                   k = k)
           )
         }
         # return results using convex optimization
         return(ci_data)
       },
       # If an error occurs, check if the problem is f not following DCP rules
-      error = ci_fct_error_handler
+      error = \(e) ci_fct_error_handler(e, which_parm, env)
     )
   }
 
   ### contruct points around the estimated parameter vector defining directions
   ### to look for points on the boundary of the confidence set if requested
-  if(!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
+  if (!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
     if (is.null(n_grid) || any(n_grid) == 0L) {
       # create k point uniformly on a sum(which_parm)-dimensional sphere
       delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
@@ -412,13 +459,13 @@ fct_confint.lm <- function(
       width = 80,
       show_after = 0.2
     )
-  } else if(parallel) {
+  } else if (parallel) {
     opts <- list()
   }
 
   ### solve equation for scaling points to end up on boundary of confidence set
-  if(parallel) {
-    fn <- function(y) {
+  if (parallel) {
+    fnp <- function(y) {
       t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
         as.numeric()
     }
@@ -428,7 +475,7 @@ fct_confint.lm <- function(
         .combine = c,
         .options.snow = opts
       ),
-      fn(y)
+      fnp(y)
     )
   } else {
     fn <- function(y, verbose) {
@@ -523,7 +570,7 @@ fct_confint.lm <- function(
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
-  if(return_beta) {
+  if (return_beta) {
     ci_data <- ci_data |>
       dplyr::select("estimate", "conf.low", "conf.high", dplyr::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
@@ -626,15 +673,16 @@ fct_confint.glm <- function(
 
   ### request installation of required packages from suggested
   if (parallel) {
-    p1 <- require("parallel", quietly = TRUE)
-    p2 <- require("snow", quietly = TRUE)
-    p3 <- require("doSNOW", quietly = TRUE)
-    if (!all(c(p1, p2, p3))) {
-      mp <- c("parallel", "snow", "doSNOW")[!c(p1, p2, p3)]
+    p1 <- requireNamespace("parallel", quietly = TRUE)
+    p2 <- requireNamespace("snow", quietly = TRUE)
+    p3 <- requireNamespace("doSNOW", quietly = TRUE)
+    p4 <- requireNamespace("foreach", quietly = TRUE)
+    if (!all(c(p1, p2, p3, p4))) {
+      mp <- c("parallel", "snow", "doSNOW", "foreach")[!c(p1, p2, p3, p4)]
       if (interactive()) {
         for (i in 1:3) {
           input <- readline(glue::glue(
-            "'parallel=TRUE' requires packages {mp} to be installed.",
+            "'parallel=TRUE' requires packages {mp} to be installed.\n",
             "Attempt to install packages from CRAN? (y/n)"
           ))
           if (input == "y") {
@@ -642,20 +690,21 @@ fct_confint.glm <- function(
               pkgs = mp,
               repos = "https://cloud.r-project.org"
             )
-            p1 <- require("parallel", quietly = TRUE)
-            p2 <- require("snow", quietly = TRUE)
-            p3 <- require("doSNOW", quietly = TRUE)
-            if (!all(c(p1, p2, p3))) {
-              stop("Failed to install required packages")
+            p1 <- requireNamespace("parallel", quietly = TRUE)
+            p2 <- requireNamespace("snow", quietly = TRUE)
+            p3 <- requireNamespace("doSNOW", quietly = TRUE)
+            p4 <- requireNamespace("foreach", quietly = TRUE)
+            if (!all(c(p1, p2, p3, p4))) {
+              stop("Failed to install required packages.")
             }
             break
           } else if (input == "n") {
-            stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+            stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
           }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
         }
       } else {
-        stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+        stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
       }
     }
   }
@@ -686,7 +735,7 @@ fct_confint.glm <- function(
   xtx_red <- solve(xtx_inv)
 
   ### solve convex optimization problem (unless n_grid or k are specified)
-  if((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+  if ((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
     # total number of output dimensions
     n_fout <- length(f(beta_hat))
 
@@ -723,11 +772,43 @@ fct_confint.glm <- function(
         width = 80,
         show_after = 0.2
       )
-    } else if(parallel) {
+    } else if (parallel) {
       opts <- list()
     }
 
+    ### request installation of required package from suggested
+    if (is.null(n_grid) && is.null(k)) {
+      p1 <- requireNamespace("CVXR", quietly = TRUE)
+      if (!p1) {
+        if (interactive()) {
+          for (i in 1:3) {
+            input <- readline(glue::glue(
+              "package 'CVXR' must be installed when 'n_grid' and 'k' are NULL.\n",
+              "Attempt to install package from CRAN? (y/n)"
+            ))
+            if (input == "y") {
+              install.packages(
+                pkgs = "CVXR",
+                repos = "https://cloud.r-project.org"
+              )
+              p1 <- requireNamespace("CVXR", quietly = TRUE)
+              if (!p1) {
+                stop("Failed to install required package.")
+              }
+              break
+            } else if (input == "n") {
+              stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
+            }
+            if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
+          }
+        } else {
+          stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
+        }
+      }
+    }
+
     # run optimizer, either in parallel or in series
+    env <- rlang::current_env()
     tryCatch(
       {
         if (parallel) {
@@ -738,11 +819,16 @@ fct_confint.glm <- function(
               .options.snow = opts
             ),
             ci_fct(i = i,
+                   f = f,
                    verbose = verbose,
                    parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
-                   which_parm = which_parm)
+                   which_parm = which_parm,
+                   level = level,
+                   pb = pb,
+                   n_grid = n_grid,
+                   k = k)
           )
         } else {
           ci_data <- foreach::`%do%`(
@@ -751,24 +837,29 @@ fct_confint.glm <- function(
               .combine = rbind
             ),
             ci_fct(i = i,
+                   f = f,
                    verbose = verbose,
                    parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
-                   which_parm = which_parm)
+                   which_parm = which_parm,
+                   level = level,
+                   pb = pb,
+                   n_grid = n_grid,
+                   k = k)
           )
         }
         # return results using convex optimization
         return(ci_data)
       },
       # If an error occurs, check if the problem is f not following DCP rules
-      error = ci_fct_error_handler
+      error = \(e) ci_fct_error_handler(e, which_parm, env)
     )
   }
 
   ### contruct points around the estimated parameter vector defining directions
   ### to look for points on the boundary of the confidence set if requested
-  if(!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
+  if (!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
     if (is.null(n_grid) || any(n_grid) == 0L) {
       # create k point uniformly on a sum(which_parm)-dimensional sphere
       delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
@@ -821,13 +912,16 @@ fct_confint.glm <- function(
       width = 80,
       show_after = 0.2
     )
-  } else if(parallel) {
+  } else if (parallel) {
+    pb <- NULL
     opts <- list()
+  } else {
+    pb <- NULL
   }
 
   ### solve equation for scaling points to end up on boundary of confidence set
-  if(parallel) {
-    fn <- function(y) {
+  if (parallel) {
+    fnp <- function(y) {
       t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
         as.numeric()
     }
@@ -837,7 +931,7 @@ fct_confint.glm <- function(
         .combine = c,
         .options.snow = opts
       ),
-      fn(y)
+      fnp(y)
     )
   } else {
     fn <- function(y, verbose) {
@@ -934,7 +1028,7 @@ fct_confint.glm <- function(
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
-  if(return_beta) {
+  if (return_beta) {
     ci_data <- ci_data |>
       dplyr::select("estimate", "conf.low", "conf.high", dplyr::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
@@ -1035,15 +1129,16 @@ fct_confint.lms <- function(
 
   ### request installation of required packages from suggested
   if (parallel) {
-    p1 <- require("parallel", quietly = TRUE)
-    p2 <- require("snow", quietly = TRUE)
-    p3 <- require("doSNOW", quietly = TRUE)
-    if (!all(c(p1, p2, p3))) {
-      mp <- c("parallel", "snow", "doSNOW")[!c(p1, p2, p3)]
+    p1 <- requireNamespace("parallel", quietly = TRUE)
+    p2 <- requireNamespace("snow", quietly = TRUE)
+    p3 <- requireNamespace("doSNOW", quietly = TRUE)
+    p4 <- requireNamespace("foreach", quietly = TRUE)
+    if (!all(c(p1, p2, p3, p4))) {
+      mp <- c("parallel", "snow", "doSNOW", "foreach")[!c(p1, p2, p3, p4)]
       if (interactive()) {
         for (i in 1:3) {
           input <- readline(glue::glue(
-            "'parallel=TRUE' requires packages {mp} to be installed.",
+            "'parallel=TRUE' requires packages {mp} to be installed.\n",
             "Attempt to install packages from CRAN? (y/n)"
           ))
           if (input == "y") {
@@ -1051,20 +1146,21 @@ fct_confint.lms <- function(
               pkgs = mp,
               repos = "https://cloud.r-project.org"
             )
-            p1 <- require("parallel", quietly = TRUE)
-            p2 <- require("snow", quietly = TRUE)
-            p3 <- require("doSNOW", quietly = TRUE)
-            if (!all(c(p1, p2, p3))) {
-              stop("Failed to install required packages")
+            p1 <- requireNamespace("parallel", quietly = TRUE)
+            p2 <- requireNamespace("snow", quietly = TRUE)
+            p3 <- requireNamespace("doSNOW", quietly = TRUE)
+            p4 <- requireNamespace("foreach", quietly = TRUE)
+            if (!all(c(p1, p2, p3, p4))) {
+              stop("Failed to install required packages.")
             }
             break
           } else if (input == "n") {
-            stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+            stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
           }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times")
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
         }
       } else {
-        stop("When 'parallel=TRUE', packages 'parallel', 'snow', and 'doSNOW' are required")
+        stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
       }
     }
   }
@@ -1100,7 +1196,7 @@ fct_confint.lms <- function(
   xtx_red <- solve(xtx_inv)
 
   ### solve convex optimization problem (unless n_grid or k are specified)
-  if((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+  if ((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
     # total number of output dimensions
     n_fout <- length(f(beta_hat))
 
@@ -1137,11 +1233,43 @@ fct_confint.lms <- function(
         width = 80,
         show_after = 0.2
       )
-    } else if(parallel) {
+    } else if (parallel) {
       opts <- list()
     }
 
+    ### request installation of required package from suggested
+    if (is.null(n_grid) && is.null(k)) {
+      p1 <- requireNamespace("CVXR", quietly = TRUE)
+      if (!p1) {
+        if (interactive()) {
+          for (i in 1:3) {
+            input <- readline(glue::glue(
+              "package 'CVXR' must be installed when 'n_grid' and 'k' are NULL.\n",
+              "Attempt to install package from CRAN? (y/n)"
+            ))
+            if (input == "y") {
+              install.packages(
+                pkgs = "CVXR",
+                repos = "https://cloud.r-project.org"
+              )
+              p1 <- requireNamespace("CVXR", quietly = TRUE)
+              if (!p1) {
+                stop("Failed to install required package.")
+              }
+              break
+            } else if (input == "n") {
+              stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
+            }
+            if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
+          }
+        } else {
+          stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
+        }
+      }
+    }
+
     # run optimizer, either in parallel or in series
+    env <- rlang::current_env()
     tryCatch(
       {
         if (parallel) {
@@ -1152,11 +1280,16 @@ fct_confint.lms <- function(
               .options.snow = opts
             ),
             ci_fct(i = i,
+                   f = f,
                    verbose = verbose,
                    parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
-                   which_parm = which_parm)
+                   which_parm = which_parm,
+                   level = level,
+                   pb = pb,
+                   n_grid = n_grid,
+                   k = k)
           )
         } else {
           ci_data <- foreach::`%do%`(
@@ -1165,24 +1298,29 @@ fct_confint.lms <- function(
               .combine = rbind
             ),
             ci_fct(i = i,
+                   f = f,
                    verbose = verbose,
                    parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
-                   which_parm = which_parm)
+                   which_parm = which_parm,
+                   level = level,
+                   pb = pb,
+                   n_grid = n_grid,
+                   k = k)
           )
         }
         # return results using convex optimization
         return(ci_data)
       },
       # If an error occurs, check if the problem is f not following DCP rules
-      error = ci_fct_error_handler
+      error = \(e) ci_fct_error_handler(e, which_parm, env)
     )
   }
 
   ### contruct points around the estimated parameter vector defining directions
   ### to look for points on the boundary of the confidence set if requested
-  if(!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
+  if (!((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L))) {
     if (is.null(n_grid) || any(n_grid) == 0L) {
       # create k point uniformly on a sum(which_parm)-dimensional sphere
       delta <- matrix(rnorm(sum(which_parm) * k), ncol = sum(which_parm))
@@ -1235,13 +1373,16 @@ fct_confint.lms <- function(
       width = 80,
       show_after = 0.2
     )
-  } else if(parallel) {
+  } else if (parallel) {
+    pb <- NULL
     opts <- list()
+  } else {
+    pb <- NULL
   }
 
   ### solve equation for scaling points to end up on boundary of confidence set
-  if(parallel) {
-    fn <- function(y) {
+  if (parallel) {
+    fnp <- function(y) {
       t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
         as.numeric()
     }
@@ -1251,7 +1392,7 @@ fct_confint.lms <- function(
         .combine = c,
         .options.snow = opts
       ),
-      fn(y)
+      fnp(y)
     )
   } else {
     fn <- function(y, verbose) {
@@ -1346,7 +1487,7 @@ fct_confint.lms <- function(
   ci_data$conf.low <- do.call(pmin, ci_data[, -1])
   ci_data$conf.high <- do.call(pmax, ci_data[, -1])
 
-  if(return_beta) {
+  if (return_beta) {
     ci_data <- ci_data |>
       dplyr::select("estimate", "conf.low", "conf.high", dplyr::everything())
     return(list(ci_data = ci_data, beta = dplyr::bind_rows(beta_1, beta_2)))
@@ -1367,4 +1508,159 @@ fct_confint.default <- function(
     ...
 ) {
   stop("Class is not supported. Object must have class lm, glm or lms.")
+}
+
+#' solve optimization problem for  CI bounds
+#'
+#' solve optimization problem for each coordinate of f, to obtain the uniform
+#' limit.
+#'
+#' @param i An index for the point at which to solve for confidence limits.
+#' @param f A function taking the parameter vector as its single argument, and
+#'   returning a numeric vector.
+#' @param verbose Flag from fct_confint.
+#' @param parallel Flag from fct_confint.
+#' @param xtx_red Reduced form of matrix *X^TX*.
+#' @param beta_hat Vector of parameter estimates.
+#' @param which_parm Vector indicating which parameters to include.
+#' @param level The confidence level required.
+#' @param pb R6 progress bar object
+#' @param n_grid Either `NULL` or an integer vector of length 1 or the number of
+#'   `TRUE`/indices in which_parm. Specifies the number of grid points in each
+#'   dimension of a grid with endpoints defined by len. If `NULL` or `0L`, will
+#'   instead sample k points uniformly on a sphere.
+#' @param k If n_grid is `NULL` or `0L`, the number of points to sample
+#'   uniformly from a sphere.
+#'
+#' @return One row tibble with estimate and confidence limits.
+#'
+#' @examples 1+1
+
+ci_fct <- function(i,
+                   f,
+                   verbose,
+                   parallel,
+                   xtx_red,
+                   beta_hat,
+                   which_parm,
+                   level,
+                   pb,
+                   n_grid,
+                   k) {
+  # find ci_lower
+  beta <- CVXR::Variable(dim(xtx_red)[1])
+  objective <- CVXR::Minimize(f(beta)[i])
+  constraint <- CVXR::quad_form(beta_hat[which_parm] - beta, xtx_red) <=
+    qchisq(level, length(beta_hat[which_parm]))
+  problem <- CVXR::Problem(objective, constraints = list(constraint))
+  result_lower <- CVXR::solve(problem)
+  # find ci_upper
+  beta <- CVXR::Variable(dim(xtx_red)[1])
+  objective <- CVXR::Maximize(f(beta)[i])
+  constraint <- CVXR::quad_form(beta_hat[which_parm] - beta, xtx_red) <=
+    qchisq(level, length(beta_hat[which_parm]))
+  problem <- CVXR::Problem(objective, constraints = list(constraint))
+  result_upper <- CVXR::solve(problem)
+  # collect results
+  out <- tibble::tibble(
+    estimate = f(beta_hat[which_parm])[i],
+    ci_lower = result_lower$value,
+    ci_upper = result_upper$value
+  )
+  if (verbose & !parallel) {
+    pb$tick(tokens = list(iteration = i))
+  }
+  return(out)
+}
+
+#' Handle errors returned by ci_fct
+#'
+#' @param e error returned by ci_fct
+#' @param which_parm Either a logical vector the same length as the coefficient
+#'   vector, with `TRUE` indicating a coefficient is used by `f`, or an integer
+#'   vector with the indices of the coefficients used by `f`.
+#' @param env environment to assign n_grid and k
+#'
+#' @return returns NULL if no stop command is executed.
+#'
+#' @examples 1+1
+
+ci_fct_error_handler <- function(e, which_parm, env) {
+  if (
+    grepl(
+      'task 1 failed - "Problem does not follow DCP rules."',
+      e$message
+    ) &
+    interactive()
+  ) {
+    # ask user if they want to continue with a grid search.
+    input <- readline(
+      "f does not follow DCP rules. Cannot find confidence limits using convex optimizer.\nDo you want to continue with a grid search? (y/n)"
+    )
+    for (i in seq_len(3)) {
+      if (input %in% c("y", "n")) {
+        if (input == "n") stop("f does not follow DCP rules.")
+        break
+      } else {
+        if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
+        input <- readline(
+          "Please input either 'y' to continue or 'n' to stop execution: "
+        )
+      }
+    }
+    for (i in seq_len(3)) {
+      input <- readline("Please provide either 'n_grid' or 'k': ")
+      if (input == "n_grid") {
+        n_grid <- c()
+        for (l in seq_len(sum(which_parm))) {
+          for (j in seq_len(3)) {
+            input <- readline(
+              glue::glue("Please provide a positive integer (as 1, not 1L) for entry {l} of n_grid: ")
+            )
+            input <- suppressWarnings(as.integer(input))
+            if (!is.na(input) && is.integer(input) && as.integer(input) > 0L) {
+              n_grid[l] <- as.integer(input)
+              break
+            }
+            if (j == 3) stop("Failed to answer with a positive integer to many times.")
+          }
+          if (l == 1) {
+            input <- readline(
+              glue::glue("n_grid must have length 1 or {sum(which_parm)}. Should n_grid have length {sum(which_parm)}? (y/n): ")
+            )
+            if (input %in% c("y", "n")) {
+              if (input == "n") break
+            } else {
+              input <- readline(
+                "Please input either 'y' to add to n_grid or 'n' to continue: "
+              )
+              if (input %in% c("y", "n")) {
+                if (input == "n") break
+              } else {
+                stop("Answer not 'y' or 'n'. Execution stopped.")
+              }
+            }
+          }
+        }
+        assign("n_grid", n_grid, env)
+        break
+      } else if (input == "k") {
+        for (j in 1:3) {
+          input <- readline("Please provide a positive integer (as 1, not 1L) for k: ")
+          input <- suppressWarnings(as.integer(input))
+          if (!is.na(input) && is.integer(input) && as.integer(input) > 0L) {
+            assign("k", input, env)
+            break
+          }
+          if (j == 3) stop("Failed to answer with a positive integer to many times.")
+        }
+        break
+      }
+      if (i == 3) stop("Failed to answer 'n_grid' or 'k' to many times")
+    }
+  } else {
+    stop(e)
+  }
+
+  return(invisible(NULL))
 }

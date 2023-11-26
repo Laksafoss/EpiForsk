@@ -20,7 +20,6 @@ Imports:
     data.table,
     dplyr,
     forcats,
-    foreach,
     ggplot2,
     glue,
     grf,
@@ -29,7 +28,6 @@ Imports:
     MatchIt,
     methods,
     nnet,
-    parallel,
     patchwork,
     policytree,
     progress,
@@ -47,9 +45,13 @@ Depends:
 LazyData: true
 Suggests: 
     cli,
+    CVXR,
+    doParallel,
     doSNOW,
+    foreach,
     ggsci,
     knitr,
+    parallel,
     rmarkdown,
     snow,
     testthat (>= 3.0.0)
