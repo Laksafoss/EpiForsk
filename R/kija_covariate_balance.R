@@ -197,11 +197,7 @@ object complies with the class structure used by grf::causal_forest()."
       X_orig <- cf$X.orig
     }
     if (!is.null(covariates)) {
-      if (is.null(colnames(cf$X.orig))) {
-        X_orig <- dplyr::select(X_orig, {{ covariates }})
-      } else {
         X_orig <- dplyr::select(X_orig, dplyr::all_of(covariates))
-      }
     }
   } else if (is.character(names)) {
     if (!tibble::is_tibble(cf$X.orig)) {
@@ -394,20 +390,19 @@ display in the covariate distribution plots."
         \(x) tibble::as_tibble(purrr::map(funs, purrr::exec, x, na.rm = TRUE))
       ) |>
       purrr::list_rbind() |>
-      dplyr::mutate(name = rep(names(X_orig), 2)) |>
+      dplyr::mutate(name = rep(names({{ X_orig }}), 2)) |>
       dplyr::summarise(
-        mean_control = dplyr::first(mean),
-        mean_treated = dplyr::last(mean),
-        std_abs_mean_diff = abs(diff(mean)) / sqrt(sum(var)),
-        var_ratio = dplyr::last(var) / dplyr::first(var),
+        mean_control = dplyr::first(.data$mean),
+        mean_treated = dplyr::last(.data$mean),
+        std_abs_mean_diff = abs(diff(.data$mean)) / sqrt(sum(.data$var)),
+        var_ratio = dplyr::last(.data$var) / dplyr::first(.data$var),
         .by = "name"
       )
 
     weighted.var <- function(x, w, na.rm = TRUE) {
       na_index <- is.na(w) | is.na(x)
       if (any(na_index)) {
-        if (!na.rm)
-          return(NA_real_)
+        if (!na.rm) return(NA_real_)
         ok <- !na_index
         x <- x[ok]
         w <- w[ok]
@@ -432,18 +427,18 @@ display in the covariate distribution plots."
         }
       ) |>
       purrr::list_rbind() |>
-      dplyr::mutate(name = rep(names(X_orig), 2)) |>
+      dplyr::mutate(name = rep(names({{ X_orig }}), 2)) |>
       dplyr::summarise(
-        mean_control = dplyr::first(mean),
-        mean_treated = dplyr::last(mean),
-        std_abs_mean_diff_adj = abs(diff(mean)) / sqrt(sum(var)),
-        var_ratio = dplyr::last(var) / dplyr::first(var),
+        mean_control = dplyr::first(.data$mean),
+        mean_treated = dplyr::last(.data$mean),
+        std_abs_mean_diff_adj = abs(diff(.data$mean)) / sqrt(sum(.data$var)),
+        var_ratio = dplyr::last(.data$var) / dplyr::first(.data$var),
         .by = "name"
       )
     love_plot_data <-
       dplyr::inner_join(
-        df_ori |> dplyr::select(name, std_abs_mean_diff),
-        df_adj |> dplyr::select(name, std_abs_mean_diff_adj),
+        df_ori |> dplyr::select("name", "std_abs_mean_diff"),
+        df_adj |> dplyr::select("name", "std_abs_mean_diff_adj"),
         by = "name",
         relationship = "one-to-one"
       ) |>
@@ -508,17 +503,17 @@ display in the covariate distribution plots."
       balance_table$unadjusted <- df_ori |>
         dplyr::mutate(
           var_ratio = ifelse(
-            grepl(" - ", name),
+            grepl(" - ", .data$name),
             NA_real_,
-            var_ratio
+            .data$var_ratio
           )
         )
       balance_table$adjusted <- df_adj |>
         dplyr::mutate(
           var_ratio = ifelse(
-            grepl(" - ", name),
+            grepl(" - ", .data$name),
             NA_real_,
-            var_ratio
+            .data$var_ratio
           )
         )
     }
@@ -531,15 +526,16 @@ display in the covariate distribution plots."
       X_orig <- X_orig_fct
     }
 
-    plot_data <- tibble::tibble(
-      dplyr::mutate(X_orig, dplyr::across(dplyr::where(is.integer), as.numeric)),
-      "{treatment_name}" := as.factor(cf$W.orig),
-      IPW = ifelse(
-        .data[[treatment_name]] == 1,
-        1 / cf$W.hat,
-        1 / (1 - cf$W.hat)
+    plot_data <- X_orig |>
+      dplyr::mutate(
+        dplyr::across(dplyr::where(is.integer), as.numeric),
+        "{treatment_name}" := as.factor(cf$W.orig),
+        IPW = ifelse(
+          .data[[treatment_name]] == 1,
+          1 / cf$W.hat,
+          1 / (1 - cf$W.hat)
+        )
       )
-    )
 
     if (density) {
       if (is.null(cd_scale_fill)) {
@@ -553,7 +549,8 @@ display in the covariate distribution plots."
       plot_type <- X_orig |>
         dplyr::summarise(
           dplyr::across(
-            dplyr::everything(), \(x) ifelse(is.factor(x), "bar", "hist")
+            dplyr::everything(),
+            \(x) ifelse(is.factor(x), "bar", "hist")
           )
         )
 
@@ -623,7 +620,7 @@ display in the covariate distribution plots."
               "covariate_values" = dplyr::all_of(names)
             ) |>
             dplyr::mutate(
-              "covariate_name" = names
+              "covariate_name" = {{ names }}
             )
           covariate_values <- plot_data[["covariate_values"]]
           p <- plot_data |>
@@ -687,7 +684,7 @@ display in the covariate distribution plots."
               "covariate_values" = dplyr::all_of(names)
             ) |>
             dplyr::mutate(
-              "covariate_name" = names
+              "covariate_name" = {{ names }}
             )
           covariate_values <- plot_data[["covariate_values"]]
           p <- plot_data |>
@@ -795,7 +792,8 @@ display in the covariate distribution plots."
       X_type <- X_orig |>
         dplyr::summarise(
           dplyr::across(
-            dplyr::everything(), \(x) ifelse(is.factor(x), "dis", "con")
+            dplyr::everything(),
+            \(x) ifelse(is.factor(x), "dis", "con")
           )
         )
       if (is.null(ec_x_scale_width)) {
@@ -844,13 +842,13 @@ display in the covariate distribution plots."
               "covariate_values" = dplyr::all_of(names)
             ) |>
             dplyr::mutate(
-              "covariate_name" = names
+              "covariate_name" = {{ names }}
             ) |>
             dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
-            dplyr::arrange(`covariate_values`) |>
+            dplyr::arrange(.data$covariate_values) |>
             dplyr::mutate(
               cum_pct_ori = seq_len(dplyr::n()) / dplyr::n(),
-              cum_pct_wei = cumsum(IPW) / sum(IPW)
+              cum_pct_wei = cumsum(.data$IPW) / sum(.data$IPW)
             ) |>
             dplyr::ungroup()
           ## calculate mean diff and max diff of eCDF
@@ -895,27 +893,27 @@ display in the covariate distribution plots."
             } else if (sum(grepl(names, names(X_orig_old))) == 1) {
               eCDF_data <- plot_data |>
                 dplyr::group_by(
-                  covariate_values,
+                  .data$covariate_values,
                   dplyr::across(dplyr::all_of(treatment_name))
                 ) |>
                 dplyr::summarise(
                   eCDF_mean_ori = dplyr::n(),
-                  eCDF_mean_wei = sum(IPW),
+                  eCDF_mean_wei = sum(.data$IPW),
                   .groups = "drop"
                 ) |>
                 dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
                 dplyr::mutate(
-                  eCDF_mean_ori = eCDF_mean_ori / sum(eCDF_mean_ori),
-                  eCDF_mean_wei = eCDF_mean_wei / sum(eCDF_mean_wei)
+                  eCDF_mean_ori = .data$eCDF_mean_ori / sum(.data$eCDF_mean_ori),
+                  eCDF_mean_wei = .data$eCDF_mean_wei / sum(.data$eCDF_mean_wei)
                 ) |>
-                dplyr::group_by(covariate_values) |>
+                dplyr::group_by(.data$covariate_values) |>
                 dplyr::summarise(
                   dplyr::across(eCDF_mean_ori:eCDF_mean_wei, \(x) abs(diff(x)))
                 ) |>
                 dplyr::mutate(
                   covariate = names,
-                  eCDF_max_ori = eCDF_mean_ori,
-                  eCDF_max_wei = eCDF_mean_wei
+                  eCDF_max_ori = .data$eCDF_mean_ori,
+                  eCDF_max_wei = .data$eCDF_mean_wei
                 )
               balance_table$unadjusted$eCDF_mean[
                 balance_table$unadjusted$name == names
@@ -932,27 +930,27 @@ display in the covariate distribution plots."
             } else {
               eCDF_data <- plot_data |>
                 dplyr::group_by(
-                  covariate_values,
+                  .data$covariate_values,
                   dplyr::across(dplyr::all_of(treatment_name))
                 ) |>
                 dplyr::summarise(
                   eCDF_mean_ori = dplyr::n(),
-                  eCDF_mean_wei = sum(IPW),
+                  eCDF_mean_wei = sum(.data$IPW),
                   .groups = "drop"
                 ) |>
                 dplyr::group_by(dplyr::across(dplyr::all_of(treatment_name))) |>
                 dplyr::mutate(
-                  eCDF_mean_ori = eCDF_mean_ori / sum(eCDF_mean_ori),
-                  eCDF_mean_wei = eCDF_mean_wei / sum(eCDF_mean_wei)
+                  eCDF_mean_ori = .data$eCDF_mean_ori / sum(.data$eCDF_mean_ori),
+                  eCDF_mean_wei = .data$eCDF_mean_wei / sum(.data$eCDF_mean_wei)
                 ) |>
-                dplyr::group_by(covariate_values) |>
+                dplyr::group_by(.data$covariate_values) |>
                 dplyr::summarise(
                   dplyr::across(eCDF_mean_ori:eCDF_mean_wei, \(x) abs(diff(x)))
                 ) |>
                 dplyr::mutate(
-                  covariate = paste(names, "-", covariate_values),
-                  eCDF_max_ori = eCDF_mean_ori,
-                  eCDF_max_wei = eCDF_mean_wei
+                  covariate = paste(names, "-", .data$covariate_values),
+                  eCDF_max_ori = .data$eCDF_mean_ori,
+                  eCDF_max_wei = .data$eCDF_mean_wei
                 )
               balance_table$unadjusted[
                 which(balance_table$unadjusted$name %in% eCDF_data$covariate),
@@ -988,8 +986,8 @@ display in the covariate distribution plots."
           if (X_type == "dis") {
             plot_data <- plot_data |>
               dplyr::mutate(
-                "covariate_values_fct" = covariate_values,
-                covariate_values = as.numeric(covariate_values)
+                "covariate_values_fct" = .data$covariate_values,
+                covariate_values = as.numeric(.data$covariate_values)
               )
             covariate_levels <- levels(plot_data[["covariate_values_fct"]])
           }
