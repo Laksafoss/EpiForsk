@@ -927,8 +927,8 @@ freq_function <- function(
         -dplyr::starts_with("Column_pct_"),
         -dplyr::starts_with("Total_pct_"),
         -dplyr::starts_with("Freq_total_"),
+        -dplyr::starts_with("Freq_row_"),
         -dplyr::starts_with("Freqw_row_"),
-        -dplyr::starts_with("Freqw_total_"),
         -dplyr::starts_with("Freq_col_"),
         -dplyr::starts_with("Freqw_col_")
       )
