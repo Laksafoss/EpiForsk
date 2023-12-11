@@ -120,6 +120,10 @@ test_table3 <- freq_function_repeated(
 )
 
 }
+\seealso{
+\code{\link[=freq_function]{freq_function()}} for the function that creates frequency tables for
+single variables.
+}
 \author{
 ASO
 }

@@ -56,6 +56,9 @@
 #'
 #' @author ASO
 #'
+#' @seealso [odds_ratio_function_repeated()] to perform several analysis in one
+#' go.
+#'
 #' @examples
 #' ### Binomial outcome
 #' data(logan, package = "survival")

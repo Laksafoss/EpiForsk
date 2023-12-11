@@ -65,6 +65,9 @@
 #'
 #' @author ASO
 #'
+#' @seealso [freq_function()] for the function that creates frequency tables for
+#' single variables.
+#'
 #' @examples
 #' # Examples
 #' data("starwars", package = "dplyr")

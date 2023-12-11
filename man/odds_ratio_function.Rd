@@ -179,6 +179,10 @@ func_est8 <- odds_ratio_function(
 )
 
 }
+\seealso{
+\code{\link[=odds_ratio_function_repeated]{odds_ratio_function_repeated()}} to perform several analysis in one
+go.
+}
 \author{
 ASO
 }

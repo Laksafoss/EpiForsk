@@ -3,7 +3,7 @@
 \name{odds_ratio_function_repeated}
 \alias{odds_ratio_function_repeated}
 \title{Wrapper for the \code{odds_ratio_function()}to perform several similar analyses
-in one go.}
+in one go}
 \usage{
 odds_ratio_function_repeated(
   normaldata,
@@ -95,10 +95,11 @@ variable or the same analysis is performed but by each variable (each level
 of the variable is analysed separately).
 }
 \details{
-' It's possible to have same variable in \code{expvars} and
-\code{adjustment_fixed}. When a model results in an error, the function will not
-stop - it continues with other models until done BUT in the output the error
-text can be seen.
+It's possible to have same variable in \code{expvars} and
+\code{adjustment_fixed}.
+
+When a model results in an error, the function will not stop - it continues
+with other models until done BUT in the output the error text can be seen.
 }
 \examples{
 # Data to use
@@ -141,6 +142,10 @@ test2 <- odds_ratio_function_repeated(
   by_var = "Parity_grp"
 )
 
+}
+\seealso{
+\code{\link[=odds_ratio_function]{odds_ratio_function()}} to perform a single logistic or log-linear
+regression giving a standardized output table.
 }
 \author{
 ASO

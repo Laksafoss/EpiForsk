@@ -62,6 +62,9 @@
 #'
 #' @author ASO
 #'
+#' @seealso [freq_function_repeated()] to to get frequencies for multiple
+#'   variables in one go.
+#'
 #' @examples
 #' data("starwars", package = "dplyr")
 #'

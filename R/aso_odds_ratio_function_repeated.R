@@ -1,5 +1,5 @@
 #' Wrapper for the `odds_ratio_function()`to perform several similar analyses
-#' in one go.
+#' in one go
 #'
 #' The function is intended to make it easy to get OR's for several similar
 #' models in one go, where either the same analysis is performed except for one
@@ -53,14 +53,18 @@
 #'   the analysis instead of the standard output. This might be useful to see
 #'   information not included in the standardized output (default is FALSE).
 #'
-#' @details ' It's possible to have same variable in `expvars` and
-#' `adjustment_fixed`. When a model results in an error, the function will not
-#' stop - it continues with other models until done BUT in the output the error
-#' text can be seen.
+#' @details It's possible to have same variable in `expvars` and
+#' `adjustment_fixed`.
+#'
+#' When a model results in an error, the function will not stop - it continues
+#' with other models until done BUT in the output the error text can be seen.
 #'
 #' @return A standardized analysis object with results from multiple models.
 #'
 #' @author ASO
+#'
+#' @seealso [odds_ratio_function()] to perform a single logistic or log-linear
+#' regression giving a standardized output table.
 #'
 #' @examples
 #' # Data to use

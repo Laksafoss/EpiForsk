@@ -118,6 +118,10 @@ test_table3 <- freq_function(
 )
 
 }
+\seealso{
+\code{\link[=freq_function_repeated]{freq_function_repeated()}} to to get frequencies for multiple
+variables in one go.
+}
 \author{
 ASO
 }
