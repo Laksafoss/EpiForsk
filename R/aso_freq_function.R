@@ -104,7 +104,7 @@ freq_function <- function(
     output = c("all", "numeric", "col", "colw", "row", "roww", "total", "totalw"),
     chisquare = FALSE
 ) {
-  # Begin input checks
+  ### Begin input checks
   if (missing(normaldata)) {
     stop("'normaldata' must be a data frame.")
   }
@@ -151,6 +151,13 @@ freq_function <- function(
     }
   }
   if (!is.null(weightvar)) {
+    # The final weightvar check returns a warning if some weights in the column
+    # specified by weightvar are negative or NA. This is done because these
+    # observations are removed before creating the frequency tables - so it
+    # will not result in an error - but the removal of these observations are
+    # likely unexpected to the user. As a help, affected rows are printed.
+    # To improve the readability of the warning, concecutive rows are grouped
+    # together.
     if (!inherits(weightvar, "character")) {
       stop(
         "weightvar must be NULL or optionally a character of length 1 ",
@@ -168,11 +175,31 @@ freq_function <- function(
         "for each observation."
       )
     }
-    if (any(normaldata[[weightvar]] <= 0)) {
+    if (any(normaldata[[weightvar]] <= 0 | is.na(normaldata[[weightvar]]))) {
+      warnindex <- which(
+        normaldata[[weightvar]] <= 0 |
+          is.na(normaldata[[weightvar]])
+      )
+      init <- TRUE
+      warntext <- ""
+      for (i in seq_len(length(warnindex) - 1)) {
+        if (init) {
+          warntext <- paste0(warntext, warnindex[i])
+          if (warnindex[i + 1] == warnindex[i] + 1) {
+            init <- FALSE
+          } else {
+            warntext <- paste0(warntext, ", ")
+          }
+        } else if (warnindex[i + 1] != warnindex[i] + 1) {
+          warntext <- paste0(warntext, ":", warnindex[i], ", ")
+          init <- TRUE
+        }
+      }
+      paste0(warntext, warnindex[length(warnindex)])
       warning(glue::glue(
-        "Non-positive weights detected in row(s)\n",
-        "{paste(which(normaldata[[weightvar]] <= 0), collapse = ', ')}\n",
-        "Rows with non-positive weights are removed."
+        "Non-positive weights or NAs detected in row(s)\n",
+        "{warntext}\n",
+        "Rows with non-positive weights or NAs are removed."
       ))
     }
   }
