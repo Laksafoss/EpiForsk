@@ -6,21 +6,20 @@
 #'
 #' @param forest An object of class `causal_forest`, as returned by
 #'   \link[grf]{causal_forest}().
-#' @param n_rankings Integer, scalar with number of groups to rank CATE's
-#'   into.
+#' @param n_rankings Integer, scalar with number of groups to rank CATE's into.
 #' @param n_folds Integer, scalar with number of folds to split data into.
 #' @param ... Additional arguments passed to \link[grf]{causal_forest}() and
-#'   \link[grf]{regression_forest}()
+#'   \link[grf]{regression_forest}().
 #'
 #' @return A list with elements
 #'  - forest_subgroups: A tibble with CATE estimates, ranking, and AIPW-scores
-#'    for each subject.
+#'   for each subject.
 #'  - forest_rank_ate: A tibble with the ATE estimate and standard error of
-#'    each subgroup.
+#'   each subgroup.
 #'  - forest_rank_diff_test: A tibble with estimates of the difference in ATE
-#'    between subgroups and p-values for a formal test of no difference.
+#'   between subgroups and p-values for a formal test of no difference.
 #'  - heatmap_data: A tibble with data used to draw a heatmap of covariate
-#'    distribution in each subgroup.
+#'   distribution in each subgroup.
 #'  - forest_rank_ate_plot: ggplot with the ATE estimates in each subgroup.
 #'  - heatmap: ggplot with heatmap of covariate distribution in each subgroup.
 #'
@@ -28,13 +27,13 @@
 #'   into groups by estimated CATE (for an alternative, see also
 #'   \link[EpiForsk]{RATEOmnibusTest}). To compare estimates one must use a
 #'   model which is not trained on the subjects we wish to compare. To achieve
-#'   this, data is partitioned into n_folds folds and a causal forest is
-#'   trained for each fold where the fold is left out. If the data has no
-#'   existing clustering, one \link[grf]{causal_forest}() is trained with the
-#'   folds as clustering structure. This enables predictions on each fold where
-#'   trees using data from the fold are left out for the prediction. In the
-#'   case of preexisting clustering in the data, folds are sampled within each
-#'   cluster and combined across clusters afterwards.
+#'   this, data is partitioned into n_folds folds and a causal forest is trained
+#'   for each fold where the fold is left out. If the data has no existing
+#'   clustering, one \link[grf]{causal_forest}() is trained with the folds as
+#'   clustering structure. This enables predictions on each fold where trees
+#'   using data from the fold are left out for the prediction. In the case of
+#'   preexisting clustering in the data, folds are sampled within each cluster
+#'   and combined across clusters afterwards.
 #'
 #' @author KIJA
 #'
@@ -68,7 +67,7 @@ CausalForestDynamicSubgroups <- function(forest,
   )
   stopifnot(
     "n_folds must be a positive integer or double coercible to a positive integer" =
-      is.numeric(n_rankings) && trunc(n_rankings > 0.9)
+      is.numeric(n_folds) && trunc(n_folds > 0.9)
   )
   n_rankings <- trunc(n_rankings)
   n_folds <- trunc(n_folds)
@@ -92,10 +91,10 @@ CausalForestDynamicSubgroups <- function(forest,
       )
     }
     n <- length(forest$Y.orig)
-    indices <- split(seq(n), folds)
+    indices <- split(seq_len(n), folds)
     result <- purrr::map(
       indices,
-      function(idx, args) {
+      \(idx, args) {
         # Fit outcome model and predict on held-out data. Note fitting a causal
         # forest only gives outcome predictions on data included in training data.
         forest_m <- do.call(
@@ -158,7 +157,7 @@ CausalForestDynamicSubgroups <- function(forest,
         # rank observations by cate in held-out fold
         tau_hat_quantiles <- quantile(
           x = tau_hat,
-          probs = seq(0, 1, by = 1/n_rankings)
+          probs = seq(0, 1, by = 1 / n_rankings)
         )
         # if quantiles are not unique, manually sort and cut into appropriate
         # groups
@@ -173,7 +172,7 @@ CausalForestDynamicSubgroups <- function(forest,
           len <- length(tau_hat)
           ranking <- tau_hat |>
             (\(x) {
-              tibble::tibble(
+              dplyr::tibble(
                 id = seq_along(x),
                 tau_hat = x
               )
@@ -203,19 +202,19 @@ CausalForestDynamicSubgroups <- function(forest,
         }
 
         # collect ranking and aipw scores
-        res <- tibble::tibble(
-          id = idx,
-          tau_hat = tau_hat,
-          ranking = ranking,
-          aipw_scores = aipw_scores
+        return(
+          dplyr::tibble(
+            id = idx,
+            tau_hat = tau_hat,
+            ranking = ranking,
+            aipw_scores = aipw_scores
+          )
         )
-
-        return(res)
       },
       args
     ) |>
       purrr::list_rbind()
-    result <- result |> dplyr::arrange(.data$id)
+    result <- dplyr::arrange(result, .data$id)
   } else {
     # partition data into folds
     folds <- sort(seq_along(forest$Y.orig) %% n_folds) + 1
@@ -243,7 +242,7 @@ CausalForestDynamicSubgroups <- function(forest,
     for (fold in seq_len(n_folds)) {
       tau_hat_quantiles <- quantile(
         x = tau_hat[folds == fold],
-        probs = seq(0, 1, by = 1/n_rankings)
+        probs = seq(0, 1, by = 1 / n_rankings)
       )
       # if quantiles are not unique, manually sort and cut into appropriate
       # groups
@@ -258,7 +257,7 @@ CausalForestDynamicSubgroups <- function(forest,
         len <- length(tau_hat[folds == fold])
         ranking[folds == fold] <- tau_hat[folds == fold] |>
           (\(x) {
-            tibble::tibble(
+            dplyr::tibble(
               id = seq_along(x),
               tau_hat = x
             )
@@ -298,7 +297,7 @@ CausalForestDynamicSubgroups <- function(forest,
       (1 - forest$W.orig) / (1 - forest_rank$W.hat) * (forest$Y.orig - mu_hat_0)
 
     # collect ranking and aipw scores
-    result <- tibble::tibble(
+    result <- dplyr::tibble(
       id = seq_along(forest$Y.orig),
       tau_hat = tau_hat,
       ranking = ranking,
@@ -308,7 +307,7 @@ CausalForestDynamicSubgroups <- function(forest,
 
   # fit linear model of aipw scores to find average in each rank
   ols <- lm(result$aipw_scores ~ 0 + factor(result$ranking))
-  forest_rank_ate <- tibble::tibble(
+  forest_rank_ate <- dplyr::tibble(
     method = "aipw",
     ranking = paste0("Q", seq_len(n_rankings)),
     estimate = coef(ols),
@@ -322,8 +321,10 @@ CausalForestDynamicSubgroups <- function(forest,
   ) +
     ggplot2::geom_point() +
     ggplot2::geom_errorbar(
-      ggplot2::aes(ymin = .data$estimate - 2 * .data$std_err,
-                   ymax = .data$estimate + 2 * .data$std_err),
+      ggplot2::aes(
+        ymin = .data$estimate + qnorm(0.025) * .data$std_err,
+        ymax = .data$estimate + qnorm(0.975) * .data$std_err
+      ),
       width = 0.2
     ) +
     ggplot2::xlab("") +
@@ -334,31 +335,34 @@ CausalForestDynamicSubgroups <- function(forest,
     ggplot2::theme_bw()
 
   # table with tests for differences between ranking groups
-  res <- tibble::tibble()
+  forest_rank_diff_test <- dplyr::tibble()
   for (i in seq_len(n_rankings - 1)) {
     lev <- seq_len(n_rankings)
-    ols <- lm(result$aipw_scores ~ 1 + factor(result$ranking,
-                                              levels = c(lev[i], lev[-i])))
-    res <- tibble::as_tibble(
-      coef(summary(ols))[seq(i + 1, n_rankings),
-                         c(1, 2, 4),
-                         drop = FALSE]
-    ) |>
+    ols <- lm(
+      result$aipw_scores ~
+        1 + factor(result$ranking, levels = c(lev[i], lev[-i]))
+    )
+    forest_rank_diff_test <- coef(summary(ols))[
+      seq(i + 1, n_rankings),
+      c(1, 2, 4),
+      drop = FALSE
+    ] |>
+      dplyr::as_tibble() |>
       dplyr::mutate(
         id = paste("Rank",  seq(i + 1, n_rankings), "- Rank ", i)
       ) |>
-      (\(x) rbind(res, x))()
+      (\(x) rbind(forest_rank_diff_test, x))()
   }
 
   # Adjust for multiple testing using the Benjamini-Hockberg procedure
-  res <- res |>
+  forest_rank_diff_test <- forest_rank_diff_test |>
     dplyr::rename("Orig. p-value" = "Pr(>|t|)") |>
     dplyr::mutate(
-      `95 % CI` = paste0(
+      `95% CI` = paste0(
         "(",
         sprintf(
           fmt = "%.3f",
-          .data$Estimate - qnorm(0.975) * .data$`Std. Error`
+          .data$Estimate + qnorm(0.025) * .data$`Std. Error`
         ),
         ", ",
         sprintf(
@@ -380,38 +384,39 @@ CausalForestDynamicSubgroups <- function(forest,
       "id",
       "Estimate",
       "Std. Error",
-      "95 % CI",
+      "95% CI",
       dplyr::everything()
     )
 
   # Plot heatmap with average of covariates in each group
-  df <- purrr::map(
+  heatmap_data <- purrr::map(
     colnames(forest$X.orig),
-    function(covariate) {
-      # beregn gennemsnit og standardafvigelse for hver kovariat
+    \(covariate) {
+      # calculate average and standard error of each covariate
       fmla <- formula(paste0("`", covariate, "`", "~ 0 + ranking"))
-      data_forest <- tibble::as_tibble(forest$X.orig) |>
+      data_forest <- forest$X.orig |>
+        dplyr::as_tibble() |>
         dplyr::mutate(
           Y = forest$Y.orig,
           W = forest$W.orig,
           ranking = factor(result$ranking)
         )
-      ols <- lm(fmla, data = data_forest)
+      ols <- lm(formula = fmla, data = data_forest)
 
       # results
       avg <- coef(ols)
       stderr <- sqrt(diag(vcovHC(ols)))
 
       # collect results in table
-      tibble::tibble(
+      dplyr::tibble(
         covariate = covariate,
         avg = avg,
         stderr = stderr,
         ranking = paste0("Q", seq_len(n_rankings)),
         scaling = pnorm((avg - mean(avg)) / sd(avg)),
-        # standard deviation between groups normalized by
-        # standard deviation between all observations:
-        variation = sd(avg) / sd(data_forest[[!!covariate]]),
+        # standard error between groups normalized by
+        # standard error between all observations:
+        variation = sd(avg) / sd(data_forest[[{{ covariate }}]]),
         labels = paste0(
           sprintf("%.3f", avg),
           "\n",
@@ -423,17 +428,17 @@ CausalForestDynamicSubgroups <- function(forest,
     }
   ) |>
     purrr::list_rbind() |>
+    # ensure the heatmap will be in descending order of variation, defined
+    # as the standard error of the average within groups normalized by the
+    # standard error of all values of the covariate; i.e. the amount of
+    # variation explained by the averages relative to the total variation of
+    # the covariate:
     dplyr::mutate(
       covariate = forcats::fct_reorder(.data$covariate, .data$variation)
     )
 
-  # ovenstående sikre at heatmap vil være i aftagende orden af variation,
-  # defineret som standardafvigelse af gennemsnit i grupper normaliseret med
-  # standardafvigelse af alle værdier af kovariaten. Dvs. hvor meget variation er
-  # forklaret af gennemsnittene relativt til den totalle variation af kovariaten.
-
   # plot heatmap
-  heatmap <- ggplot2::ggplot(df) +
+  heatmap <- ggplot2::ggplot(heatmap_data) +
     ggplot2::aes(.data$ranking, .data$covariate) +
     ggplot2::geom_tile(ggplot2::aes(fill = .data$scaling)) +
     ggplot2::geom_text(ggplot2::aes(label = labels)) +
@@ -454,8 +459,8 @@ CausalForestDynamicSubgroups <- function(forest,
       forest_subgroups = result,
       forest_rank_ate = forest_rank_ate,
       forest_rank_ate_plot = forest_rank_ate_plot,
-      forest_rank_diff_test = res,
-      heatmap_data = df,
+      forest_rank_diff_test = forest_rank_diff_test,
+      heatmap_data = heatmap_data,
       heatmap = heatmap
     )
   )

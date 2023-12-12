@@ -10,13 +10,12 @@ CausalForestDynamicSubgroups(forest, n_rankings = 3, n_folds = 5, ...)
 \item{forest}{An object of class \code{causal_forest}, as returned by
 \link[grf]{causal_forest}().}
 
-\item{n_rankings}{Integer, scalar with number of groups to rank CATE's
-into.}
+\item{n_rankings}{Integer, scalar with number of groups to rank CATE's into.}
 
 \item{n_folds}{Integer, scalar with number of folds to split data into.}
 
 \item{...}{Additional arguments passed to \link[grf]{causal_forest}() and
-\link[grf]{regression_forest}()}
+\link[grf]{regression_forest}().}
 }
 \value{
 A list with elements
@@ -43,13 +42,13 @@ To evaluate heterogeneity in treatment effect one can split data
 into groups by estimated CATE (for an alternative, see also
 \link[EpiForsk]{RATEOmnibusTest}). To compare estimates one must use a
 model which is not trained on the subjects we wish to compare. To achieve
-this, data is partitioned into n_folds folds and a causal forest is
-trained for each fold where the fold is left out. If the data has no
-existing clustering, one \link[grf]{causal_forest}() is trained with the
-folds as clustering structure. This enables predictions on each fold where
-trees using data from the fold are left out for the prediction. In the
-case of preexisting clustering in the data, folds are sampled within each
-cluster and combined across clusters afterwards.
+this, data is partitioned into n_folds folds and a causal forest is trained
+for each fold where the fold is left out. If the data has no existing
+clustering, one \link[grf]{causal_forest}() is trained with the folds as
+clustering structure. This enables predictions on each fold where trees
+using data from the fold are left out for the prediction. In the case of
+preexisting clustering in the data, folds are sampled within each cluster
+and combined across clusters afterwards.
 }
 \examples{
 n <- 1000
