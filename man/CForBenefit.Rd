@@ -80,6 +80,8 @@ provided, replaces forest$predictions.}
 \value{
 a list with the following components:
 \itemize{
+\item type: a list with the input provided to the function which determines
+how C-for-benefit is computed.
 \item matched_patients: a tibble containing the matched patients.
 \item c_for_benefit: the resulting C-for-benefit value.
 \item lower_CI: the lower bound of the confidence interval (if CI = TRUE).
@@ -99,24 +101,24 @@ was the one who observed the outcome. In order to extend this to treatment
 effects, van Klaveren et al. suggest matching a treated subject to a
 control subject on the predicted treatments effect (or alternatively the
 covariates) and defining the observed effect as the difference between the
-outcomes of the treated subject and the control subject (either -1, 0, or
-1). The c-for-benefit statistic is then defined as the proportion of
-matched pairs with unequal observed effect in which the subject pair
-receiving greater treatment effect also has the highest expected treatment
-effect. \cr When calculating the expected treatment effect, van Klaveren et
-al. use the average CATE from the matched subjects in a pair
-(tau_hat_method = "mean"). However, this doesn't match the observed effect
-used, unless the baseline risks are equal. The observed effect is the
-difference between the observed outcome for the subject receiving treatment
-and the observed outcome for the subject receiving control. Their outcomes
-are governed by the exposed risk and the baseline risk respectively. The
-baseline risks are ideally equal when covariate matching, although
-instability of the forest estimates can cause significantly different
-baseline risks due to non-exact matching. When matching on CATE, we should
-not expect baseline risks to be equal. Instead, we can more closely match
-the observed treatment effect by using the difference between the exposed
-risk for the subject receiving treatment and the baseline risk of the
-subject receiving control (tau_hat_method = "treatment").
+outcomes of the treated subject and the control subject. The c-for-benefit
+statistic is then defined as the proportion of matched pairs with unequal
+observed effect in which the subject pair receiving greater treatment
+effect also has the highest expected treatment effect. \cr When calculating
+the expected treatment effect, van Klaveren et al. use the average CATE
+from the matched subjects in a pair (tau_hat_method = "mean"). However,
+this doesn't match the observed effect used, unless the baseline risks are
+equal. The observed effect is the difference between the observed outcome
+for the subject receiving treatment and the observed outcome for the
+subject receiving control. Their outcomes are governed by the exposed risk
+and the baseline risk respectively. The baseline risks are ideally equal
+when covariate matching, although instability of the forest estimates can
+cause significantly different baseline risks due to non-exact matching.
+When matching on CATE, we should not expect baseline risks to be equal.
+Instead, we can more closely match the observed treatment effect by using
+the difference between the exposed risk for the subject receiving treatment
+and the baseline risk of the subject receiving control (tau_hat_method =
+"treatment").
 }
 \examples{
 n <- 1000
