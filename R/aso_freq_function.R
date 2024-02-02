@@ -34,7 +34,7 @@
 #'   * `"numeric"` - will give frequencies and percents as numeric variables
 #'   only, thus the number_decimals option is not in effect. This option might
 #'   be useful when making figures/graphs.
-#'   * "col" - will only give unweighted number of observations and weighted
+#'   * `"col"` - will only give unweighted number of observations and weighted
 #'   column percent (if weights are used, otherwise unweighted)
 #'   * `"colw"` - will only give weighted number of observations and weighted
 #'   column percent (if weights are used, otherwise unweighted)

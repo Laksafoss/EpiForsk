@@ -103,7 +103,7 @@ freq_function_repeated <- function(
     weightvar = NULL,
     textvar = NULL,
     number_decimals = 2,
-    output = c("all", "numeric", "colw", "row", "roww", "total", "totalW"),
+    output = c("all", "numeric", "col", "colw", "row", "roww", "total", "totalw"),
     chisquare = FALSE
 ) {
   output <- match.arg(output)

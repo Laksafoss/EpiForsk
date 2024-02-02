@@ -15,7 +15,7 @@ freq_function_repeated(
   weightvar = NULL,
   textvar = NULL,
   number_decimals = 2,
-  output = c("all", "numeric", "colw", "row", "roww", "total", "totalW"),
+  output = c("all", "numeric", "col", "colw", "row", "roww", "total", "totalw"),
   chisquare = FALSE
 )
 }

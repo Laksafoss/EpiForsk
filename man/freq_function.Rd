@@ -60,7 +60,7 @@ hard to get an overview of. This is set as the standard.
 \item \code{"numeric"} - will give frequencies and percents as numeric variables
 only, thus the number_decimals option is not in effect. This option might
 be useful when making figures/graphs.
-\item "col" - will only give unweighted number of observations and weighted
+\item \code{"col"} - will only give unweighted number of observations and weighted
 column percent (if weights are used, otherwise unweighted)
 \item \code{"colw"} - will only give weighted number of observations and weighted
 column percent (if weights are used, otherwise unweighted)
