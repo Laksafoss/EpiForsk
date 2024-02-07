@@ -140,7 +140,7 @@ X <- matrix(rnorm(n * p), n, p) |>
 as.data.frame() |>
 dplyr::bind_cols(
   DiscreteCovariatesToOneHot(
-    tibble::tibble(
+    dplyr::tibble(
       D1 = factor(
         sample(1:3, n, replace = TRUE, prob = c(0.2, 0.3, 0.5)),
         labels = c("first", "second", "third")

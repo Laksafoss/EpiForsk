@@ -78,7 +78,7 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
     formula[-2],
     data = data
   ) |>
-    tibble::as_tibble() |>
+    dplyr::as_tibble() |>
     dplyr::bind_cols(
       data |> dplyr::select({{ grp_id }})
     )
@@ -99,7 +99,7 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
     (nm) := lapply(.SD, \(x) x - mean(x)),
     by = grp_id,
     .SDcols = nm]
-  model_matrix_trans <- tibble::as_tibble(model_matrix_trans)
+  model_matrix_trans <- dplyr::as_tibble(model_matrix_trans)
   # demean outcome by grp_id
   outcome_trans <- data.table::as.data.table(
     data |>
@@ -116,7 +116,7 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
     by = grp_id,
     .SDcols = nm
   ]
-  outcome_trans <- tibble::as_tibble(outcome_trans)
+  outcome_trans <- dplyr::as_tibble(outcome_trans)
   # combine data
   if (!is.null(obs_id)) {
     mod_data <- dplyr::left_join(

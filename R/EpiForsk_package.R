@@ -18,7 +18,7 @@
 #'
 #' @importFrom gridExtra arrangeGrob
 #' @importFrom methods hasArg
-#' @importFrom rlang .data
+#' @importFrom dplyr .data
 #' @importFrom rlang :=
 #' @importFrom survey svyglm
 #' @importFrom survival coxph

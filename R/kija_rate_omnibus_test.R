@@ -271,7 +271,7 @@ RATEOmnibusTest <- function(forest,
 
   # Confidence interval and p-value
   confint <- rate$estimate +
-    tibble::tibble(
+    dplyr::tibble(
       estimate = 0,
       lower = -qnorm(1 - (1 - level) / 2) * rate$std.err,
       upper =  qnorm(1 - (1 - level) / 2) * rate$std.err

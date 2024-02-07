@@ -342,7 +342,7 @@ odds_ratio_function <- function(
       Freqw = sum(.data$weight_used),
       .by = "Outc"
     ) |>
-    tibble::rownames_to_column(var = "sortnr") |>
+    (\(tbl) dplyr::mutate(tbl, sortnr = rownames(tbl), .before = 1))() |>
     dplyr::mutate(
       Part_ = dplyr::case_when(
         .data$sortnr == 1 ~ paste0(
@@ -442,7 +442,7 @@ odds_ratio_function <- function(
 
         #Getting p-values for included components in model
         func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
-          tibble::rownames_to_column(var = "Variable") |>
+          (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
           dplyr::rename("P_drop1" = "P_anova")
@@ -493,7 +493,7 @@ odds_ratio_function <- function(
 
         # Getting p-values for included components in model
         func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
-          tibble::rownames_to_column(var = "Variable") |>
+          (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
           dplyr::rename("P_drop1" = "P_anova")
@@ -566,7 +566,7 @@ odds_ratio_function <- function(
 
         #Getting p-values for included components in model
         func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
-          tibble::rownames_to_column(var = "Variable") |>
+          (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
           dplyr::rename("P_drop1" = "P_anova")
@@ -596,7 +596,7 @@ odds_ratio_function <- function(
 
       # Getting p-values for included components in model
       func_table5_p <- drop1(func_table5_prp, test = "Chisq") |>
-        tibble::rownames_to_column(var = "Variable") |>
+        (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
         dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
         dplyr::filter(!is.na(.data$P_anova)) |>
         dplyr::rename("P_drop1" = "P_anova")
@@ -661,7 +661,7 @@ odds_ratio_function <- function(
       func_table5_prp2 <- as.data.frame(
         summary(func_table5_prp)$coeftable
       ) |>
-        tibble::rownames_to_column(var = "term_prp") |>
+        (\(tbl) dplyr::mutate(tbl, term_prp = rownames(tbl), .before = 1))() |>
         dplyr::rowwise() |>
         dplyr::mutate(
           cut_point = utils::tail(unlist(gregexpr(":", .data$term_prp)), n = 1),
@@ -679,7 +679,7 @@ odds_ratio_function <- function(
         )
       # Getting outcome group names (Not included in standard output)
       func_table5_prp3 <- as.data.frame(func_table5_prp$fit@extra$colnames.y) |>
-        tibble::rownames_to_column(var = "Outcome_order")
+        (\(tbl) dplyr::mutate(tbl, Outcome_order = rownames(tbl), .before = 1))()
       # Getting hold of outcome reference level number
       func_table5_prp4 <- as.data.frame(func_table5_prp$fit@extra$use.refLevel)
       # Change column/variable names so they are standardized
@@ -766,7 +766,7 @@ odds_ratio_function <- function(
   #   get the reference groups. Also, if all exposures are numeric (not
   #   factors), there are no rows in file, so it must be added
   func_table7_levels2_prp <- as.data.frame(unlist(func_table7_levels)) |>
-    tibble::rownames_to_column(var = "Variable_prp") |>
+    (\(tbl) dplyr::mutate(tbl, Variable_prp = rownames(tbl), .before = 1))() |>
     dplyr::mutate(
       count_digit1 = substr(
         .data$Variable_prp,
@@ -793,7 +793,7 @@ odds_ratio_function <- function(
   func_table7_var_types <- as.data.frame(
     t(as.data.frame(purrr::map(func_table7, class)))
   ) |>
-    tibble::rownames_to_column(var = "Variable") |>
+    (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
     dplyr::filter(.data$V1 %in% c("factor")) |>
     dplyr::select("Variable")
   # Making sure reference values shown for all outcomes (except the
