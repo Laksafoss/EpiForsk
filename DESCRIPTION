@@ -1,6 +1,6 @@
 Package: EpiForsk
 Title: Code Sharing at the Department of Epidemiological Research at Statens Serum Institut 
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: 
     c(person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),
              comment = c(ORCID = "0000-0002-9898-2924")),
