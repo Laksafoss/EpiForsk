@@ -14,6 +14,7 @@
 #'   \item{ASO  : }{Mikael Andersson}
 #'   \item{EMTH : }{Emilia Myrup Thiesson}
 #'   \item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
+#'   \item{KLP  : }{Klaus Rostgaard (https://orcid.org/0000-0001-6220-9414)}
 #' }
 #'
 #' @importFrom gridExtra arrangeGrob

@@ -2,8 +2,14 @@ Package: EpiForsk
 Title: Code Sharing at the Department of Epidemiological Research at Statens Serum Institut 
 Version: 0.0.1
 Authors@R: 
-    person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-9898-2924"))
+    c(person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),
+             comment = c(ORCID = "0000-0002-9898-2924")),
+      person("Kim Daniel", "Jakobsen", , "kija@ssi.dk", role = c("aut"),
+             comment = c(ORCID = "0000-0003-0086-9980")),
+      person("Mikael", "Andersson", , "aso@ssi.dk", role = c("aut"),
+             comment = c(ORCID = "0000-0002-0114-2057")),
+      person("Klaus", "Rostgaard", , "klp@ssi.dk", role = c("aut"),
+             comment = c(ORCID = "0000-0001-6220-9414")))
 Description: This is a collection of assorted functions and examples collected 
     from various projects. Currently we have functionalities for simplifying 
     overlapping time intervals, Charlson comorbidity score constructors for 

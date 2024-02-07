@@ -21,9 +21,17 @@ In the package there are contributions from
 \item{ASO  : }{Mikael Andersson}
 \item{EMTH : }{Emilia Myrup Thiesson}
 \item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
+\item{KLP  : }{Klaus Rostgaard (https://orcid.org/0000-0001-6220-9414)}
 }
 }
 \author{
 \strong{Maintainer}: Anna Laksafoss \email{adls@ssi.dk} (\href{https://orcid.org/0000-0002-9898-2924}{ORCID})
+
+Authors:
+\itemize{
+  \item Kim Daniel Jakobsen \email{kija@ssi.dk} (\href{https://orcid.org/0000-0003-0086-9980}{ORCID})
+  \item Mikael Andersson \email{aso@ssi.dk} (\href{https://orcid.org/0000-0002-0114-2057}{ORCID})
+  \item Klaus Rostgaard \email{klp@ssi.dk} (\href{https://orcid.org/0000-0001-6220-9414}{ORCID})
+}
 
 }
