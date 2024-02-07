@@ -1,36 +1,36 @@
 #' c-for-benefit
 #'
-#' Calculates the c-for-benefit, as proposed by D. van Klaveren et
-#' al. (2018), by matching patients based on patient characteristics.
+#' Calculates the c-for-benefit, as proposed by D. van Klaveren et al. (2018),
+#' by matching patients based on patient characteristics.
 #'
 #' @param forest An object of class `causal_forest`, as returned by
 #'   \link[grf]{causal_forest}().
 #' @param match character, `"covariates"` to match on covariates or `"CATE"` to
 #'   match on estimated CATE.
-#' @param tau_hat_method character, `"treatment"` to calculate the expected
+#' @param match_method see \link[MatchIt]{matchit}.
+#' @param match_distance see \link[MatchIt]{matchit}.
+#' @param tau_hat_method character, `"risk_diff"` to calculate the expected
 #'   treatment effect in matched groups as the risk under treatment for the
-#'   treated subject minus the risk under control for the untreated
-#'   subject. `"average"` to calculate it as the average treatment effect of
-#'   matched subject.
-#' @param time_limit numeric, maximum allowed time to compute C-for-benefit. If
-#'   limit is reached, execution stops.
+#'   treated subject minus the risk under control for the untreated subject.
+#'   `"tau_avg"` to calculate it as the average treatment effect of matched
+#'   subject.
 #' @param CI character, `"none"` for no confidence interval, `"simple"` to use a
 #'   normal approximation, and `"bootstrap"` to use the bootstrap.
 #' @param level numeric, confidence level of the confidence interval.
 #' @param n_bootstraps numeric, number of bootstraps to use for the bootstrap
 #'   confidence interval computation.
+#' @param time_limit numeric, maximum allowed time to compute C-for-benefit. If
+#'   limit is reached, execution stops.
 #' @param time_limit_CI numeric, maximum time allowed to compute the bootstrap
 #'   confidence interval. If limit is reached, the user is asked if execution
 #'   should continue or be stopped.
 #' @param verbose boolean, TRUE to display progress bar, FALSE to not display
 #'   progress bar.
-#' @param method see \link[MatchIt]{matchit}.
-#' @param distance see \link[MatchIt]{matchit}.
 #' @param Y a vector of outcomes. If provided, replaces `forest$Y.orig`.
 #' @param W a vector of treatment assignment; 1 for active treatment; 0 for
 #'   control If provided, replaces `forest$W.orig`.
 #' @param X a matrix of patient characteristics. If provided, replaces
-#' `forest$X.orig`.
+#'   `forest$X.orig`.
 #' @param p_0 a vector of outcome probabilities under control.
 #' @param p_1 a vector of outcome probabilities under active treatment.
 #' @param tau_hat a vector of individualized treatment effect predictions. If
@@ -39,6 +39,8 @@
 #'
 #' @returns a list with the following components:
 #'
+#' - type: a list with the input provided to the function which determines
+#'         how C-for-benefit is computed.
 #' - matched_patients: a tibble containing the matched patients.
 #' - c_for_benefit: the resulting C-for-benefit value.
 #' - lower_CI: the lower bound of the confidence interval (if CI = TRUE).
@@ -52,20 +54,19 @@
 #'   effects, van Klaveren et al. suggest matching a treated subject to a
 #'   control subject on the predicted treatments effect (or alternatively the
 #'   covariates) and defining the observed effect as the difference between the
-#'   outcomes of the treated subject and the control subject (either -1, 0, or
-#'   1). The c-for-benefit statistic is then defined as the proportion of
-#'   matched pairs with unequal observed effect in which the subject pair
-#'   receiving greater treatment effect also has the highest expected treatment
-#'   effect. \cr
-#'   When calculating the expected treatment effect, van Klaveren et al. use the
-#'   average CATE from the matched subjects in a pair (tau_hat_method = "mean").
-#'   However, this doesn't match the observed effect used, unless the baseline
-#'   risks are equal. The observed effect is the difference between the observed
-#'   outcome for the subject receiving treatment and the observed outcome for
-#'   the subject receiving control. Their outcomes are governed by the exposed
-#'   risk and the baseline risk respectively. The baseline risks are ideally
-#'   equal when covariate matching, although instability of the forest estimates
-#'   can cause significantly different baseline risks due to non-exact matching.
+#'   outcomes of the treated subject and the control subject. The c-for-benefit
+#'   statistic is then defined as the proportion of matched pairs with unequal
+#'   observed effect in which the subject pair receiving greater treatment
+#'   effect also has the highest expected treatment effect. \cr When calculating
+#'   the expected treatment effect, van Klaveren et al. use the average CATE
+#'   from the matched subjects in a pair (tau_hat_method = "mean"). However,
+#'   this doesn't match the observed effect used, unless the baseline risks are
+#'   equal. The observed effect is the difference between the observed outcome
+#'   for the subject receiving treatment and the observed outcome for the
+#'   subject receiving control. Their outcomes are governed by the exposed risk
+#'   and the baseline risk respectively. The baseline risks are ideally equal
+#'   when covariate matching, although instability of the forest estimates can
+#'   cause significantly different baseline risks due to non-exact matching.
 #'   When matching on CATE, we should not expect baseline risks to be equal.
 #'   Instead, we can more closely match the observed treatment effect by using
 #'   the difference between the exposed risk for the subject receiving treatment
@@ -75,7 +76,7 @@
 #' @author KIJA
 #'
 #' @examples
-#' n <- 1500
+#' n <- 1000
 #' p <- 5
 #' X <- matrix(rnorm(n * p), n, p)
 #' W <- rbinom(n, 1, 0.5)
@@ -83,8 +84,8 @@
 #' Y <- rbinom(n, 1, event_prob)
 #' cf <- grf::causal_forest(X, Y, W)
 #' CB_out <- CForBenefit(
-#' forest = cf, CI = "bootstrap", n_bootstraps = 20, verbose = TRUE,
-#' method = "nearest", distance = "mahalanobis"
+#' forest = cf, CI = "bootstrap", n_bootstraps = 20L, verbose = TRUE,
+#' match_method = "nearest", match_distance = "mahalanobis"
 #' )
 #' CB_out
 #'
@@ -92,15 +93,15 @@
 
 CForBenefit <- function(forest,
                         match = c("covariates", "CATE"),
-                        tau_hat_method = c("treatment", "mean"),
-                        time_limit = Inf,
-                        CI = c("none", "simple", "bootstrap"),
+                        match_method = "nearest",
+                        match_distance = "mahalanobis",
+                        tau_hat_method = c("risk_diff", "tau_avg"),
+                        CI = c("simple", "bootstrap", "none"),
                         level = 0.95,
-                        n_bootstraps = 1,
+                        n_bootstraps = 999L,
+                        time_limit = Inf,
                         time_limit_CI = Inf,
                         verbose = TRUE,
-                        method = "nearest",
-                        distance = "mahalanobis",
                         Y = NULL,
                         W = NULL,
                         X = NULL,
@@ -108,41 +109,18 @@ CForBenefit <- function(forest,
                         p_1 = NULL,
                         tau_hat = NULL,
                         ...) {
-  stopifnot(
-    "forest must be a causal_forest object" =
-      missing(forest) || is.null(forest) || "causal_forest" %in% class(forest)
-  )
-  if (is.null(Y)) Y <- forest$Y.orig
-  if (is.null(W)) W <- forest$W.orig
-  if (is.null(X)) X <- as.matrix(forest$X.orig)
-  if (is.null(p_0)) {
-    p_0 <- as.numeric(forest$Y.hat - forest$W.hat * forest$predictions)
-  }
-  if (is.null(p_1)) {
-    p_1 <- as.numeric(forest$Y.hat + (1 - forest$W.hat) * forest$predictions)
-  }
-  if (is.null(tau_hat)) tau_hat <- as.numeric(forest$predictions)
-  subclass <- NULL
-  # ensure correct data types
-  stopifnot("Y must be a numeric vector" = is.vector(Y) && is.numeric(Y))
-  stopifnot("W must be a numeric vector" = is.vector(W) && is.numeric(W))
-  stopifnot("X must be a numeric matrix" = is.matrix(X) && is.numeric(X))
-  stopifnot("p_0 must be a numeric vector" = is.vector(p_0) && is.numeric(p_0))
-  stopifnot("p_1 must be a numeric vector" = is.vector(p_1) && is.numeric(p_1))
-  stopifnot(
-    "tau_hat must be a numeric vector" =
-      is.vector(tau_hat) && is.numeric(tau_hat)
-  )
+  ### Check input
+  # ensure correct type of inputs controlling options
   stopifnot(
     "level must be a scalar between 0 and 1" =
-      length(level) == 1 && 0 < level && level < 1
+      is.numeric(level) && length(level) == 1 && 0 < level && level < 1
   )
   stopifnot(
     "n_bootstraps must be a scalar" =
       is.numeric(n_bootstraps) && length(n_bootstraps) == 1
   )
-  stopifnot("method must be a character" = is.character(method))
-  stopifnot("distance must be a character" = is.character(distance))
+  stopifnot("match_method must be a character" = is.character(match_method))
+  stopifnot("match_distance must be a character" = is.character(match_distance))
   stopifnot(
     "verbose must be a boolean (TRUE or FALSE)" =
       isTRUE(verbose) | isFALSE(verbose)
@@ -151,21 +129,115 @@ CForBenefit <- function(forest,
   tau_hat_method <- match.arg(tau_hat_method)
   CI <- match.arg(CI)
 
+  # Check that suggested package cli is installed when verbose=TRUE
+  if (verbose) {
+    cli <- requireNamespace("cli", quietly = TRUE)
+    if (!cli) {
+      if (interactive()) {
+        for (i in 1:3) {
+          input <- readline(glue::glue(
+            "'verbose=TRUE' requires package 'cli' to be installed.\n",
+            "Attempt to install package from CRAN? (y/n)"
+          ))
+          if (input == "y") {
+            install.packages(
+              pkgs = "cli",
+              repos = "https://cloud.r-project.org"
+            )
+            cli <- requireNamespace("cli", quietly = TRUE)
+            if (!cli) {
+              stop("Failed to install package 'cli'")
+            }
+            break
+          } else if (input == "n") {
+            stop("When 'verbose=TRUE', package 'cli' is required.")
+          }
+          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
+        }
+      } else {
+        stop("When 'verbose=TRUE', package 'cli' is required.")
+      }
+    }
+  }
+
+  # check forest is a causal_forest object (or missing or NULL)
+  stopifnot(
+    "forest must be a causal_forest object" =
+      missing(forest) || is.null(forest) || inherits(forest, "causal_forest")
+  )
+
+  # If forest is missing or NULL, check required inputs are provided
+  if (missing(forest) || is.null(forest)) {
+    if (is.null(Y) | is.null(W)) {
+      stop("Y and W must be provided")
+    }
+    if (match == "covariates" && is.null(X)) {
+      stop("X must be provided when match = 'covariates'")
+    }
+    if (tau_hat_method == "risk_diff" && (is.null(p_0) || is.null(p_1))) {
+      stop("p_0 and p_1 must be provided when tau_hat_method = 'risk_diff'")
+    }
+    if ((match == "CATE" || tau_hat_method == "tau_avg") && is.null(tau_hat)) {
+      stop("tau_hat must be provided when match = 'CATE' or tau_hat_method = 'tau_avg'")
+    }
+  }
+
+  # Extract quantities from causal forest object
+  if (is.null(Y)) Y <- forest$Y.orig
+  if (is.null(W)) W <- forest$W.orig
+  suppressMessages({
+    if (is.null(X)) X <- dplyr::as_tibble(forest$X.orig, .name_repair = "unique")
+  })
+  if (is.null(p_0)) {
+    p_0 <- as.numeric(forest$Y.hat - forest$W.hat * forest$predictions)
+  }
+  if (is.null(p_1)) {
+    p_1 <- as.numeric(forest$Y.hat + (1 - forest$W.hat) * forest$predictions)
+  }
+  if (is.null(tau_hat)) tau_hat <- as.numeric(forest$predictions)
+  subclass <- NULL
+
+  # ensure correct data types of data inputs
+  stopifnot("Y must be a numeric vector" = is.vector(Y) && is.numeric(Y))
+  stopifnot("W must be a numeric vector" = is.vector(W) && is.numeric(W))
+  if (match == "covariates") {
+    stopifnot("X must be a data frame" = is.data.frame(X))
+  }
+  if (tau_hat_method == "risk_diff") {
+    stopifnot("p_0 must be a numeric vector" = is.vector(p_0) && is.numeric(p_0))
+    stopifnot("p_1 must be a numeric vector" = is.vector(p_1) && is.numeric(p_1))
+  }
+  if (match == "CATE" || tau_hat_method == "tau_avg") {
+    stopifnot(
+      "tau_hat must be a numeric vector" =
+        is.vector(tau_hat) && is.numeric(tau_hat)
+    )
+  }
+
   # patient can only be matched to one other patient from other treatment arm
-  if (sum(W == 1) <= sum(W == 0)){
-    # ATT: all treated patients get matched with control patient
-    estimand_method <- "ATT"
-  } else if (sum(W == 1) > sum(W == 0)){
-    # ATC: all control patients get matched with treated patient
-    estimand_method <- "ATC"
+  if (!("estimand" %in% ...names())) {
+    if (sum(W == 1) <= sum(W == 0)){
+      # ATT: all treated patients get matched with control patient
+      estimand_method <- "ATT"
+    } else if (sum(W == 1) > sum(W == 0)){
+      # ATC: all control patients get matched with treated patient
+      estimand_method <- "ATC"
+    }
   }
 
   # combine all data in one tibble
-  data_tbl <- tibble::tibble(
-    match_id = 1:length(Y),
-    W = W, X = X, Y = Y,
-    p_0 = p_0, p_1 = p_1, tau_hat = tau_hat
+  data_tbl <- dplyr::tibble(
+    match_id = seq_along(Y),
+    W = W,
+    Y = Y
   )
+  if (match == "covariates") data_tbl <- dplyr::mutate(data_tbl, X = X)
+  if (tau_hat_method == "risk_diff") {
+    data_tbl <- dplyr::mutate(data_tbl, p_0 = p_0, p_1 = p_1)
+  }
+  if (match == "CATE" || tau_hat_method == "tau_avg") {
+    data_tbl <- dplyr::mutate(data_tbl, tau_hat = tau_hat)
+  }
 
   # set time limit on calculating C for benefit
   on.exit({
@@ -175,64 +247,84 @@ CForBenefit <- function(forest,
 
   if (match == "covariates") {
     # match on covariates
-    matched <- MatchIt::matchit(
-      W ~ X,
-      data = data_tbl,
-      method = method,
-      distance = distance,
-      estimand = estimand_method,
-      ...
-    )
+    if ("estimand" %in% ...names()) {
+      matched <- MatchIt::matchit(
+        DF2formula(tidyr::unnest(dplyr::select(data_tbl, W, X), "X")),
+        data = tidyr::unnest(data_tbl, "X"),
+        method = match_method,
+        distance = match_distance,
+        ...
+      )
+    } else {
+      matched <- MatchIt::matchit(
+        DF2formula(tidyr::unnest(dplyr::select(data_tbl, W, X), "X")),
+        data = tidyr::unnest(data_tbl, "X"),
+        method = match_method,
+        distance = match_distance,
+        estimand = estimand_method,
+        ...
+      )
+    }
   } else if (match == "CATE") {
-    matched <- MatchIt::matchit(
-      W ~ tau_hat,
-      data = data_tbl,
-      method = method,
-      distance = distance,
-      estimand = estimand_method,
-      ...
-    )
+    # match on CATE
+    if ("estimand" %in% ...names()) {
+      matched <- MatchIt::matchit(
+        W ~ tau_hat,
+        data = data_tbl,
+        method = match_method,
+        distance = match_distance,
+        ...
+      )
+    } else {
+      matched <- MatchIt::matchit(
+        W ~ tau_hat,
+        data = data_tbl,
+        method = match_method,
+        distance = match_distance,
+        estimand = estimand_method,
+        ...
+      )
+    }
   }
   matched_patients <- MatchIt::match.data(matched)
   matched_patients$subclass <- as.numeric(matched_patients$subclass)
-  matched_patients <- tibble::as_tibble(matched_patients)
+  suppressMessages({
+    matched_patients <-
+      dplyr::as_tibble(matched_patients, .name_repair = "unique")
+  })
 
   # sort on subclass and W
   matched_patients <- matched_patients |>
-    dplyr::arrange(subclass, 1 - W)
+    dplyr::arrange(.data$subclass, .data$W)
 
   # matched observed treatment effect
   observed_te <- matched_patients |>
     dplyr::select(subclass, Y) |>
-    dplyr::group_by(subclass) |>
     dplyr::summarise(
-      Y = diff(Y),
-      .groups = "drop"
+      Y = diff(.data$Y),
+      .by = subclass
     ) |>
-    dplyr::pull(Y)
+    dplyr::pull(.data$Y)
   matched_patients$matched_tau_obs <- rep(observed_te, each = 2)
 
-  if(tau_hat_method == "treatment") {
-  # matched p_0 = P[Y = 1| W = 0]
-  matched_p_0 <- (1 - matched_patients$W) * matched_patients$p_0
-  matched_patients$matched_p_0 <- rep(matched_p_0[matched_p_0 != 0], each = 2)
-
-  # matched p_1 = P[Y = 1| W = 1]
-  matched_p_1 <- matched_patients$W * matched_patients$p_1
-  matched_patients$matched_p_1 <- rep(matched_p_1[matched_p_1 != 0], each = 2)
-
-  # matched treatment effect (risk of treated - risk of control)
-  matched_patients$matched_tau_hat <-
-    matched_patients$matched_p_1 -
-    matched_patients$matched_p_0
-  } else if (tau_hat_method == "mean") {
+  # matched predicted treatment effect
+  if(tau_hat_method == "risk_diff") {
+    # matched p_0 = P(Y = 1|W = 0)
+    # matched p_1 = P(Y = 1|W = 1)
+    matched_patients <- matched_patients |>
+      dplyr::mutate(
+        matched_p_0 = sum((1 - .data$W) * .data$p_0),
+        matched_p_1 = sum(.data$W * .data$p_1),
+        matched_tau_hat = .data$matched_p_1 - .data$matched_p_0,
+        .by = subclass
+      )
+  } else if (tau_hat_method == "tau_avg") {
     # matched treatment effect (average CATE)
     matched_patients <- matched_patients |>
-      dplyr::group_by(subclass) |>
       dplyr::mutate(
-        matched_tau_hat = mean(tau_hat)
-      ) |>
-      dplyr::ungroup()
+        matched_tau_hat = mean(.data$tau_hat),
+        .by = subclass
+      )
   }
 
   # C-for-benefit
@@ -241,12 +333,11 @@ CForBenefit <- function(forest,
     matched_patients$matched_tau_obs[seq(1, nrow(matched_patients), 2)]
   )
   c_for_benefit <- cindex["C Index"][[1]]
+  c_for_benefit_se <- cindex["S.D."][[1]] / 2
 
   if (CI == "simple") {
-    lower_CI <- c_for_benefit -
-      qnorm(1 - (1 - level) / 2) * cindex["S.D."][[1]] / 2
-    upper_CI <- c_for_benefit +
-      qnorm(1 - (1 - level) / 2) * cindex["S.D."][[1]] / 2
+    lower_CI <- c_for_benefit + qnorm(0.5 - level / 2) * c_for_benefit_se
+    upper_CI <- c_for_benefit + qnorm(0.5 + level / 2) * c_for_benefit_se
   } else if (CI == "bootstrap") {
     CB_for_CI <- c()
     B <- 0
@@ -263,8 +354,9 @@ CForBenefit <- function(forest,
             replace = TRUE
           )
           # matched_patients is ordered by subclass
+          # (and each subclass has 2 members)
           duplicated_matched_patients <- matched_patients |>
-            dplyr::slice(sample_subclass * 2)
+            dplyr::slice({{ sample_subclass }} * 2)
           # calculate C-for-benefit for duplicated matched pairs
           duplicated_cindex <- Hmisc::rcorr.cens(
             duplicated_matched_patients$matched_tau_hat,
@@ -278,21 +370,20 @@ CForBenefit <- function(forest,
           if (
             grepl(
               "reached elapsed time limit|reached CPU time limit",
-              e$message)
-          ) {
-            input <- readline(
-              "Time limit reached. Do you want execution to continue (y/n) "
+              e$message
             )
-            if (input %in% c("y", "n")) {
-              if(input == "n") stop("Time limit reached, execution stopped")
-            } else {
+          ) {
+            for (i in 1:3) {
               input <- readline(
-                "Please input either 'y' to continue or 'n' to stop execution. "
+                "Time limit reached. Do you want execution to continue (y/n) "
               )
-              if (input %in% c("y", "n")) {
-                if(input == "n") stop("Time limit reached, execution stopped")
-              } else {
-                stop("Answer not 'y' or 'n'. Execution stopped.")
+              if (input =="y") {
+                break
+              } else if (input == "n") {
+                stop("Time limit reached")
+              }
+              if (i == 3) {
+                stop("Failed to answer 'y' or 'n' to many times")
               }
             }
           } else {
@@ -301,20 +392,33 @@ CForBenefit <- function(forest,
         }
       )
     }
-    lower_CI <- as.numeric(quantile(CB_for_CI, (1 - level) / 2))
-    upper_CI <- as.numeric(quantile(CB_for_CI, 1 - (1 - level) / 2))
-  }
-  else if (CI == "none") {
+    lower_CI <- as.numeric(quantile(CB_for_CI, 0.5 - level / 2))
+    upper_CI <- as.numeric(quantile(CB_for_CI, 0.5 + level / 2))
+  } else if (CI == "none") {
     lower_CI <- NA
     upper_CI <- NA
   }
 
   return(
     list(
+      type = list(
+        match = match,
+        match_method = match_method,
+        match_distance = match_distance,
+        tau_hat_method = tau_hat_method,
+        CI = CI,
+        level = level,
+        n_bootstraps = n_bootstraps
+      ),
       matched_patients = matched_patients,
       c_for_benefit = c_for_benefit,
       lower_CI = lower_CI,
-      upper_CI = upper_CI
+      upper_CI = upper_CI,
+      cfb_tbl = dplyr::tibble(
+        "ci_{0.5 - level / 2}" := lower_CI,
+        "estimate" = c_for_benefit,
+        "ci_{0.5 + level / 2}" := upper_CI
+      )
     )
   )
 }

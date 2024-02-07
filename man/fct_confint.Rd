@@ -21,13 +21,13 @@ fct_confint(
   f,
   which_parm = rep(TRUE, length(coef(object))),
   level = 0.95,
-  len = 0.1,
-  n_grid = 0L,
-  k = 1000L,
-  parallel = FALSE,
-  n_cores = 10,
   return_beta = FALSE,
   verbose = FALSE,
+  n_grid = NULL,
+  k = NULL,
+  len = 0.1,
+  parallel = FALSE,
+  n_cores = 10L,
   ...
 )
 
@@ -36,13 +36,13 @@ fct_confint(
   f,
   which_parm = rep(TRUE, length(coef(object))),
   level = 0.95,
-  len = 0.1,
-  n_grid = 0L,
-  k = 1000L,
-  parallel = FALSE,
-  n_cores = 10,
   return_beta = FALSE,
   verbose = FALSE,
+  n_grid = NULL,
+  k = NULL,
+  len = 0.1,
+  parallel = FALSE,
+  n_cores = 10L,
   ...
 )
 
@@ -83,29 +83,30 @@ vector with the indices of the coefficients used by \code{f}.}
 
 \item{...}{Additional argument(s) passed to methods.}
 
-\item{len}{numeric, the radius of the sphere or box used to define directions
-in which to look for boundary points of the parameter confidence set.}
+\item{return_beta}{Logical, if \code{TRUE} returns both the confidence limits and
+the parameter values used from the boundary of the parameter confidence
+set.}
+
+\item{verbose}{Logical, if \code{TRUE} prints a progress bar with information
+about the fitting process. The progress bar uses extra resources, so if each
+iteration is fast, consider verbose = FALSE.}
 
 \item{n_grid}{Either \code{NULL} or an integer vector of length 1 or the number of
-\code{TRUE}/indices in which_parm. Specifies the number of grid points in
-each dimension of a grid with endpoints defined by len. If \code{NULL} or \code{0L},
-will instead sample k points uniformly on a sphere.}
+\code{TRUE}/indices in which_parm. Specifies the number of grid points in each
+dimension of a grid with endpoints defined by len. If \code{NULL} or \code{0L}, will
+instead sample k points uniformly on a sphere.}
 
 \item{k}{If n_grid is \code{NULL} or \code{0L}, the number of points to sample
 uniformly from a sphere.}
+
+\item{len}{numeric, the radius of the sphere or box used to define directions
+in which to look for boundary points of the parameter confidence set.}
 
 \item{parallel}{Logical, if \code{TRUE} parallel computing is used when solving
 for points on the boundary of the parameter confidence set.}
 
 \item{n_cores}{An integer specifying the number of threads to use for
 parallel computing.}
-
-\item{return_beta}{Logical, if \code{TRUE} returns both the confidence limits and
-the parameter values used from the boundary of the parameter confidence
-set.}
-
-\item{verbose}{Logical, if \code{TRUE} prints information about the number of
-points on the boundary used to calculate the confidence limits.}
 }
 \value{
 A tibble with columns estimate, conf.low, and conf.high or if
@@ -154,11 +155,12 @@ Note this is a conservative confidence set, since parameters outside the
 confidence set of \eqn{\beta} can be mapped to the confidence set of the
 transformed parameter.
 
-To determine \eqn{C_{\beta}}, \code{fct_confint()} finds the boundary by taking
-a number of points around \eqn{\hat\beta} and projecting them onto the
-boundary. Therefore, the confidence set of the transformed parameter will
-only be valid if the boundary of \eqn{C_{\beta}} is mapped to the boundary
-of the confidence set for the transformed parameter.
+To determine \eqn{C_{\beta}}, \code{fct_confint()} uses a convex optimization
+program when f is follows DCP rules. Otherwise, it finds the boundary by
+taking a number of points around \eqn{\hat\beta} and projecting them onto
+the boundary. In this case, the confidence set of the transformed parameter
+will only be valid if the boundary of \eqn{C_{\beta}} is mapped to the
+boundary of the confidence set for the transformed parameter.
 
 The points projected to the boundary are either laid out in a grid around
 \eqn{\hat\beta}, with the number of points in each direction determined
@@ -171,12 +173,12 @@ data <- 1:5 |>
   purrr::map(
     \(x) {
       name = paste0("cov", x);
-      tibble::tibble(!!name := rnorm(100, 1))
+      tibble::tibble("{name}" := rnorm(100, 1))
     }
   ) |>
   purrr::list_cbind() |>
   dplyr::mutate(
-  y = rowSums(dplyr::across(tidyselect::everything())) + rnorm(100)
+  y = rowSums(dplyr::across(dplyr::everything())) + rnorm(100)
   )
 lm <- lm(
  as.formula(

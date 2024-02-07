@@ -7,15 +7,15 @@
 CForBenefit(
   forest,
   match = c("covariates", "CATE"),
-  tau_hat_method = c("treatment", "mean"),
-  time_limit = Inf,
-  CI = c("none", "simple", "bootstrap"),
+  match_method = "nearest",
+  match_distance = "mahalanobis",
+  tau_hat_method = c("risk_diff", "tau_avg"),
+  CI = c("simple", "bootstrap", "none"),
   level = 0.95,
-  n_bootstraps = 1,
+  n_bootstraps = 999L,
+  time_limit = Inf,
   time_limit_CI = Inf,
   verbose = TRUE,
-  method = "nearest",
-  distance = "mahalanobis",
   Y = NULL,
   W = NULL,
   X = NULL,
@@ -32,14 +32,15 @@ CForBenefit(
 \item{match}{character, \code{"covariates"} to match on covariates or \code{"CATE"} to
 match on estimated CATE.}
 
-\item{tau_hat_method}{character, \code{"treatment"} to calculate the expected
-treatment effect in matched groups as the risk under treatment for the
-treated subject minus the risk under control for the untreated
-subject. \code{"average"} to calculate it as the average treatment effect of
-matched subject.}
+\item{match_method}{see \link[MatchIt]{matchit}.}
 
-\item{time_limit}{numeric, maximum allowed time to compute C-for-benefit. If
-limit is reached, execution stops.}
+\item{match_distance}{see \link[MatchIt]{matchit}.}
+
+\item{tau_hat_method}{character, \code{"risk_diff"} to calculate the expected
+treatment effect in matched groups as the risk under treatment for the
+treated subject minus the risk under control for the untreated subject.
+\code{"tau_avg"} to calculate it as the average treatment effect of matched
+subject.}
 
 \item{CI}{character, \code{"none"} for no confidence interval, \code{"simple"} to use a
 normal approximation, and \code{"bootstrap"} to use the bootstrap.}
@@ -49,16 +50,15 @@ normal approximation, and \code{"bootstrap"} to use the bootstrap.}
 \item{n_bootstraps}{numeric, number of bootstraps to use for the bootstrap
 confidence interval computation.}
 
+\item{time_limit}{numeric, maximum allowed time to compute C-for-benefit. If
+limit is reached, execution stops.}
+
 \item{time_limit_CI}{numeric, maximum time allowed to compute the bootstrap
 confidence interval. If limit is reached, the user is asked if execution
 should continue or be stopped.}
 
 \item{verbose}{boolean, TRUE to display progress bar, FALSE to not display
 progress bar.}
-
-\item{method}{see \link[MatchIt]{matchit}.}
-
-\item{distance}{see \link[MatchIt]{matchit}.}
 
 \item{Y}{a vector of outcomes. If provided, replaces \code{forest$Y.orig}.}
 
@@ -80,6 +80,8 @@ provided, replaces forest$predictions.}
 \value{
 a list with the following components:
 \itemize{
+\item type: a list with the input provided to the function which determines
+how C-for-benefit is computed.
 \item matched_patients: a tibble containing the matched patients.
 \item c_for_benefit: the resulting C-for-benefit value.
 \item lower_CI: the lower bound of the confidence interval (if CI = TRUE).
@@ -87,8 +89,8 @@ a list with the following components:
 }
 }
 \description{
-Calculates the c-for-benefit, as proposed by D. van Klaveren et
-al. (2018), by matching patients based on patient characteristics.
+Calculates the c-for-benefit, as proposed by D. van Klaveren et al. (2018),
+by matching patients based on patient characteristics.
 }
 \details{
 The c-for-benefit statistic is inspired by the c-statistic used with
@@ -99,20 +101,19 @@ was the one who observed the outcome. In order to extend this to treatment
 effects, van Klaveren et al. suggest matching a treated subject to a
 control subject on the predicted treatments effect (or alternatively the
 covariates) and defining the observed effect as the difference between the
-outcomes of the treated subject and the control subject (either -1, 0, or
-1). The c-for-benefit statistic is then defined as the proportion of
-matched pairs with unequal observed effect in which the subject pair
-receiving greater treatment effect also has the highest expected treatment
-effect. \cr
-When calculating the expected treatment effect, van Klaveren et al. use the
-average CATE from the matched subjects in a pair (tau_hat_method = "mean").
-However, this doesn't match the observed effect used, unless the baseline
-risks are equal. The observed effect is the difference between the observed
-outcome for the subject receiving treatment and the observed outcome for
-the subject receiving control. Their outcomes are governed by the exposed
-risk and the baseline risk respectively. The baseline risks are ideally
-equal when covariate matching, although instability of the forest estimates
-can cause significantly different baseline risks due to non-exact matching.
+outcomes of the treated subject and the control subject. The c-for-benefit
+statistic is then defined as the proportion of matched pairs with unequal
+observed effect in which the subject pair receiving greater treatment
+effect also has the highest expected treatment effect. \cr When calculating
+the expected treatment effect, van Klaveren et al. use the average CATE
+from the matched subjects in a pair (tau_hat_method = "mean"). However,
+this doesn't match the observed effect used, unless the baseline risks are
+equal. The observed effect is the difference between the observed outcome
+for the subject receiving treatment and the observed outcome for the
+subject receiving control. Their outcomes are governed by the exposed risk
+and the baseline risk respectively. The baseline risks are ideally equal
+when covariate matching, although instability of the forest estimates can
+cause significantly different baseline risks due to non-exact matching.
 When matching on CATE, we should not expect baseline risks to be equal.
 Instead, we can more closely match the observed treatment effect by using
 the difference between the exposed risk for the subject receiving treatment
@@ -120,7 +121,7 @@ and the baseline risk of the subject receiving control (tau_hat_method =
 "treatment").
 }
 \examples{
-n <- 1500
+n <- 1000
 p <- 5
 X <- matrix(rnorm(n * p), n, p)
 W <- rbinom(n, 1, 0.5)
@@ -128,8 +129,8 @@ event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 Y <- rbinom(n, 1, event_prob)
 cf <- grf::causal_forest(X, Y, W)
 CB_out <- CForBenefit(
-forest = cf, CI = "bootstrap", n_bootstraps = 20, verbose = TRUE,
-method = "nearest", distance = "mahalanobis"
+forest = cf, CI = "bootstrap", n_bootstraps = 20L, verbose = TRUE,
+match_method = "nearest", match_distance = "mahalanobis"
 )
 CB_out
 

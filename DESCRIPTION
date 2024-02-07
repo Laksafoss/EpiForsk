@@ -15,33 +15,45 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
-    cli,
+    broom,
     cowplot,
     data.table,
-    doParallel,
     dplyr,
     forcats,
-    foreach,
     ggplot2,
     glue,
     grf,
+    gridExtra,
     Hmisc,
     MatchIt,
     methods,
-    parallel,
+    nnet,
+    patchwork,
     policytree,
+    progress,
     purrr,
     rlang,
     stringr,
+    survey,
+    survival,
+    svyVGAM,
     tibble,
     tidyr,
-    tidyselect (>= 1.2.0)
+    VGAM
 Depends: 
     R (>= 4.2)
 LazyData: true
 Suggests: 
+    cli,
+    CVXR,
+    doParallel,
+    doSNOW,
+    foreach,
+    ggsci,
     knitr,
+    parallel,
     rmarkdown,
+    snow,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

@@ -59,13 +59,13 @@
 #' KIJA
 #'
 #' @examples
-#' n <- 2000
+#' n <- 1000
 #' p <- 5
 #' X <- matrix(rnorm(n * p), n, p)
 #' W <- rbinom(n, 1, 0.5)
 #' event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 #' Y <- rbinom(n, 1, event_prob)
-#' clusters <- sample(1:10, n, replace = TRUE)
+#' clusters <- sample(1:5, n, replace = TRUE)
 #' cf <- grf::causal_forest(X, Y, W, clusters = clusters)
 #' rate <- RATEOmnibusTest(cf, target = "QINI")
 #' rate
@@ -83,6 +83,7 @@ RATEOmnibusTest <- function(forest,
                             ...) {
   target <- match.arg(target)
   clusters <- forest$clusters
+  if (is.numeric(clusters) && length(clusters) == 0) clusters <- NULL
   id <- NULL
 
   # collect ... arguments in list
@@ -170,8 +171,14 @@ RATEOmnibusTest <- function(forest,
     ]
     sample <- sample[, id]
   }
-
   # Train causal forests on each half-sample
+  if (length(cf_args$clusters) == 0) {
+    clust_arg_sample <- cf_args$clusters
+    clust_arg_nsample <- cf_args$clusters
+  } else {
+    clust_arg_sample <- cf_args$clusters[sample]
+    clust_arg_nsample <- cf_args$clusters[-sample]
+  }
   forest_1 <- grf::causal_forest(
     X = forest$X.orig[sample,],
     Y = forest$Y.orig[sample],
@@ -180,7 +187,7 @@ RATEOmnibusTest <- function(forest,
     W.hat = cf_args$W.hat[sample],
     num.trees  = cf_args$`_num_trees`,
     sample.weights = cf_args$sample.weights[sample],
-    clusters = cf_args$clusters[sample],
+    clusters = clust_arg_sample,
     equalize.cluster.weights = cf_args$equalize.cluster.weights,
     sample.fraction = cf_args$sample.fraction,
     mtry = cf_args$mtry,
@@ -208,7 +215,7 @@ RATEOmnibusTest <- function(forest,
     W.hat = cf_args$W.hat[-sample],
     num.trees  = cf_args$`_num_trees`,
     sample.weights = cf_args$sample.weights[-sample],
-    clusters = cf_args$clusters[-sample],
+    clusters = clust_arg_nsample,
     equalize.cluster.weights = cf_args$equalize.cluster.weights,
     sample.fraction = cf_args$sample.fraction,
     mtry = cf_args$mtry,
@@ -250,8 +257,8 @@ RATEOmnibusTest <- function(forest,
   dr <- vector(mode = "double", length = length(forest$Y.orig))
   dr[sample] <- dr_1
   dr[-sample] <- dr_2
-
   # Compute RATE
+  if(length(cf_args$clusters) > 0) clusters <- cf_args$clusters
   rate <- grf::rank_average_treatment_effect.fit(
     DR.scores = dr,
     priorities = tau,
@@ -259,7 +266,7 @@ RATEOmnibusTest <- function(forest,
     q = q,
     R = R,
     sample.weights = cf_args$sample.weights,
-    clusters = cf_args$clusters
+    clusters = clusters
   )
 
   # Confidence interval and p-value

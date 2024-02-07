@@ -22,11 +22,11 @@ Convert factors in a data frame to one-hot encoding.
 }
 \examples{
 mtcars |>
-dplyr::mutate(across(c(2, 8:11), factor)) |>
+dplyr::mutate(dplyr::across(c(2, 8:11), factor)) |>
  as.data.frame() |>
  DiscreteCovariatesToOneHot(cyl)
 mtcars |>
-dplyr::mutate(across(c(2, 8:11), factor)) |>
+dplyr::mutate(dplyr::across(c(2, 8:11), factor)) |>
  as.data.frame() |>
  DiscreteCovariatesToOneHot(c(2, 8:11))
 

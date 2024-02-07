@@ -68,9 +68,9 @@
 
 lms <- function (formula, data, grp_id, obs_id = NULL, ...)
 {
-  grp_id <- rlang::ensym(grp_id)
-  tryCatch({obs_id <- rlang::ensym(obs_id)}, error = function(e) e)
-  if (length(formula) < 3) rlang::abort("formula must have a LHS")
+  grp_id <- dplyr::ensym(grp_id)
+  tryCatch({obs_id <- dplyr::ensym(obs_id)}, error = function(e) e)
+  if (length(formula) < 3) stop("'formula' must have a LHS")
   # remove intercept
   formula <- update.formula(formula, . ~ . - 1)
   # create model matrix from formula:
@@ -91,68 +91,31 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   }
   # demean data by grp_id
   model_matrix_trans <- data.table::as.data.table(model_matrix)
-  model_matrix_trans <- eval(
-    rlang::parse_expr(
-      paste0(
-        "model_matrix_trans[, list(",
-        if (!is.null(obs_id)) {
-          paste0(
-            obs_id,
-            " = ",
-            obs_id,
-            ", "
-          )
-        },
-        paste0(
-          "`",
-          names(model_matrix_trans)[
-            seq_len(length(model_matrix_trans) - 1 - !is.null(obs_id))
-          ],
-          "` = (function(x) x - mean(x))(`",
-          names(model_matrix_trans)[
-            seq_len(length(model_matrix_trans) - 1 - !is.null(obs_id))
-          ],
-          collapse = "`), "
-        ),
-        "`)), keyby = list(",
-        grp_id,
-        ")]"
-      )
-    )
-  )
+  nm <- names(model_matrix_trans)[
+    seq_len(length(model_matrix_trans) - 1 - !is.null(obs_id))
+  ]
+  model_matrix_trans[
+    ,
+    (nm) := lapply(.SD, \(x) x - mean(x)),
+    by = grp_id,
+    .SDcols = nm]
   model_matrix_trans <- tibble::as_tibble(model_matrix_trans)
   # demean outcome by grp_id
   outcome_trans <- data.table::as.data.table(
     data |>
       dplyr::select(
         !!formula[[2]],
-        tidyselect::all_of(grp_id),
-        tidyselect::all_of(obs_id)
+        dplyr::all_of(grp_id),
+        dplyr::all_of(obs_id)
       )
   )
-  outcome_trans <- eval(
-    rlang::parse_expr(
-      paste0(
-        "outcome_trans[, list(",
-        if (!is.null(obs_id)) {
-          paste0(
-            names(outcome_trans)[length(outcome_trans)],
-            " = ",
-            names(outcome_trans)[length(outcome_trans)],
-            ", "
-          )
-        },
-        formula[[2]],
-        " = ",
-        formula[[2]],
-        " - mean(",
-        formula[[2]],
-        ")), keyby = list(",
-        grp_id,
-        ")]"
-      )
-    )
-  )
+  nm <- as.character(formula[[2]])
+  outcome_trans[
+    ,
+    (nm) := lapply(.SD, \(x) x - mean(x)),
+    by = grp_id,
+    .SDcols = nm
+  ]
   outcome_trans <- tibble::as_tibble(outcome_trans)
   # combine data
   if (!is.null(obs_id)) {
@@ -164,14 +127,14 @@ lms <- function (formula, data, grp_id, obs_id = NULL, ...)
   } else {
     mod_data <- dplyr::bind_cols(
       model_matrix_trans,
-      outcome_trans |> dplyr::select(-tidyselect::all_of(grp_id))
+      outcome_trans |> dplyr::select(-dplyr::all_of(grp_id))
     )
   }
   # OLS model fitting demeaned data
   mod <- lm(
     formula = formula(paste0(formula[[2]], "~ . - 1")),
     data = mod_data |>
-      dplyr::select(-c(tidyselect::all_of(obs_id), tidyselect::all_of(grp_id))),
+      dplyr::select(-c(dplyr::all_of(obs_id), dplyr::all_of(grp_id))),
     ...
   )
   # return enriched OLS model
@@ -203,8 +166,7 @@ print.lms <- function (x, digits = max(3L, getOption("digits") - 3L), ...)
     cat("Coefficients:\n")
     print.default(format(coef(x), digits = digits), print.gap = 2L,
                   quote = FALSE)
-  }
-  else cat("No coefficients\n")
+  } else cat("No coefficients\n")
   cat("\n")
   invisible(x)
 }

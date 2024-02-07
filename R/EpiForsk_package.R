@@ -16,12 +16,15 @@
 #'   \item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
 #' }
 #'
+#' @importFrom gridExtra arrangeGrob
+#' @importFrom methods hasArg
 #' @importFrom rlang .data
 #' @importFrom rlang :=
-#' @importFrom foreach foreach
-#' @importFrom foreach %dopar%
-#' @importFrom doParallel registerDoParallel
-#' @importFrom methods hasArg
+#' @importFrom survey svyglm
+#' @importFrom survival coxph
+#' @importFrom survival strata
+#' @importFrom survival Surv
+#' @importFrom utils install.packages
 #' @import stats
 "_PACKAGE"
 
