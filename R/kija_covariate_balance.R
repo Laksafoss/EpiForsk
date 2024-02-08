@@ -95,7 +95,7 @@
 #' as.data.frame() |>
 #' dplyr::bind_cols(
 #'   DiscreteCovariatesToOneHot(
-#'     tibble::tibble(
+#'     dplyr::tibble(
 #'       D1 = factor(
 #'         sample(1:3, n, replace = TRUE, prob = c(0.2, 0.3, 0.5)),
 #'         labels = c("first", "second", "third")
@@ -191,8 +191,8 @@ object complies with the class structure used by grf::causal_forest()."
     )
   }
   if (is.null(names)) {
-    if (!tibble::is_tibble(cf$X.orig)) {
-      X_orig <- tibble::as_tibble(cf$X.orig, .name_repair = "unique")
+    if (!inherits(cf$X.orig, "tbl_df")) {
+      X_orig <- dplyr::as_tibble(cf$X.orig, .name_repair = "unique")
     } else {
       X_orig <- cf$X.orig
     }
@@ -200,8 +200,8 @@ object complies with the class structure used by grf::causal_forest()."
         X_orig <- dplyr::select(X_orig, dplyr::all_of(covariates))
     }
   } else if (is.character(names)) {
-    if (!tibble::is_tibble(cf$X.orig)) {
-      X_orig <- tibble::as_tibble(cf$X.orig, .name_repair = "minimal")
+    if (!inherits(cf$X.orig, "tbl_df")) {
+      X_orig <- dplyr::as_tibble(cf$X.orig, .name_repair = "minimal")
     } else {
       X_orig <- cf$X.orig
     }
@@ -382,12 +382,12 @@ display in the covariate distribution plots."
     df_1 <- X_orig
     df_1[cf$W.orig == 0,] <- NA
 
-    df_ori <- tibble::as_tibble(
+    df_ori <- dplyr::as_tibble(
       cbind(df_0, df_1),
       .name_repair = "minimal"
     ) |>
       purrr::map(
-        \(x) tibble::as_tibble(purrr::map(funs, purrr::exec, x, na.rm = TRUE))
+        \(x) dplyr::as_tibble(purrr::map(funs, purrr::exec, x, na.rm = TRUE))
       ) |>
       purrr::list_rbind() |>
       dplyr::mutate(name = rep(names({{ X_orig }}), 2)) |>
@@ -410,13 +410,13 @@ display in the covariate distribution plots."
       cov.wt(matrix(x, ncol = 1), w)$cov[1, 1]
     }
     funs <- c(mean = weighted.mean, var = weighted.var)
-    df_adj <- tibble::as_tibble(
+    df_adj <- dplyr::as_tibble(
       cbind(df_0, df_1),
       .name_repair = "minimal"
     ) |>
       purrr::map(
         \(x) {
-          tibble::as_tibble(
+          dplyr::as_tibble(
             purrr::map(
               funs,
               purrr::exec,

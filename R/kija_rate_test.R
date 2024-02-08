@@ -98,7 +98,7 @@ RATETest <- function(forest,
     num.trees.for.weights = num.trees.for.weights
   )
   confint <- rate$estimate +
-    tibble::tibble(
+    dplyr::tibble(
       estimate = 0,
       lower = -qnorm(1 - (1 - level) / 2) * rate$std.err,
       upper =  qnorm(1 - (1 - level) / 2) * rate$std.err

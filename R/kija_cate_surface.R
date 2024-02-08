@@ -178,7 +178,7 @@ CATESurface <- function(forest,
   )
 
   # Generate grid of covariate values in which to evaluate CATE
-  X_continuous <- tibble::as_tibble(forest$X.orig) |>
+  X_continuous <- dplyr::as_tibble(forest$X.orig) |>
     dplyr::select(dplyr::all_of(continuous_covariates))
   data_grid <- purrr::map2(
     X_continuous,
@@ -199,13 +199,13 @@ CATESurface <- function(forest,
       value = TRUE
     )
     tibble_temp <- diag(1, length(covariate_temp), length(covariate_temp)) |>
-      tibble::as_tibble(.name_repair = "minimal") |>
+      dplyr::as_tibble(.name_repair = "minimal") |>
       purrr::set_names(nm = covariate_temp)
     discrete_values[[i]] <- tibble_temp
   }
   names(discrete_values) <- discrete_covariates_input
   data_grid <- c(data_grid, discrete_values)
-  X_other <- tibble::as_tibble(forest$X.orig) |>
+  X_other <- dplyr::as_tibble(forest$X.orig) |>
     dplyr::select(dplyr::all_of(other_covariates))
   fixed_values <- purrr::map_dbl(X_other, fixed_covariate_fct)
   if(!is.null(other_discrete)) {

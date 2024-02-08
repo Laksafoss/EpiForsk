@@ -173,7 +173,7 @@ data <- 1:5 |>
   purrr::map(
     \(x) {
       name = paste0("cov", x);
-      tibble::tibble("{name}" := rnorm(100, 1))
+      dplyr::tibble("{name}" := rnorm(100, 1))
     }
   ) |>
   purrr::list_cbind() |>

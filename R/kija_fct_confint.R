@@ -74,7 +74,7 @@
 #'   purrr::map(
 #'     \(x) {
 #'       name = paste0("cov", x);
-#'       tibble::tibble("{name}" := rnorm(100, 1))
+#'       dplyr::tibble("{name}" := rnorm(100, 1))
 #'     }
 #'   ) |>
 #'   purrr::list_cbind() |>
@@ -355,7 +355,7 @@ fct_confint.lm <- function(
     }
 
     # run optimizer, either in parallel or in series
-    env <- rlang::current_env()
+    env <- parent.frame()
     tryCatch(
       {
         if (parallel) {
@@ -546,9 +546,9 @@ fct_confint.lm <- function(
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_1)))
       ) |>
-      tibble::as_tibble() |>
+      dplyr::as_tibble() |>
       dplyr::bind_cols(
-        tibble::tibble(
+        dplyr::tibble(
           estimate = f(beta_hat[which_parm])
         )
       )
@@ -561,7 +561,7 @@ fct_confint.lm <- function(
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
       ) |>
-      tibble::as_tibble()
+      dplyr::as_tibble()
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
@@ -808,7 +808,7 @@ fct_confint.glm <- function(
     }
 
     # run optimizer, either in parallel or in series
-    env <- rlang::current_env()
+    env <- parent.frame()
     tryCatch(
       {
         if (parallel) {
@@ -1004,9 +1004,9 @@ fct_confint.glm <- function(
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_1)))
       ) |>
-      tibble::as_tibble() |>
+      dplyr::as_tibble() |>
       dplyr::bind_cols(
-        tibble::tibble(
+        dplyr::tibble(
           estimate = f(beta_hat[which_parm])
         )
       )
@@ -1019,7 +1019,7 @@ fct_confint.glm <- function(
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
       ) |>
-      tibble::as_tibble()
+      dplyr::as_tibble()
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
@@ -1269,7 +1269,7 @@ fct_confint.lms <- function(
     }
 
     # run optimizer, either in parallel or in series
-    env <- rlang::current_env()
+    env <- parent.frame()
     tryCatch(
       {
         if (parallel) {
@@ -1463,9 +1463,9 @@ fct_confint.lms <- function(
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_1)))
       ) |>
-      tibble::as_tibble() |>
+      dplyr::as_tibble() |>
       dplyr::bind_cols(
-        tibble::tibble(
+        dplyr::tibble(
           estimate = f(beta_hat[which_parm])
         )
       )
@@ -1478,7 +1478,7 @@ fct_confint.lms <- function(
       structure(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
       ) |>
-      tibble::as_tibble()
+      dplyr::as_tibble()
   )
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
@@ -1562,7 +1562,7 @@ ci_fct <- function(i,
   problem <- CVXR::Problem(objective, constraints = list(constraint))
   result_upper <- CVXR::solve(problem)
   # collect results
-  out <- tibble::tibble(
+  out <- dplyr::tibble(
     estimate = f(beta_hat[which_parm])[i],
     ci_lower = result_lower$value,
     ci_upper = result_upper$value
