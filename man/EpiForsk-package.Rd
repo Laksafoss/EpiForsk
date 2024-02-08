@@ -6,20 +6,23 @@
 \alias{EpiForsk-package}
 \title{EpiForsk}
 \description{
-This is a collection of assorted functions and examples collected from
-various projects. Currently we have functionalities for simplifying
+This is a collection of assorted functions and examples collected
+from various projects. Currently we have functionalities for simplifying
 overlapping time intervals, Charlson comorbidity score constructors for
-Danish data, sibling design linear regression functionalities, and a method
-for calculating the confidence intervals for functions of parameters from a
-GLM.
+Danish data, getting frequency for multiple variables, getting standardized
+output from logistic and log-linear regressions, sibling design linear
+regression functionalities a method for calculating the confidence intervals
+for functions of parameters from a GLM, Bayes equivalent for hypothesis
+testing with asymptotic Bayes factor, and several help functions for
+generalized random forest analysis using the grf package.
 }
 \details{
 In the package there are contributions from
 \itemize{
 \item{ADLS : }{Anna Damkjær Laksafoss (https://orcid.org/0000-0002-9898-2924)}
 \item{ANDH : }{Anders Husby (https://orcid.org/0000-0002-7634-8455)}
-\item{ASO  : }{Mikael Andersson}
-\item{EMTH : }{Emilia Myrup Thiesson}
+\item{ASO  : }{Mikael Andersson (https://orcid.org/0000-0002-0114-2057)}
+\item{EMTH : }{Emilia Myrup Thiesson (https://orcid.org/0000-0001-6258-4177)}
 \item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
 \item{KLP  : }{Klaus Rostgaard (https://orcid.org/0000-0001-6220-9414)}
 }
