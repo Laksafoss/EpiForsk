@@ -26,7 +26,7 @@
 
 DiscreteCovariatesToOneHot <- function(df,
                                        factors = dplyr::everything()) {
-  if (!is.data.frame(df)) {
+  if (!inherits(df, "data.frame")) {
     stop("df must be a data.frame or data.frame like object.")
   }
   df_f <- df |> dplyr::select({{ factors }})

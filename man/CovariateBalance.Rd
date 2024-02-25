@@ -134,6 +134,7 @@ Thus to select only renamed covariates, \code{character(0)} can be used in
 modifiers, see \link[ggplot2]{theme_get}.
 }
 \examples{
+\donttest{
 n <- 1000
 p <- 5
 X <- matrix(rnorm(n * p), n, p) |>
@@ -197,6 +198,7 @@ cb3 <- CovariateBalance(
   cd_x_scale_width = 1,
   cd_bar_width = 0.3
 )
+}
 
 }
 \author{

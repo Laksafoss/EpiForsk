@@ -59,13 +59,13 @@
 #' KIJA
 #'
 #' @examples
-#' n <- 1000
-#' p <- 5
+#' n <- 800
+#' p <- 3
 #' X <- matrix(rnorm(n * p), n, p)
 #' W <- rbinom(n, 1, 0.5)
 #' event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 #' Y <- rbinom(n, 1, event_prob)
-#' clusters <- sample(1:5, n, replace = TRUE)
+#' clusters <- sample(1:4, n, replace = TRUE)
 #' cf <- grf::causal_forest(X, Y, W, clusters = clusters)
 #' rate <- RATEOmnibusTest(cf, target = "QINI")
 #' rate

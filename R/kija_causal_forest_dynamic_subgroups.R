@@ -38,8 +38,8 @@
 #' @author KIJA
 #'
 #' @examples
-#' n <- 1000
-#' p <- 5
+#' n <- 800
+#' p <- 3
 #' X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
 #' W <- rbinom(n, 1, 0.5)
 #' event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
