@@ -83,6 +83,7 @@ each forest, and obtain prioritization scores by predicting CATE's with
 each forest on the samples not used for training.
 }
 \examples{
+\donttest{
 n <- 800
 p <- 3
 X <- matrix(rnorm(n * p), n, p)
@@ -93,6 +94,7 @@ clusters <- sample(1:4, n, replace = TRUE)
 cf <- grf::causal_forest(X, Y, W, clusters = clusters)
 rate <- RATEOmnibusTest(cf, target = "QINI")
 rate
+}
 
 }
 \references{

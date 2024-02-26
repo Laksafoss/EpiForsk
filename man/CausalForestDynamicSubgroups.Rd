@@ -51,6 +51,7 @@ preexisting clustering in the data, folds are sampled within each cluster
 and combined across clusters afterwards.
 }
 \examples{
+\donttest{
 n <- 800
 p <- 3
 X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
@@ -59,6 +60,7 @@ event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 Y <- rbinom(n, 1, event_prob)
 cf <- grf::causal_forest(X, Y, W)
 cf_ds <- CausalForestDynamicSubgroups(cf, 2, 4)
+}
 
 }
 \author{

@@ -57,6 +57,7 @@
 #' @author KIJA
 #'
 #' @examples
+#' \donttest{
 #' n <- 1000
 #' p <- 3
 #' X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
@@ -83,6 +84,7 @@
 #'     lvl = "4"
 #'   )
 #' )
+#' }
 #'
 #' @export
 

@@ -59,6 +59,7 @@
 #' KIJA
 #'
 #' @examples
+#' \donttest{
 #' n <- 800
 #' p <- 3
 #' X <- matrix(rnorm(n * p), n, p)
@@ -69,6 +70,7 @@
 #' cf <- grf::causal_forest(X, Y, W, clusters = clusters)
 #' rate <- RATEOmnibusTest(cf, target = "QINI")
 #' rate
+#' }
 #'
 #' @export
 RATEOmnibusTest <- function(forest,

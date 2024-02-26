@@ -38,6 +38,7 @@
 #' @author KIJA
 #'
 #' @examples
+#' \donttest{
 #' n <- 800
 #' p <- 3
 #' X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
@@ -46,6 +47,7 @@
 #' Y <- rbinom(n, 1, event_prob)
 #' cf <- grf::causal_forest(X, Y, W)
 #' cf_ds <- CausalForestDynamicSubgroups(cf, 2, 4)
+#' }
 #'
 #' @export
 
