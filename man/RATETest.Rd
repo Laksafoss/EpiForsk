@@ -65,6 +65,7 @@ Provides confidence interval and p-value together with the standard output
 from \link[grf]{rank_average_treatment_effect}.
 }
 \examples{
+\donttest{
 n <- 800
 p <- 3
 X <- matrix(rnorm(n * p), n, p)
@@ -74,6 +75,7 @@ Y <- rbinom(n, 1, event_prob)
 cf <- grf::causal_forest(X, Y, W)
 rate <- RATETest(cf, 1)
 rate$pval
+}
 
 }
 \author{

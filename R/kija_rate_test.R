@@ -34,6 +34,7 @@
 #' @author KIJA
 #'
 #' @examples
+#' \donttest{
 #' n <- 800
 #' p <- 3
 #' X <- matrix(rnorm(n * p), n, p)
@@ -43,6 +44,7 @@
 #' cf <- grf::causal_forest(X, Y, W)
 #' rate <- RATETest(cf, 1)
 #' rate$pval
+#' }
 #'
 #' @export
 

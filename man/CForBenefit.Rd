@@ -121,8 +121,9 @@ and the baseline risk of the subject receiving control (tau_hat_method =
 "treatment").
 }
 \examples{
-n <- 1000
-p <- 5
+\donttest{
+n <- 800
+p <- 3
 X <- matrix(rnorm(n * p), n, p)
 W <- rbinom(n, 1, 0.5)
 event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
@@ -132,7 +133,7 @@ CB_out <- CForBenefit(
 forest = cf, CI = "bootstrap", n_bootstraps = 20L, verbose = TRUE,
 match_method = "nearest", match_distance = "mahalanobis"
 )
-CB_out
+}
 
 }
 \author{

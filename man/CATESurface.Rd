@@ -84,6 +84,7 @@ Calculates CATE estimates from a causal forest object on a specified surface
 within the covariate space.
 }
 \examples{
+\donttest{
 n <- 1000
 p <- 3
 X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
@@ -110,6 +111,7 @@ cate_surface <- CATESurface(
     lvl = "4"
   )
 )
+}
 
 }
 \author{
