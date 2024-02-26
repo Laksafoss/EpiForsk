@@ -34,15 +34,15 @@
 #' @author KIJA
 #'
 #' @examples
-#' n <- 1500
-#' p <- 5
+#' n <- 800
+#' p <- 3
 #' X <- matrix(rnorm(n * p), n, p)
 #' W <- rbinom(n, 1, 0.5)
 #' event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 #' Y <- rbinom(n, 1, event_prob)
 #' cf <- grf::causal_forest(X, Y, W)
 #' rate <- RATETest(cf, 1)
-#' rate
+#' rate$pval
 #'
 #' @export
 

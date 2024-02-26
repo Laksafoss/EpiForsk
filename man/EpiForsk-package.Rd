@@ -16,23 +16,14 @@ for functions of parameters from a GLM, Bayes equivalent for hypothesis
 testing with asymptotic Bayes factor, and several help functions for
 generalized random forest analysis using the grf package.
 }
-\details{
-In the package there are contributions from
-\itemize{
-\item{ADLS : }{Anna Damkjær Laksafoss (https://orcid.org/0000-0002-9898-2924)}
-\item{ANDH : }{Anders Husby (https://orcid.org/0000-0002-7634-8455)}
-\item{ASO  : }{Mikael Andersson (https://orcid.org/0000-0002-0114-2057)}
-\item{EMTH : }{Emilia Myrup Thiesson (https://orcid.org/0000-0001-6258-4177)}
-\item{KIJA : }{Kim Daniel Jakobsen (https://orcid.org/0000-0003-0086-9980)}
-\item{KLP  : }{Klaus Rostgaard (https://orcid.org/0000-0001-6220-9414)}
-}
-}
 \author{
-\strong{Maintainer}: Anna Laksafoss \email{adls@ssi.dk} (\href{https://orcid.org/0000-0002-9898-2924}{ORCID})
+\strong{Maintainer}: Kim Daniel Jakobsen \email{kija@ssi.dk} (\href{https://orcid.org/0000-0003-0086-9980}{ORCID})
 
 Authors:
 \itemize{
-  \item Kim Daniel Jakobsen \email{kija@ssi.dk} (\href{https://orcid.org/0000-0003-0086-9980}{ORCID})
+  \item Anders Husby \email{andh@ssi.dk} (\href{https://orcid.org/0000-0002-7634-8455}{ORCID})
+  \item Anna Laksafoss \email{adls@ssi.dk} (\href{https://orcid.org/0000-0002-9898-2924}{ORCID})
+  \item Emilia Myrup Thiesson \email{emth@ssi.dk} (\href{https://orcid.org/0000-0001-6258-4177}{ORCID})
   \item Mikael Andersson \email{aso@ssi.dk} (\href{https://orcid.org/0000-0002-0114-2057}{ORCID})
   \item Klaus Rostgaard \email{klp@ssi.dk} (\href{https://orcid.org/0000-0001-6220-9414}{ORCID})
 }

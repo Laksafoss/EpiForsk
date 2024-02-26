@@ -89,6 +89,7 @@
 #' @author KIJA
 #'
 #' @examples
+#' \donttest{
 #' n <- 1000
 #' p <- 5
 #' X <- matrix(rnorm(n * p), n, p) |>
@@ -152,6 +153,7 @@
 #'   cd_x_scale_width = 1,
 #'   cd_bar_width = 0.3
 #' )
+#' }
 #'
 #' @export
 

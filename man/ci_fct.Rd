@@ -4,29 +4,13 @@
 \alias{ci_fct}
 \title{solve optimization problem for  CI bounds}
 \usage{
-ci_fct(
-  i,
-  f,
-  verbose,
-  parallel,
-  xtx_red,
-  beta_hat,
-  which_parm,
-  level,
-  pb,
-  n_grid,
-  k
-)
+ci_fct(i, f, xtx_red, beta_hat, which_parm, level, n_grid, k)
 }
 \arguments{
 \item{i}{An index for the point at which to solve for confidence limits.}
 
 \item{f}{A function taking the parameter vector as its single argument, and
 returning a numeric vector.}
-
-\item{verbose}{Flag from fct_confint.}
-
-\item{parallel}{Flag from fct_confint.}
 
 \item{xtx_red}{Reduced form of matrix \emph{X^TX}.}
 
@@ -35,8 +19,6 @@ returning a numeric vector.}
 \item{which_parm}{Vector indicating which parameters to include.}
 
 \item{level}{The confidence level required.}
-
-\item{pb}{R6 progress bar object}
 
 \item{n_grid}{Either \code{NULL} or an integer vector of length 1 or the number of
 \code{TRUE}/indices in which_parm. Specifies the number of grid points in each
