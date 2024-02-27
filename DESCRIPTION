@@ -15,14 +15,14 @@ Authors@R:
       person("Klaus", "Rostgaard", , "klp@ssi.dk", role = c("aut"),
              comment = c(ORCID = "0000-0001-6220-9414")))
 Description: This is a collection of assorted functions and examples collected 
-    from various projects. Currently we have functionalities for simplifying 
-    overlapping time intervals, Charlson comorbidity score constructors for 
-    Danish data, getting frequency for multiple variables, getting standardized
-    output from logistic and log-linear regressions, sibling design linear 
-    regression functionalities a method for calculating the confidence intervals 
-    for functions of parameters from a GLM, Bayes equivalent for hypothesis 
-    testing with asymptotic Bayes factor, and several help functions for 
-    generalized random forest analysis using 'grf'. 
+    from various projects. Currently we have functionality for simplifying 
+    overlapping time intervals, constructing Charlson comorbidity scores for 
+    Danish data, getting frequencies from multiple variables, getting 
+    standardized output from logistic and log-linear regressions, performing 
+    sibling design linear regression, calculating the confidence interval of a 
+    function of parameters from a Generalized Linear Model, performing a 
+    Bayesian equivalent to hypothesis testing with asymptotic Bayes factor, and 
+    several help functions for generalized random forest analysis using 'grf'. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
