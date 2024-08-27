@@ -220,6 +220,16 @@ freq_function <- function(
   # arrange by var1 and var2 and convert to character
   normaldata <- normaldata |>
     dplyr::arrange(dplyr::across(dplyr::all_of(c(var1, var2))))
+  if (!is.character(normaldata[[var1]])) {
+    var1_type <- typeof(normaldata[[var1]])
+    normaldata <- dplyr::mutate(normaldata, dplyr::across(dplyr::all_of(var1), as.character))
+    message(glue::glue("{var1} converted from {var1_type} to character"))
+  }
+  if (!is.null(var2) && !is.character(normaldata[[var2]])) {
+    var2_type <- typeof(normaldata[[var2]])
+    normaldata <- dplyr::mutate(normaldata, dplyr::across(dplyr::all_of(var2), as.character))
+    message(glue::glue("{var2} converted from {var2_type} to character"))
+  }
 
   # Select only mentioned variables from called data (not using specifications)
   func_table <- normaldata |>
