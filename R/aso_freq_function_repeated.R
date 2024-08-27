@@ -7,7 +7,7 @@
 #' @param normaldata A data frame or data frame extension (e.g. a tibble).
 #' @param var1 A character vector with the names of the first variable to get
 #'   frequencies from for each frequency table.
-#' @param var2 An optional character naming the second variable to get
+#' @param var2 An optional character vector naming the second variable to get
 #'   frequencies. If `NULL` (standard) 1-way frequency tables of only variables
 #'   in `var1` are created, and if `var2` is specified 2-way tables are
 #'   returned.
@@ -90,6 +90,13 @@
 #'   by_vars = c("gender"),
 #'   output = "row"
 #' )
+#' test_table4 <- freq_function_repeated(
+#'   starwars,
+#'   var1 = c("homeworld","eye_color"),
+#'   var2 = c("sex", "skin_color"),
+#'   by_vars = c("gender"),
+#'   output = "total"
+#' )
 #'
 #' @export
 
@@ -115,33 +122,51 @@ freq_function_repeated <- function(
       dplyr::all_of({{ by_vars }})
     )
 
-  var_count <- length(var1)
-
-  for (i in seq_along(var1)) {
-    func_var <- dplyr::nth(var1, n = i)
-    func_freqs <- freq_function(
-      normaldata = func_table1,
-      var1 = func_var,
-      var2 = var2,
-      by_vars = by_vars,
-      include_NA = include_NA,
-      values_to_remove = values_to_remove,
-      weightvar = weightvar,
-      textvar = textvar,
-      number_decimals = number_decimals,
-      output = output,
-      chisquare = chisquare
-    )
-    func_freqs2 <- func_freqs |>
-      dplyr::mutate(var_name = func_var) |>
-      dplyr::rename("Level" = dplyr::all_of(func_var))
-    if (i == 1) {
-      func_table2 <- func_freqs2
-    } else {
-      func_table2 <- dplyr::bind_rows(func_table2, func_freqs2)
+  if (is.null(var2)) var2 <- NA_character_
+  func_table <- purrr::map(
+    var2,
+    \(var2) {
+      if (is.na(var2)) var2 <- NULL
+      for (i in seq_along(var1)) {
+        func_var <- dplyr::nth(var1, n = i)
+        func_freqs <- freq_function(
+          normaldata = func_table1,
+          var1 = func_var,
+          var2 = var2,
+          by_vars = by_vars,
+          include_NA = include_NA,
+          values_to_remove = values_to_remove,
+          weightvar = weightvar,
+          textvar = textvar,
+          number_decimals = number_decimals,
+          output = output,
+          chisquare = chisquare
+        )
+        func_freqs2 <- func_freqs |>
+          dplyr::mutate(var_name = func_var) |>
+          dplyr::rename("Level" = dplyr::all_of(func_var))
+        if (i == 1) {
+          func_table2 <- func_freqs2
+        } else {
+          func_table2 <- dplyr::bind_rows(func_table2, func_freqs2)
+        }
+      }
+      func_table3 <- func_table2 |>
+        dplyr::relocate("var_name", .before = 1)
+      return(func_table3)
     }
-  }
-  func_table3 <- func_table2 |>
-    dplyr::relocate("var_name", .before = 1)
-  return(func_table3)
+  )
+
+  func_table <- purrr::reduce(
+    func_table,
+    \(a, b) {
+      dplyr::full_join(
+        a,
+        b,
+        by = c("var_name", by_vars, "Level")
+      )
+    }
+  )
+
+  return(func_table)
 }
