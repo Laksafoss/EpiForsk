@@ -217,6 +217,9 @@ freq_function <- function(
     stop("'chisquare' must be a boolean.")
   }
   # End input checks
+  # arrange by var1 and var2 and convert to character
+  normaldata <- normaldata |>
+    dplyr::arrange(dplyr::across(dplyr::all_of(c(var1, var2))))
 
   # Select only mentioned variables from called data (not using specifications)
   func_table <- normaldata |>
