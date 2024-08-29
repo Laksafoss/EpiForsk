@@ -25,7 +25,7 @@ freq_function_repeated(
 \item{var1}{A character vector with the names of the first variable to get
 frequencies from for each frequency table.}
 
-\item{var2}{An optional character naming the second variable to get
+\item{var2}{An optional character vector naming the second variable to get
 frequencies. If \code{NULL} (standard) 1-way frequency tables of only variables
 in \code{var1} are created, and if \code{var2} is specified 2-way tables are
 returned.}
@@ -117,6 +117,13 @@ test_table3 <- freq_function_repeated(
   var2 = "sex",
   by_vars = c("gender"),
   output = "row"
+)
+test_table4 <- freq_function_repeated(
+  starwars,
+  var1 = c("homeworld","eye_color"),
+  var2 = c("sex", "skin_color"),
+  by_vars = c("gender"),
+  output = "total"
 )
 
 }
