@@ -10,6 +10,9 @@ This package is a framework for sharing guides, examples, and functions here at
 EpiForsk. It is primarily managed by ADLS and KIJA, but is intended to be a 
 collaborative effort and we encourage sharing your hard earned code snippets.  
 
+## Availability
+The package is available on [CRAN](https://CRAN.R-project.org/package=EpiForsk).
+
 ## Installation & Use
 ### CRAN version
 To install the package write
@@ -21,19 +24,11 @@ And to load the package write
 library("EpiForsk")
 ```
 ### Latest version
-To install from binary package (Windows only) write:
+The latest version of the package can be installed directly from github:
 ```
-install.packages("https://github.com/Laksafoss/EpiForsk/raw/main/EpiForsk_0.1.0.zip", repos = NULL)
+# install.packages("devtools")
+devtools::install_github("Laksafoss/EpiForsk")
 ```
-
-To install from source package write:
-```
-install.packages("https://github.com/Laksafoss/EpiForsk/raw/main/EpiForsk_0.1.0.tar.gz", repos = NULL)
-```
-Note: Requires C++ compiler (Rtools43 on windows). 
-
-## Availability
-The package is available on [CRAN](https://CRAN.R-project.org/package=EpiForsk).
 
 ## What is already in the package
 The package is (hopefully) constantly under development. To see all content
