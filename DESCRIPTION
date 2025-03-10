@@ -1,5 +1,5 @@
 Package: EpiForsk
-Title: Code Sharing at the Department of Epidemiological Research at Statens Serum Institut 
+Title: Code Sharing at the Department of Epidemiology Research at Statens Serum Institut 
 Version: 0.1.1
 Authors@R: 
     c(person("Anders", "Husby", , "andh@ssi.dk", role = c("aut"),
@@ -23,6 +23,8 @@ Description: This is a collection of assorted functions and examples collected
     for functions of parameters from a GLM, Bayes equivalent for hypothesis 
     testing with asymptotic Bayes factor, and several help functions for 
     generalized random forest analysis using 'grf'. 
+URL: https://github.com/Laksafoss/EpiForsk
+BugReports: https://github.com/Laksafoss/EpiForsk/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
