@@ -243,36 +243,6 @@ fct_confint.lm <- function(
   # check parallel is a valid character string
   parallel <- match.arg(parallel)
 
-  ### request installation of required packages from suggested
-  if (parallel != "sequential") {
-    p1 <- requireNamespace("parallel", quietly = TRUE)
-    if (!p1) {
-      if (interactive()) {
-        for (i in 1:3) {
-          input <- readline(paste0(
-            "'parallel=TRUE' requires package 'parallel' to be installed.\n",
-            "Attempt to install packages from CRAN? (y/n)"
-          ))
-          if (input == "y") {
-            install.packages(
-              pkgs = "parallel",
-              repos = "https://cloud.r-project.org"
-            )
-            p1 <- requireNamespace("parallel", quietly = TRUE)
-            if (!p1) {
-              stop("Failed to install required packages.")
-            }
-            break
-          } else if (input == "n") {
-            stop("When 'parallel=TRUE', package 'parallel' is required.")
-          }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-        }
-      } else {
-        stop("When 'parallel=TRUE', package 'parallel' is required.")
-      }
-    }
-  }
 
   ### Initialize parallel clusters if needed
   if (parallel != "sequential") {
@@ -597,37 +567,6 @@ fct_confint.glm <- function(
   # check parallel is a valid character string
   parallel <- match.arg(parallel)
 
-  ### request installation of required packages from suggested
-  if (parallel != "sequential") {
-    p1 <- requireNamespace("parallel", quietly = TRUE)
-    if (!p1) {
-      if (interactive()) {
-        for (i in 1:3) {
-          input <- readline(paste0(
-            "'parallel=TRUE' requires package 'parallel' to be installed.\n",
-            "Attempt to install packages from CRAN? (y/n)"
-          ))
-          if (input == "y") {
-            install.packages(
-              pkgs = "parallel",
-              repos = "https://cloud.r-project.org"
-            )
-            p1 <- requireNamespace("parallel", quietly = TRUE)
-            if (!p1) {
-              stop("Failed to install required packages.")
-            }
-            break
-          } else if (input == "n") {
-            stop("When 'parallel=TRUE', package 'parallel' is required.")
-          }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-        }
-      } else {
-        stop("When 'parallel=TRUE', package 'parallel' is required.")
-      }
-    }
-  }
-
   ### Initialize parallel clusters if needed
   if (parallel != "sequential") {
     nCores <- min(
@@ -947,36 +886,6 @@ fct_confint.lms <- function(
   # check parallel is a valid character string
   parallel <- match.arg(parallel)
 
-  ### request installation of required packages from suggested
-  if (parallel != "sequential") {
-    p1 <- requireNamespace("parallel", quietly = TRUE)
-    if (!p1) {
-      if (interactive()) {
-        for (i in 1:3) {
-          input <- readline(paste0(
-            "'parallel=TRUE' requires package 'parallel' to be installed.\n",
-            "Attempt to install packages from CRAN? (y/n)"
-          ))
-          if (input == "y") {
-            install.packages(
-              pkgs = "parallel",
-              repos = "https://cloud.r-project.org"
-            )
-            p1 <- requireNamespace("parallel", quietly = TRUE)
-            if (!p1) {
-              stop("Failed to install required packages.")
-            }
-            break
-          } else if (input == "n") {
-            stop("When 'parallel=TRUE', package 'parallel' is required.")
-          }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-        }
-      } else {
-        stop("When 'parallel=TRUE', package 'parallel' is required.")
-      }
-    }
-  }
 
   ### Initialize parallel clusters if needed
   if (parallel != "sequential") {
