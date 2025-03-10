@@ -22,12 +22,9 @@ fct_confint(
   which_parm = rep(TRUE, length(coef(object))),
   level = 0.95,
   return_beta = FALSE,
-  verbose = FALSE,
   n_grid = NULL,
   k = NULL,
   len = 0.1,
-  parallel = FALSE,
-  n_cores = 10L,
   ...
 )
 
@@ -37,12 +34,9 @@ fct_confint(
   which_parm = rep(TRUE, length(coef(object))),
   level = 0.95,
   return_beta = FALSE,
-  verbose = FALSE,
   n_grid = NULL,
   k = NULL,
   len = 0.1,
-  parallel = FALSE,
-  n_cores = 10L,
   ...
 )
 
@@ -51,13 +45,10 @@ fct_confint(
   f,
   which_parm = rep(TRUE, length(coef(object))),
   level = 0.95,
-  len = 0.1,
-  n_grid = 0L,
-  k = 1000L,
-  parallel = FALSE,
-  n_cores = 10,
   return_beta = FALSE,
-  verbose = FALSE,
+  n_grid = NULL,
+  k = NULL,
+  len = 0.1,
   ...
 )
 
@@ -87,10 +78,6 @@ vector with the indices of the coefficients used by \code{f}.}
 the parameter values used from the boundary of the parameter confidence
 set.}
 
-\item{verbose}{Logical, if \code{TRUE} prints a progress bar with information
-about the fitting process. The progress bar uses extra resources, so if each
-iteration is fast, consider verbose = FALSE.}
-
 \item{n_grid}{Either \code{NULL} or an integer vector of length 1 or the number of
 \code{TRUE}/indices in which_parm. Specifies the number of grid points in each
 dimension of a grid with endpoints defined by len. If \code{NULL} or \code{0L}, will
@@ -101,12 +88,6 @@ uniformly from a sphere.}
 
 \item{len}{numeric, the radius of the sphere or box used to define directions
 in which to look for boundary points of the parameter confidence set.}
-
-\item{parallel}{Logical, if \code{TRUE} parallel computing is used when solving
-for points on the boundary of the parameter confidence set.}
-
-\item{n_cores}{An integer specifying the number of threads to use for
-parallel computing.}
 }
 \value{
 A tibble with columns estimate, conf.low, and conf.high or if
@@ -167,6 +148,17 @@ The points projected to the boundary are either laid out in a grid around
 by \code{n_grid}, or uniformly at random on a hypersphere, with the number of
 points determined by \code{k}. The radius of the grid/sphere is determined by
 \code{len}.
+
+@section Progress bar:
+
+To print a progress bar with information about the fitting process, wrap
+the call to fct_confint in with_progress, i.e.
+\code{progressr::with_progress({result <- fct_confint(object, f)})}
+
+@section Specifying a plan to resolve futures:
+
+\code{fct_confint()} uses futures to enable parallel processing. Use the
+\code{future::plan()} function to specify how futures are resolved.
 }
 \examples{
 data <- 1:5 |>

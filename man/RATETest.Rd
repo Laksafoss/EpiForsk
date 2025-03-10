@@ -9,7 +9,7 @@ RATETest(
   priorities,
   level = 0.95,
   cov_type = c("continuous", "discrete"),
-  target = "AUTOC",
+  target = c("AUTOC", "QINI"),
   q = seq(0.1, 1, by = 0.1),
   R = 500,
   subset = NULL,
@@ -65,15 +65,17 @@ Provides confidence interval and p-value together with the standard output
 from \link[grf]{rank_average_treatment_effect}.
 }
 \examples{
-n <- 1500
-p <- 5
+\donttest{
+n <- 800
+p <- 3
 X <- matrix(rnorm(n * p), n, p)
 W <- rbinom(n, 1, 0.5)
 event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
 Y <- rbinom(n, 1, event_prob)
 cf <- grf::causal_forest(X, Y, W)
 rate <- RATETest(cf, 1)
-rate
+rate$pval
+}
 
 }
 \author{

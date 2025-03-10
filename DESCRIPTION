@@ -1,10 +1,14 @@
 Package: EpiForsk
-Title: Code Sharing at the Department of Epidemiological Research at Statens Serum Institut 
-Version: 0.1.0
+Title: Code Sharing at the Department of Epidemiology Research at Statens Serum Institut 
+Version: 0.1.1
 Authors@R: 
-    c(person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut", "cre"),
+    c(person("Anders", "Husby", , "andh@ssi.dk", role = c("aut"),
+             comment = c(ORCID = "0000-0002-7634-8455")),
+      person("Anna", "Laksafoss", , "adls@ssi.dk", role = c("aut"),
              comment = c(ORCID = "0000-0002-9898-2924")),
-      person("Kim Daniel", "Jakobsen", , "kija@ssi.dk", role = c("aut"),
+      person("Emilia Myrup", "Thiesson", , "emth@ssi.dk", role = c("aut"),
+             comment = c(ORCID = "0000-0001-6258-4177")),
+      person("Kim Daniel", "Jakobsen", , "kija@ssi.dk", role = c("aut", "cre"),
              comment = c(ORCID = "0000-0003-0086-9980")),
       person("Mikael", "Andersson", , "aso@ssi.dk", role = c("aut"),
              comment = c(ORCID = "0000-0002-0114-2057")),
@@ -18,11 +22,13 @@ Description: This is a collection of assorted functions and examples collected
     regression functionalities a method for calculating the confidence intervals 
     for functions of parameters from a GLM, Bayes equivalent for hypothesis 
     testing with asymptotic Bayes factor, and several help functions for 
-    generalized random forest analysis using the grf package. 
+    generalized random forest analysis using 'grf'. 
+URL: https://github.com/Laksafoss/EpiForsk
+BugReports: https://github.com/Laksafoss/EpiForsk/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Imports: 
     broom,
     cowplot,
@@ -39,7 +45,7 @@ Imports:
     nnet,
     patchwork,
     policytree,
-    progress,
+    progressr,
     purrr,
     rlang,
     stringr,
@@ -54,14 +60,12 @@ LazyData: true
 Suggests: 
     cli,
     CVXR,
-    doParallel,
-    doSNOW,
-    foreach,
+    furrr,
+    future,
     ggsci,
     knitr,
     parallel,
     rmarkdown,
-    snow,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

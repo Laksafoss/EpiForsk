@@ -84,12 +84,13 @@ Calculates CATE estimates from a causal forest object on a specified surface
 within the covariate space.
 }
 \examples{
-n <- 1500
-p <- 5
+\donttest{
+n <- 1000
+p <- 3
 X <- matrix(rnorm(n * p), n, p) |> as.data.frame()
 X_d <- data.frame(
-  X_d1 = factor(sample(1:5, n, replace = TRUE)),
-  X_d2 = factor(sample(1:5, n, replace = TRUE))
+  X_d1 = factor(sample(1:3, n, replace = TRUE)),
+  X_d2 = factor(sample(1:3, n, replace = TRUE))
 )
 X_d <- DiscreteCovariatesToOneHot(X_d)
 X <- cbind(X, X_d)
@@ -99,19 +100,18 @@ Y <- rbinom(n, 1, event_prob)
 cf <- grf::causal_forest(X, Y, W)
 cate_surface <- CATESurface(
   cf,
-  continuous_covariates = paste0("V", 1:4),
+  continuous_covariates = paste0("V", 1:2),
   discrete_covariates = "X_d1",
   grid = list(
     V1 = 10,
-    V2 = 5,
-    V3 = -5:5,
-    V4 = 2
+    V2 = -5:5
   ),
   other_discrete = data.frame(
     covs = "X_d2",
     lvl = "4"
   )
 )
+}
 
 }
 \author{

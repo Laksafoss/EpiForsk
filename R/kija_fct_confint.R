@@ -66,6 +66,17 @@
 #'   points determined by `k`. The radius of the grid/sphere is determined by
 #'   `len`.
 #'
+#'  @section Progress bar:
+#'
+#'   To print a progress bar with information about the fitting process, wrap
+#'   the call to fct_confint in with_progress, i.e.
+#'   `progressr::with_progress({result <- fct_confint(object, f)})`
+#'
+#'  @section Specifying a plan to resolve futures:
+#'
+#'   `fct_confint()` uses futures to enable parallel processing. Use the
+#'   `future::plan()` function to specify how futures are resolved.
+#'
 #' @author
 #' KIJA
 #'
@@ -99,6 +110,14 @@ fct_confint <- function(
     level = 0.95,
     ...
 ) {
+  stopifnot(
+    "'fct_confint' requires package 'future' to be installed." =
+      requireNamespace("future", quietly = TRUE)
+  )
+  stopifnot(
+    "'fct_confint' requires package 'furrr' to be installed." =
+      requireNamespace("furrr", quietly = TRUE)
+  )
   UseMethod("fct_confint")
 }
 
@@ -107,9 +126,6 @@ fct_confint <- function(
 #' @param return_beta Logical, if `TRUE` returns both the confidence limits and
 #'   the parameter values used from the boundary of the parameter confidence
 #'   set.
-#' @param verbose Logical, if `TRUE` prints a progress bar with information
-#'   about the fitting process. The progress bar uses extra resources, so if each
-#'   iteration is fast, consider verbose = FALSE.
 #' @param n_grid Either `NULL` or an integer vector of length 1 or the number of
 #'   `TRUE`/indices in which_parm. Specifies the number of grid points in each
 #'   dimension of a grid with endpoints defined by len. If `NULL` or `0L`, will
@@ -118,10 +134,6 @@ fct_confint <- function(
 #'   uniformly from a sphere.
 #' @param len numeric, the radius of the sphere or box used to define directions
 #'   in which to look for boundary points of the parameter confidence set.
-#' @param parallel Logical, if `TRUE` parallel computing is used when solving
-#'   for points on the boundary of the parameter confidence set.
-#' @param n_cores An integer specifying the number of threads to use for
-#'   parallel computing.
 #'
 #' @export
 
@@ -131,12 +143,9 @@ fct_confint.lm <- function(
     which_parm = rep(TRUE, length(coef(object))),
     level = 0.95,
     return_beta = FALSE,
-    verbose = FALSE,
     n_grid = NULL,
     k = NULL,
     len = 0.1,
-    parallel = FALSE,
-    n_cores = 10L,
     ...
 ) {
   ### check input
@@ -181,8 +190,6 @@ fct_confint.lm <- function(
     "return_beta must be Boolean" =
       isTRUE(return_beta) | isFALSE(return_beta)
   )
-  # check verbose is a Boolean
-  stopifnot("verbose must be Boolean" = isTRUE(verbose) | isFALSE(verbose))
   # check n_grid
   if (
     !(is.null(n_grid) ||
@@ -209,54 +216,12 @@ fct_confint.lm <- function(
     "len must be a number greater than 0" =
       is.numeric(len) && length(len) == 1 && len > 0
   )
-
-  ### request installation of required packages from suggested
-  if (parallel) {
-    p1 <- requireNamespace("parallel", quietly = TRUE)
-    p2 <- requireNamespace("snow", quietly = TRUE)
-    p3 <- requireNamespace("doSNOW", quietly = TRUE)
-    p4 <- requireNamespace("foreach", quietly = TRUE)
-    if (!all(c(p1, p2, p3, p4))) {
-      mp <- c("parallel", "snow", "doSNOW", "foreach")[!c(p1, p2, p3, p4)]
-      if (interactive()) {
-        for (i in 1:3) {
-          input <- readline(glue::glue(
-            "'parallel=TRUE' requires packages {mp} to be installed.\n",
-            "Attempt to install packages from CRAN? (y/n)"
-          ))
-          if (input == "y") {
-            install.packages(
-              pkgs = mp,
-              repos = "https://cloud.r-project.org"
-            )
-            p1 <- requireNamespace("parallel", quietly = TRUE)
-            p2 <- requireNamespace("snow", quietly = TRUE)
-            p3 <- requireNamespace("doSNOW", quietly = TRUE)
-            p4 <- requireNamespace("foreach", quietly = TRUE)
-            if (!all(c(p1, p2, p3, p4))) {
-              stop("Failed to install required packages.")
-            }
-            break
-          } else if (input == "n") {
-            stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
-          }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-        }
-      } else {
-        stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
-      }
-    }
-  }
-
-  ### Initialize parallel clusters if needed
-  if (parallel) {
-    nCores <- min(
-      parallel::detectCores(),
-      n_cores
+  # check if convex optimizer is needed
+  if ((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+    stopifnot(
+      "'fct_confint.lm' requires package 'CVXR' to be installed unless 'n_grid' or 'k' are specified." =
+        requireNamespace("CVXR", quietly = TRUE)
     )
-    cluster <- snow::makeCluster(nCores)
-    doSNOW::registerDoSNOW(cluster)
-    on.exit(snow::stopCluster(cluster))
   }
 
   ### extract MLE parameters
@@ -283,119 +248,35 @@ fct_confint.lm <- function(
     # total number of output dimensions
     n_fout <- length(f(beta_hat))
 
-    # create progress bar if verbose = TRUE. A function to update the bar
-    # is defined for use if parallel = TRUE
-    # NOTE: the progress bar from the progress package is resource intensive
-    # compared with the one from cli. Progress is used here because it works
-    # with a parallel workflow, but a faster alternative would be preferred.
-    if (verbose & parallel) {
-      progress <- function(i) {
-        # first tick needs to be run twice for progress bar to show (why?)
-        if (i == 1) {
-          pb$tick(tokens = list(iteration = 1))
-        }
-        # running twice to initialize creates problems with termination
-        # terminate manually, then return
-        if (i == n_fout) {
-          pb$terminate()
-          return(invisible(pb))
-        }
-        pb$tick(tokens = list(iteration = i))
-      }
-      opts <- list(progress = progress)
-      pb <- progress::progress_bar$new(
-        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-        total = n_fout,
-        width = 80,
-        show_after = 0.2
-      )
-    } else if (verbose) {
-      pb <- progress::progress_bar$new(
-        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-        total = n_fout,
-        width = 80,
-        show_after = 0.2
-      )
-    } else if (parallel) {
-      pb <- NULL
-      opts <- list()
-    } else {
-      pb <- NULL
-    }
+    # create progress bar with progressr. To display a progress bar the user
+    # wraps the call to fct_confint in with_progress()
+    pb <- progressr::progressor(steps = n_fout)
 
-    ### request installation of required package from suggested
-    if (is.null(n_grid) && is.null(k)) {
-      p1 <- requireNamespace("CVXR", quietly = TRUE)
-      if (!p1) {
-        if (interactive()) {
-          for (i in 1:3) {
-            input <- readline(glue::glue(
-              "package 'CVXR' must be installed when 'n_grid' and 'k' are NULL.\n",
-              "Attempt to install package from CRAN? (y/n)"
-            ))
-            if (input == "y") {
-              install.packages(
-                pkgs = "CVXR",
-                repos = "https://cloud.r-project.org"
-              )
-              p1 <- requireNamespace("CVXR", quietly = TRUE)
-              if (!p1) {
-                stop("Failed to install required package.")
-              }
-              break
-            } else if (input == "n") {
-              stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
-            }
-            if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-          }
-        } else {
-          stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
-        }
-      }
-    }
-
-    # run optimizer, either in parallel or in series
+    # run optimizer using the user specified future plan
     env <- parent.frame()
     tryCatch(
       {
-        if (parallel) {
-          ci_data <- foreach::`%dopar%`(
-            foreach::foreach(
-              i = seq_len(n_fout),
-              .combine = rbind,
-              .options.snow = opts
-            ),
+        ci_data <- furrr::future_map(
+          .x = seq_len(n_fout),
+          .options = furrr::furrr_options(
+            packages = c("CVXR", "dplyr"),
+            globals = c("f", "xtx_red", "beta_hat", "which_parm", "level",
+                        "pb", "n_grid", "k", "ci_fct"),
+            seed = TRUE
+          ),
+          .f = \(i) {
+            pb()
             ci_fct(i = i,
                    f = f,
-                   verbose = verbose,
-                   parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
                    which_parm = which_parm,
                    level = level,
-                   pb = pb,
                    n_grid = n_grid,
                    k = k)
-          )
-        } else {
-          ci_data <- foreach::`%do%`(
-            foreach::foreach(
-              i = seq_len(n_fout),
-              .combine = rbind
-            ),
-            ci_fct(i = i,
-                   f = f,
-                   verbose = verbose,
-                   parallel = parallel,
-                   xtx_red = xtx_red,
-                   beta_hat = beta_hat,
-                   which_parm = which_parm,
-                   level = level,
-                   pb = pb,
-                   n_grid = n_grid,
-                   k = k)
-          )
-        }
+          }
+        ) |>
+          purrr::list_rbind()
         # return results using convex optimization
         return(ci_data)
       },
@@ -429,86 +310,34 @@ fct_confint.lm <- function(
     }
   }
 
-  # create progress bar if verbose = TRUE. A function to update the bar
-  # is defined for use if parallel = TRUE
-  if (verbose & parallel) {
-    progress <- function(i) {
-      # first tick needs to be run twice for progress bar to show (why?)
-      if (i == 1) {
-        pb$tick(tokens = list(iteration = 1))
-      }
-      # running twice to initialize creates problems with termination
-      # terminate manually, then return
-      if (i == ncol(delta)) {
-        pb$terminate()
-        return(invisible(pb))
-      }
-      pb$tick(tokens = list(iteration = i))
-    }
-    opts <- list(progress = progress)
-    pb <- progress::progress_bar$new(
-      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-      total = ncol(delta),
-      width = 80,
-      show_after = 0.2
-    )
-  } else if (verbose) {
-    pb <- progress::progress_bar$new(
-      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-      total = ncol(delta),
-      width = 80,
-      show_after = 0.2
-    )
-  } else if (parallel) {
-    opts <- list()
-  }
+  # create progress bar with progressr. To display a progress bar the user
+  # wraps the call to fct_confint in with_progress()
+  pb <- progressr::progressor(steps = ncol(delta))
 
   ### solve equation for scaling points to end up on boundary of confidence set
-  if (parallel) {
-    fnp <- function(y) {
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+  a <- furrr::future_map_dbl(
+    .x = seq_len(ncol(delta)),
+    .options = furrr::furrr_options(
+      globals = c("delta", "xtx_red", "pb", "ci_fct")
+    ),
+    .f = \(i) {
+      pb()
+      t(delta[, i, drop = FALSE]) %*% xtx_red %*% delta[, i, drop = FALSE] |>
         as.numeric()
     }
-    a <- foreach::`%dopar%`(
-      foreach::foreach(
-        y = seq_len(ncol(delta)),
-        .combine = c,
-        .options.snow = opts
-      ),
-      fnp(y)
-    )
-  } else {
-    fn <- function(y, verbose) {
-      if (verbose) {
-        pb$tick(tokens = list(iteration = y))
-      }
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
-        as.numeric()
-    }
-    a <- foreach::`%do%`(
-      foreach::foreach(
-        y = seq_len(ncol(delta)),
-        .combine = c
-      ),
-      fn(y, verbose = verbose)
-    )
-  }
+  )
   c <- rep(
     qchisq(level, length(beta_hat[which_parm])),
     ncol(delta)
   )
-  suppressWarnings(
-    alpha1 <- -sqrt(c / a)
-  )
-  suppressWarnings(
-    alpha2 <- sqrt(c / a)
-  )
+  suppressWarnings({alpha1 <- -sqrt(c / a)})
+  suppressWarnings({alpha2 <- sqrt(c / a)})
   # remove delta values that lead to complex solutions
   which_alpha <- which(!(is.nan(alpha1) | is.infinite(alpha1)))
   alpha1 <- alpha1[which_alpha]
   alpha2 <- alpha2[which_alpha]
   delta_red <- delta[, which_alpha, drop = FALSE]
-  if (verbose) cat("points on the boundary:", 2 * length(which_alpha), "\n")
+  cat("points on the boundary:", 2 * length(which_alpha), "\n")
   # determine coefficient values on boundary of confidence set
   beta_1 <- matrix(
     rep(beta_hat[which_parm], length(which_alpha)),
@@ -538,7 +367,7 @@ fct_confint.lm <- function(
       ) * delta_red
     )
   colnames(beta_2) <- names(beta_hat)[which_parm]
-  suppressMessages(
+  suppressMessages({
     ci_data_1 <- lapply(
       seq_len(nrow(beta_1)),
       function(x) f(beta_1[x, ])
@@ -552,8 +381,8 @@ fct_confint.lm <- function(
           estimate = f(beta_hat[which_parm])
         )
       )
-  )
-  suppressMessages(
+  })
+  suppressMessages({
     ci_data_2 <- lapply(
       seq_len(nrow(beta_2)),
       function(x) f(beta_2[x, ])
@@ -562,7 +391,7 @@ fct_confint.lm <- function(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
       ) |>
       dplyr::as_tibble()
-  )
+  })
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
     dplyr::select("estimate", dplyr::everything())
@@ -590,12 +419,9 @@ fct_confint.glm <- function(
     which_parm = rep(TRUE, length(coef(object))),
     level = 0.95,
     return_beta = FALSE,
-    verbose = FALSE,
     n_grid = NULL,
     k = NULL,
     len = 0.1,
-    parallel = FALSE,
-    n_cores = 10L,
     ...
 ) {
   ### check input
@@ -642,8 +468,6 @@ fct_confint.glm <- function(
     "return_beta must be Boolean" =
       isTRUE(return_beta) | isFALSE(return_beta)
   )
-  # check verbose is a Boolean
-  stopifnot("verbose must be Boolean" = isTRUE(verbose) | isFALSE(verbose))
   # check n_grid
   if (
     !(is.null(n_grid) ||
@@ -670,54 +494,12 @@ fct_confint.glm <- function(
     "len must be a number greater than 0" =
       is.numeric(len) && length(len) == 1 && len > 0
   )
-
-  ### request installation of required packages from suggested
-  if (parallel) {
-    p1 <- requireNamespace("parallel", quietly = TRUE)
-    p2 <- requireNamespace("snow", quietly = TRUE)
-    p3 <- requireNamespace("doSNOW", quietly = TRUE)
-    p4 <- requireNamespace("foreach", quietly = TRUE)
-    if (!all(c(p1, p2, p3, p4))) {
-      mp <- c("parallel", "snow", "doSNOW", "foreach")[!c(p1, p2, p3, p4)]
-      if (interactive()) {
-        for (i in 1:3) {
-          input <- readline(glue::glue(
-            "'parallel=TRUE' requires packages {mp} to be installed.\n",
-            "Attempt to install packages from CRAN? (y/n)"
-          ))
-          if (input == "y") {
-            install.packages(
-              pkgs = mp,
-              repos = "https://cloud.r-project.org"
-            )
-            p1 <- requireNamespace("parallel", quietly = TRUE)
-            p2 <- requireNamespace("snow", quietly = TRUE)
-            p3 <- requireNamespace("doSNOW", quietly = TRUE)
-            p4 <- requireNamespace("foreach", quietly = TRUE)
-            if (!all(c(p1, p2, p3, p4))) {
-              stop("Failed to install required packages.")
-            }
-            break
-          } else if (input == "n") {
-            stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
-          }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-        }
-      } else {
-        stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
-      }
-    }
-  }
-
-  ### Initialize parallel clusters if needed
-  if (parallel) {
-    nCores <- min(
-      parallel::detectCores(),
-      n_cores
+  # check if convex optimizer is needed
+  if ((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+    stopifnot(
+      "'fct_confint.lm' requires package 'CVXR' to be installed unless 'n_grid' or 'k' are specified." =
+        requireNamespace("CVXR", quietly = TRUE)
     )
-    cluster <- snow::makeCluster(nCores)
-    doSNOW::registerDoSNOW(cluster)
-    on.exit(snow::stopCluster(cluster))
   }
 
   ### extract MLE parameters
@@ -739,116 +521,35 @@ fct_confint.glm <- function(
     # total number of output dimensions
     n_fout <- length(f(beta_hat))
 
-    # create progress bar if verbose = TRUE. A function to update the bar
-    # is defined for use if parallel = TRUE
-    # NOTE: the progress bar from the progress package is resource intensive
-    # compared with the one from cli. Progress is used here because it works
-    # with a parallel workflow, but a faster alternative would be preferred.
-    if (verbose & parallel) {
-      progress <- function(i) {
-        # first tick needs to be run twice for progress bar to show (why?)
-        if (i == 1) {
-          pb$tick(tokens = list(iteration = 1))
-        }
-        # running twice to initialize creates problems with termination
-        # terminate manually, then return
-        if (i == n_fout) {
-          pb$terminate()
-          return(invisible(pb))
-        }
-        pb$tick(tokens = list(iteration = i))
-      }
-      opts <- list(progress = progress)
-      pb <- progress::progress_bar$new(
-        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-        total = n_fout,
-        width = 80,
-        show_after = 0.2
-      )
-    } else if (verbose) {
-      pb <- progress::progress_bar$new(
-        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-        total = n_fout,
-        width = 80,
-        show_after = 0.2
-      )
-    } else if (parallel) {
-      opts <- list()
-    }
+    # create progress bar with progressr. To display a progress bar the user
+    # wraps the call to fct_confint in with_progress()
+    pb <- progressr::progressor(steps = n_fout)
 
-    ### request installation of required package from suggested
-    if (is.null(n_grid) && is.null(k)) {
-      p1 <- requireNamespace("CVXR", quietly = TRUE)
-      if (!p1) {
-        if (interactive()) {
-          for (i in 1:3) {
-            input <- readline(glue::glue(
-              "package 'CVXR' must be installed when 'n_grid' and 'k' are NULL.\n",
-              "Attempt to install package from CRAN? (y/n)"
-            ))
-            if (input == "y") {
-              install.packages(
-                pkgs = "CVXR",
-                repos = "https://cloud.r-project.org"
-              )
-              p1 <- requireNamespace("CVXR", quietly = TRUE)
-              if (!p1) {
-                stop("Failed to install required package.")
-              }
-              break
-            } else if (input == "n") {
-              stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
-            }
-            if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-          }
-        } else {
-          stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
-        }
-      }
-    }
-
-    # run optimizer, either in parallel or in series
+    # run optimizer using the user specified future plan
     env <- parent.frame()
     tryCatch(
       {
-        if (parallel) {
-          ci_data <- foreach::`%dopar%`(
-            foreach::foreach(
-              i = seq_len(n_fout),
-              .combine = rbind,
-              .options.snow = opts
-            ),
+        ci_data <- furrr::future_map(
+          .x = seq_len(n_fout),
+          .options = furrr::furrr_options(
+            packages = c("CVXR", "dplyr"),
+            globals = c("f", "xtx_red", "beta_hat", "which_parm", "level",
+                        "n_grid", "k", "pb", "ci_fct"),
+            seed = TRUE
+          ),
+          .f = \(i) {
+            pb()
             ci_fct(i = i,
                    f = f,
-                   verbose = verbose,
-                   parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
                    which_parm = which_parm,
                    level = level,
-                   pb = pb,
                    n_grid = n_grid,
                    k = k)
-          )
-        } else {
-          ci_data <- foreach::`%do%`(
-            foreach::foreach(
-              i = seq_len(n_fout),
-              .combine = rbind
-            ),
-            ci_fct(i = i,
-                   f = f,
-                   verbose = verbose,
-                   parallel = parallel,
-                   xtx_red = xtx_red,
-                   beta_hat = beta_hat,
-                   which_parm = which_parm,
-                   level = level,
-                   pb = pb,
-                   n_grid = n_grid,
-                   k = k)
-          )
-        }
+          }
+        ) |>
+          purrr::list_rbind()
         # return results using convex optimization
         return(ci_data)
       },
@@ -882,90 +583,34 @@ fct_confint.glm <- function(
     }
   }
 
-  # create progress bar if verbose = TRUE. A function to update the bar
-  # is defined for use if parallel = TRUE
-  if (verbose & parallel) {
-    progress <- function(i) {
-      # first tick needs to be run twice for progress bar to show (why?)
-      if (i == 1) {
-        pb$tick(tokens = list(iteration = 1))
-      }
-      # running twice to initialize creates problems with termination
-      # terminate manually, then return
-      if (i == ncol(delta)) {
-        pb$terminate()
-        return(invisible(pb))
-      }
-      pb$tick(tokens = list(iteration = i))
-    }
-    opts <- list(progress = progress)
-    pb <- progress::progress_bar$new(
-      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-      total = ncol(delta),
-      width = 80,
-      show_after = 0.2
-    )
-  } else if (verbose) {
-    pb <- progress::progress_bar$new(
-      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-      total = ncol(delta),
-      width = 80,
-      show_after = 0.2
-    )
-  } else if (parallel) {
-    pb <- NULL
-    opts <- list()
-  } else {
-    pb <- NULL
-  }
+  # create progress bar with progressr. To display a progress bar the user
+  # wraps the call to fct_confint in with_progress()
+  pb <- progressr::progressor(steps = ncol(delta))
 
   ### solve equation for scaling points to end up on boundary of confidence set
-  if (parallel) {
-    fnp <- function(y) {
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+  a <- furrr::future_map_dbl(
+    .x = seq_len(ncol(delta)),
+    .options = furrr::furrr_options(
+      globals = c("delta", "xtx_red", "pb", "ci_fct")
+    ),
+    .f = \(i) {
+      pb()
+      t(delta[, i, drop = FALSE]) %*% xtx_red %*% delta[, i, drop = FALSE] |>
         as.numeric()
     }
-    a <- foreach::`%dopar%`(
-      foreach::foreach(
-        y = seq_len(ncol(delta)),
-        .combine = c,
-        .options.snow = opts
-      ),
-      fnp(y)
-    )
-  } else {
-    fn <- function(y, verbose) {
-      if (verbose) {
-        pb$tick(tokens = list(iteration = y))
-      }
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
-        as.numeric()
-    }
-    a <- foreach::`%do%`(
-      foreach::foreach(
-        y = seq_len(ncol(delta)),
-        .combine = c
-      ),
-      fn(y, verbose = verbose)
-    )
-  }
+  )
   c <- rep(
     qchisq(level, length(beta_hat[which_parm])),
     ncol(delta)
   )
-  suppressWarnings(
-    alpha1 <- -sqrt(c / a)
-  )
-  suppressWarnings(
-    alpha2 <- sqrt(c / a)
-  )
+  suppressWarnings({alpha1 <- -sqrt(c / a)})
+  suppressWarnings({alpha2 <- sqrt(c / a)})
   # remove delta values that lead to complex solutions
   which_alpha <- which(!(is.nan(alpha1) | is.infinite(alpha1)))
   alpha1 <- alpha1[which_alpha]
   alpha2 <- alpha2[which_alpha]
   delta_red <- delta[, which_alpha, drop = FALSE]
-  if (verbose) cat("points on the boundary:", 2 * length(which_alpha), "\n")
-
+  cat("points on the boundary:", 2 * length(which_alpha), "\n")
 
   # determine coefficient values on boundary of confidence set
   beta_1 <- matrix(
@@ -996,7 +641,7 @@ fct_confint.glm <- function(
       ) * delta_red
     )
   colnames(beta_2) <- names(beta_hat)[which_parm]
-  suppressMessages(
+  suppressMessages({
     ci_data_1 <- lapply(
       seq_len(nrow(beta_1)),
       function(x) f(beta_1[x, ])
@@ -1010,8 +655,8 @@ fct_confint.glm <- function(
           estimate = f(beta_hat[which_parm])
         )
       )
-  )
-  suppressMessages(
+  })
+  suppressMessages({
     ci_data_2 <- lapply(
       seq_len(nrow(beta_2)),
       function(x) f(beta_2[x, ])
@@ -1020,7 +665,7 @@ fct_confint.glm <- function(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
       ) |>
       dplyr::as_tibble()
-  )
+  })
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
     dplyr::select("estimate", dplyr::everything())
@@ -1047,18 +692,15 @@ fct_confint.lms <- function(
     f,
     which_parm = rep(TRUE, length(coef(object))),
     level = 0.95,
-    len = 0.1,
-    n_grid = 0L,
-    k = 1000L,
-    parallel = FALSE,
-    n_cores = 10,
     return_beta = FALSE,
-    verbose = FALSE,
+    n_grid = NULL,
+    k = NULL,
+    len = 0.1,
     ...
 ) {
   ### check input
   # check object class
-  stopifnot("object must inherit from class 'lm'" = inherits(object, "lm"))
+  stopifnot("object must inherit from class 'lms'" = inherits(object, "lms"))
   # check f is a function
   stopifnot("f must be a function" = is.function(f))
   # convert which_parm to a logical vector
@@ -1098,8 +740,6 @@ fct_confint.lms <- function(
     "return_beta must be Boolean" =
       isTRUE(return_beta) | isFALSE(return_beta)
   )
-  # check verbose is a Boolean
-  stopifnot("verbose must be Boolean" = isTRUE(verbose) | isFALSE(verbose))
   # check n_grid
   if (
     !(is.null(n_grid) ||
@@ -1126,54 +766,12 @@ fct_confint.lms <- function(
     "len must be a number greater than 0" =
       is.numeric(len) && length(len) == 1 && len > 0
   )
-
-  ### request installation of required packages from suggested
-  if (parallel) {
-    p1 <- requireNamespace("parallel", quietly = TRUE)
-    p2 <- requireNamespace("snow", quietly = TRUE)
-    p3 <- requireNamespace("doSNOW", quietly = TRUE)
-    p4 <- requireNamespace("foreach", quietly = TRUE)
-    if (!all(c(p1, p2, p3, p4))) {
-      mp <- c("parallel", "snow", "doSNOW", "foreach")[!c(p1, p2, p3, p4)]
-      if (interactive()) {
-        for (i in 1:3) {
-          input <- readline(glue::glue(
-            "'parallel=TRUE' requires packages {mp} to be installed.\n",
-            "Attempt to install packages from CRAN? (y/n)"
-          ))
-          if (input == "y") {
-            install.packages(
-              pkgs = mp,
-              repos = "https://cloud.r-project.org"
-            )
-            p1 <- requireNamespace("parallel", quietly = TRUE)
-            p2 <- requireNamespace("snow", quietly = TRUE)
-            p3 <- requireNamespace("doSNOW", quietly = TRUE)
-            p4 <- requireNamespace("foreach", quietly = TRUE)
-            if (!all(c(p1, p2, p3, p4))) {
-              stop("Failed to install required packages.")
-            }
-            break
-          } else if (input == "n") {
-            stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
-          }
-          if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-        }
-      } else {
-        stop("When 'parallel=TRUE', packages 'parallel', 'snow','doSNOW', and 'foreach' are required.")
-      }
-    }
-  }
-
-  ### Initialize parallel clusters if needed
-  if (parallel) {
-    nCores <- min(
-      parallel::detectCores(),
-      n_cores
+  # check if convex optimizer is needed
+  if ((is.null(n_grid) || any(n_grid) == 0L) && (is.null(k) || k == 0L)) {
+    stopifnot(
+      "'fct_confint.lm' requires package 'CVXR' to be installed unless 'n_grid' or 'k' are specified." =
+        requireNamespace("CVXR", quietly = TRUE)
     )
-    cluster <- snow::makeCluster(nCores)
-    doSNOW::registerDoSNOW(cluster)
-    on.exit(snow::stopCluster(cluster))
   }
 
   ### extract MLE parameters
@@ -1200,116 +798,35 @@ fct_confint.lms <- function(
     # total number of output dimensions
     n_fout <- length(f(beta_hat))
 
-    # create progress bar if verbose = TRUE. A function to update the bar
-    # is defined for use if parallel = TRUE
-    # NOTE: the progress bar from the progress package is resource intensive
-    # compared with the one from cli. Progress is used here because it works
-    # with a parallel workflow, but a faster alternative would be preferred.
-    if (verbose & parallel) {
-      progress <- function(i) {
-        # first tick needs to be run twice for progress bar to show (why?)
-        if (i == 1) {
-          pb$tick(tokens = list(iteration = 1))
-        }
-        # running twice to initialize creates problems with termination
-        # terminate manually, then return
-        if (i == n_fout) {
-          pb$terminate()
-          return(invisible(pb))
-        }
-        pb$tick(tokens = list(iteration = i))
-      }
-      opts <- list(progress = progress)
-      pb <- progress::progress_bar$new(
-        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-        total = n_fout,
-        width = 80,
-        show_after = 0.2
-      )
-    } else if (verbose) {
-      pb <- progress::progress_bar$new(
-        format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-        total = n_fout,
-        width = 80,
-        show_after = 0.2
-      )
-    } else if (parallel) {
-      opts <- list()
-    }
+    # create progress bar with progressr. To display a progress bar the user
+    # wraps the call to fct_confint in with_progress()
+    pb <- progressr::progressor(steps = n_fout)
 
-    ### request installation of required package from suggested
-    if (is.null(n_grid) && is.null(k)) {
-      p1 <- requireNamespace("CVXR", quietly = TRUE)
-      if (!p1) {
-        if (interactive()) {
-          for (i in 1:3) {
-            input <- readline(glue::glue(
-              "package 'CVXR' must be installed when 'n_grid' and 'k' are NULL.\n",
-              "Attempt to install package from CRAN? (y/n)"
-            ))
-            if (input == "y") {
-              install.packages(
-                pkgs = "CVXR",
-                repos = "https://cloud.r-project.org"
-              )
-              p1 <- requireNamespace("CVXR", quietly = TRUE)
-              if (!p1) {
-                stop("Failed to install required package.")
-              }
-              break
-            } else if (input == "n") {
-              stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
-            }
-            if (i == 3) stop("Failed to answer 'y' or 'n' to many times.")
-          }
-        } else {
-          stop("When 'n_grid' and 'k' are NULL, package 'CVXR' is required.")
-        }
-      }
-    }
-
-    # run optimizer, either in parallel or in series
+    # run optimizer using the user specified future plan
     env <- parent.frame()
     tryCatch(
       {
-        if (parallel) {
-          ci_data <- foreach::`%dopar%`(
-            foreach::foreach(
-              i = seq_len(n_fout),
-              .combine = rbind,
-              .options.snow = opts
-            ),
+        ci_data <- furrr::future_map(
+          .x = seq_len(n_fout),
+          .options = furrr::furrr_options(
+            packages = c("CVXR", "dplyr"),
+            globals = c("f", "xtx_red", "beta_hat", "which_parm", "level",
+                        "n_grid", "k", "pb", "ci_fct"),
+            seed = TRUE
+          ),
+          .f = \(i) {
+            pb()
             ci_fct(i = i,
                    f = f,
-                   verbose = verbose,
-                   parallel = parallel,
                    xtx_red = xtx_red,
                    beta_hat = beta_hat,
                    which_parm = which_parm,
                    level = level,
-                   pb = pb,
                    n_grid = n_grid,
                    k = k)
-          )
-        } else {
-          ci_data <- foreach::`%do%`(
-            foreach::foreach(
-              i = seq_len(n_fout),
-              .combine = rbind
-            ),
-            ci_fct(i = i,
-                   f = f,
-                   verbose = verbose,
-                   parallel = parallel,
-                   xtx_red = xtx_red,
-                   beta_hat = beta_hat,
-                   which_parm = which_parm,
-                   level = level,
-                   pb = pb,
-                   n_grid = n_grid,
-                   k = k)
-          )
-        }
+          }
+        ) |>
+          purrr::list_rbind()
         # return results using convex optimization
         return(ci_data)
       },
@@ -1343,89 +860,34 @@ fct_confint.lms <- function(
     }
   }
 
-  # create progress bar if verbose = TRUE. A function to update the bar
-  # is defined for use if parallel = TRUE
-  if (verbose & parallel) {
-    progress <- function(i) {
-      # first tick needs to be run twice for progress bar to show (why?)
-      if (i == 1) {
-        pb$tick(tokens = list(iteration = 1))
-      }
-      # running twice to initialize creates problems with termination
-      # terminate manually, then return
-      if (i == ncol(delta)) {
-        pb$terminate()
-        return(invisible(pb))
-      }
-      pb$tick(tokens = list(iteration = i))
-    }
-    opts <- list(progress = progress)
-    pb <- progress::progress_bar$new(
-      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-      total = ncol(delta),
-      width = 80,
-      show_after = 0.2
-    )
-  } else if (verbose) {
-    pb <- progress::progress_bar$new(
-      format = "iteration: :iteration of :total [:bar] :elapsed | eta: :eta",
-      total = ncol(delta),
-      width = 80,
-      show_after = 0.2
-    )
-  } else if (parallel) {
-    pb <- NULL
-    opts <- list()
-  } else {
-    pb <- NULL
-  }
+  # create progress bar with progressr. To display a progress bar the user
+  # wraps the call to fct_confint in with_progress()
+  pb <- progressr::progressor(steps = ncol(delta))
 
   ### solve equation for scaling points to end up on boundary of confidence set
-  if (parallel) {
-    fnp <- function(y) {
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
+  a <- furrr::future_map_dbl(
+    .x = seq_len(ncol(delta)),
+    .options = furrr::furrr_options(
+      globals = c("delta", "xtx_red", "pb", "ci_fct")
+    ),
+    .f = \(i) {
+      pb()
+      t(delta[, i, drop = FALSE]) %*% xtx_red %*% delta[, i, drop = FALSE] |>
         as.numeric()
     }
-    a <- foreach::`%dopar%`(
-      foreach::foreach(
-        y = seq_len(ncol(delta)),
-        .combine = c,
-        .options.snow = opts
-      ),
-      fnp(y)
-    )
-  } else {
-    fn <- function(y, verbose) {
-      if (verbose) {
-        pb$tick(tokens = list(iteration = y))
-      }
-      t(delta[, y, drop = FALSE]) %*% xtx_red %*% delta[, y, drop = FALSE] |>
-        as.numeric()
-    }
-    a <- foreach::`%do%`(
-      foreach::foreach(
-        y = seq_len(ncol(delta)),
-        .combine = c
-      ),
-      fn(y, verbose = verbose)
-    )
-  }
+  )
   c <- rep(
     qchisq(level, length(beta_hat[which_parm])),
     ncol(delta)
   )
-  suppressWarnings(
-    alpha1 <- -sqrt(c / a)
-  )
-  suppressWarnings(
-    alpha2 <- sqrt(c / a)
-  )
+  suppressWarnings({alpha1 <- -sqrt(c / a)})
+  suppressWarnings({alpha2 <- sqrt(c / a)})
   # remove delta values that lead to complex solutions
   which_alpha <- which(!(is.nan(alpha1) | is.infinite(alpha1)))
   alpha1 <- alpha1[which_alpha]
   alpha2 <- alpha2[which_alpha]
   delta_red <- delta[, which_alpha, drop = FALSE]
-  if (verbose) cat("points on the boundary:", 2 * length(which_alpha), "\n")
+  cat("points on the boundary:", 2 * length(which_alpha), "\n")
   # determine coefficient values on boundary of confidence set
   beta_1 <- matrix(
     rep(beta_hat[which_parm], length(which_alpha)),
@@ -1455,7 +917,7 @@ fct_confint.lms <- function(
       ) * delta_red
     )
   colnames(beta_2) <- names(beta_hat)[which_parm]
-  suppressMessages(
+  suppressMessages({
     ci_data_1 <- lapply(
       seq_len(nrow(beta_1)),
       function(x) f(beta_1[x, ])
@@ -1469,8 +931,8 @@ fct_confint.lms <- function(
           estimate = f(beta_hat[which_parm])
         )
       )
-  )
-  suppressMessages(
+  })
+  suppressMessages({
     ci_data_2 <- lapply(
       seq_len(nrow(beta_2)),
       function(x) f(beta_2[x, ])
@@ -1479,7 +941,7 @@ fct_confint.lms <- function(
         names = paste0("ci_bound_", seq_len(nrow(beta_2)) + nrow(beta_1))
       ) |>
       dplyr::as_tibble()
-  )
+  })
   # combine negative and positive solutions
   ci_data <- dplyr::bind_cols(ci_data_1, ci_data_2) |>
     dplyr::select("estimate", dplyr::everything())
@@ -1518,13 +980,10 @@ fct_confint.default <- function(
 #' @param i An index for the point at which to solve for confidence limits.
 #' @param f A function taking the parameter vector as its single argument, and
 #'   returning a numeric vector.
-#' @param verbose Flag from fct_confint.
-#' @param parallel Flag from fct_confint.
 #' @param xtx_red Reduced form of matrix *X^TX*.
 #' @param beta_hat Vector of parameter estimates.
 #' @param which_parm Vector indicating which parameters to include.
 #' @param level The confidence level required.
-#' @param pb R6 progress bar object
 #' @param n_grid Either `NULL` or an integer vector of length 1 or the number of
 #'   `TRUE`/indices in which_parm. Specifies the number of grid points in each
 #'   dimension of a grid with endpoints defined by len. If `NULL` or `0L`, will
@@ -1538,13 +997,10 @@ fct_confint.default <- function(
 
 ci_fct <- function(i,
                    f,
-                   verbose,
-                   parallel,
                    xtx_red,
                    beta_hat,
                    which_parm,
                    level,
-                   pb,
                    n_grid,
                    k) {
   # find ci_lower
@@ -1567,9 +1023,6 @@ ci_fct <- function(i,
     ci_lower = result_lower$value,
     ci_upper = result_upper$value
   )
-  if (verbose & !parallel) {
-    pb$tick(tokens = list(iteration = i))
-  }
   return(out)
 }
 

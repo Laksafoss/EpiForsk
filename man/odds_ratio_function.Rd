@@ -112,6 +112,7 @@ func_est1 <- odds_ratio_function(
   expvars = c("tocc", "education", "tocc:education")
 )
 
+\donttest{
 # Conditional binomial logistic regression with some extra text added:
 func_est2 <- odds_ratio_function(
   logan2,
@@ -120,6 +121,7 @@ func_est2 <- odds_ratio_function(
   matchgroup = "id",
   textvar = "Testing function"
 )
+}
 
 # Standard binomial logistic regression as survey data with no prepared
 # weights:
