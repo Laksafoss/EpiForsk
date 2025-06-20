@@ -126,13 +126,107 @@ odds_ratio_function_repeated <- function(
     textvar = NULL,
     model_object = FALSE
 ) {
+  ### Start of Input checks
+  if (missing(normaldata) || !inherits(normaldata, "data.frame")) {
+    stop("'normaldata' must be a data frame.")
+  }
+  if (missing(outcomevar) || !is.character(outcomevar)) {
+    stop(
+      "'outcomevar' must be a character vector naming factor ",
+      "variables in 'normaldata' to use as outcomes in separate models."
+    )
+  }
+  if (missing(expvars) || !is.character(expvars)) {
+    stop(
+      "'expvars' must be a character vector specifying exposure variables ",
+      "(either numeric or factors) to use in separate models."
+    )
+  }
+  if (!(is.null(adjustment_fixed) || is.character(adjustment_fixed))) {
+    stop(
+      "'adjustment_fixed' must be a character vector naming adjustment ",
+      "variables to include in all models\n or NULL (the default) for no ",
+      "fixed adjustment."
+    )
+  }
+  if (!(is.null(by_var) || (is.character(by_var) && length(by_var) == 1))) {
+    stop(
+      "'by_var' must be a character vector specifying a factor on which to ",
+      "run the analyses completely separate for all levels,\n or NULL (the ",
+      "default) for no stratification."
+    )
+  }
+  if (!inherits(number_decimals, "numeric") || number_decimals < 0) {
+    stop("'number_decimals' must be a non-negative integer.")
+  }
+  if (!inherits(alpha, "numeric") ||
+      length(alpha) != 1 ||
+      alpha <= 0 ||
+      alpha >= 1) {
+    stop("'alpha' must specify a significance level between 0 and 1.")
+  }
   regtype <- match.arg(regtype)
+  if (!(is.null(matchgroup) ||
+        (is.character(matchgroup) && length(matchgroup) == 1))) {
+    stop(
+      "'matchgroup' must be NULL or optionally a length 1 character ",
+      "vector\nnaming a variable in 'normaldata' to condition the analysis on."
+    )
+  }
   matchtiemethod <- match.arg(matchtiemethod)
   new_expvars_prp <- expvars
   new_expvars_prp2 <- unlist(strsplit(new_expvars_prp, ":"))
   new_expvars <- unlist(strsplit(new_expvars_prp2, "[*]"))
   func_var_names <- unique(
     c(outcomevar, new_expvars, adjustment_fixed, by_var, weightvar, matchgroup)
+  if (!(is.null(values_to_remove) || is.character(values_to_remove))) {
+    stop(
+      "'values_to_remove' must be a character vector specifying values ",
+      "to remove from ALL variables used in the regression\n before the ",
+      "analysis, or NULL (the default) if no values should be removed."
+    )
+  }
+  if (!is.null(weightvar)) {
+    if (!is.character(weightvar)) {
+      stop(
+        "weightvar must be NULL or optionally a character of length 1 ",
+        "naming a column\nin `normaldata` with numeric weights ",
+        "for each observation."
+      )
+    } else if (!(length(weightvar == 1) && weightvar %in% names(normaldata))) {
+      stop(
+        "weightvar must name a single column in 'normaldata' with numeric",
+        "weights\nfor each observation."
+      )
+    } else if (!is.numeric(normaldata[[weightvar]])) {
+      stop(
+        "The column named in weightvar must contain numeric weights",
+        "for each observation."
+      )
+    }
+  }
+  if (!(isTRUE(surveydata) || isFALSE(surveydata))) {
+    stop("'surveydata' must be a boolean.")
+  }
+  if (!(is.null(textvar) || inherits(textvar, "character"))) {
+    stop("When 'textvar' is specified it must be a character.")
+  }
+  if (!(isTRUE(model_object) || isFALSE(model_object))) {
+    stop("'model_object' must be a boolean.")
+  }
+  if (isTRUE(surveydata) & !is.null(matchgroup)) {
+    stop(
+      "The combination of using surveydata and conditioning/matching is ",
+      "not supported."
+    )
+  }
+  if (regtype == "log-linear" && !is.null(matchgroup)) {
+    stop("When regtype is set to 'log-linear', no conditioning is supported.")
+  }
+  if (regtype == "log-linear" && surveydata == TRUE) {
+    stop("When regtype is set to 'log-linear', surveydata is not supported.")
+  }
+  ### End of input checks
   )
 
   func_table1 <- normaldata |>
