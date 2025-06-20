@@ -132,7 +132,7 @@ odds_ratio_function_repeated <- function(
   new_expvars_prp2 <- unlist(strsplit(new_expvars_prp, ":"))
   new_expvars <- unlist(strsplit(new_expvars_prp2, "[*]"))
   func_var_names <- unique(
-    c(outcomevar, new_expvars, adjustment_fixed, by_var, weightvar)
+    c(outcomevar, new_expvars, adjustment_fixed, by_var, weightvar, matchgroup)
   )
 
   func_table1 <- normaldata |>
