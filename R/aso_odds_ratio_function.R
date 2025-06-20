@@ -168,10 +168,7 @@ odds_ratio_function <- function(
     model_object = FALSE
 ) {
   ### Start of Input checks
-  if (missing(normaldata)) {
-    stop("'normaldata' must be a data frame.")
-  }
-  if (!inherits(normaldata, "data.frame")) {
+  if (missing(normaldata) || !inherits(normaldata, "data.frame")) {
     stop("'normaldata' must be a data frame.")
   }
   if (missing(outcomevar) ||
@@ -187,16 +184,13 @@ odds_ratio_function <- function(
       "including transformations (e.g. I(a^2)) and interactions (e.g. a:b)."
     )
   }
-  if (!inherits(number_decimals, "numeric")) {
+  if (!inherits(number_decimals, "numeric") || number_decimals < 0) {
     stop("'number_decimals' must be a non-negative integer.")
   }
-  if (number_decimals < 0) {
-    stop("'number_decimals' must be a non-negative integer.")
-  }
-  if (!inherits(alpha, "numeric")) {
-    stop("'alpha' must specify a significance level between 0 and 1.")
-  }
-  if (alpha <= 0 || alpha >= 1) {
+  if (!inherits(alpha, "numeric") ||
+      length(alpha) != 1 ||
+      alpha <= 0 ||
+      alpha >= 1) {
     stop("'alpha' must specify a significance level between 0 and 1.")
   }
   regtype <- match.arg(regtype)
@@ -208,12 +202,12 @@ odds_ratio_function <- function(
     )
   }
   matchtiemethod <- match.arg(matchtiemethod)
-  if (!is.null(values_to_remove)) {
-    if (!inherits(values_to_remove, "character")) {
-      stop(
-        "'values_to_remove' must be NULL or optionally a character vector."
-      )
-    }
+  if (!(is.null(values_to_remove) || is.character(values_to_remove))) {
+    stop(
+      "'values_to_remove' must be a character vector specifying values ",
+      "to remove from ALL variables used in the regression\n before the ",
+      "analysis, or NULL (the default) if no values should be removed."
+    )
   }
   if (!is.null(weightvar)) {
     if (!inherits(weightvar, "character")) {
