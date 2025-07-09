@@ -317,7 +317,7 @@ odds_ratio_function_repeated <- function(
             )
           }
         } else if (model_object == TRUE && odds_ratio_output$error == '') {
-          if (k==1 & i==1 & j==1) {
+          if (k==1 && i==1 && j==1) {
             odds_ratio_table <- c(
               "By" = By_var_name,
               "Outcome" = outcomevar_name,
@@ -345,7 +345,7 @@ odds_ratio_function_repeated <- function(
               Expvar_name = expvar_name
             ) |>
             dplyr::relocate("Error", .after = dplyr::last_col())
-          if (k == 1 & i == 1 & j == 1) {
+          if (k == 1 && i == 1 && j == 1) {
             odds_ratio_table <- odds_ratio_tmp_table
           } else {
             odds_ratio_table <- dplyr::bind_rows(
@@ -354,7 +354,7 @@ odds_ratio_function_repeated <- function(
             )
           }
         } else if (model_object == TRUE && odds_ratio_output$error != '') {
-          if (k == 1 & i == 1 & j == 1) {
+          if (k == 1 && i == 1 && j == 1) {
             odds_ratio_table <- c(
               "By" = By_var_name,
               "Outcome" = outcomevar_name,

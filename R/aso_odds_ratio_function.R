@@ -309,7 +309,7 @@ odds_ratio_function <- function(
   if (outcome_levels < 2) {
     stop("The outcome was the same for all samples!")
   }
-  if (outcome_levels > 2 & !is.null(matchgroup)) {
+  if (outcome_levels > 2 && !is.null(matchgroup)) {
     stop("Matched polytomous/multinomial models are not supported!")
   }
 
