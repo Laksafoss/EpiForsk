@@ -209,7 +209,7 @@ odds_ratio_function_repeated <- function(
   if (!(isTRUE(model_object) || isFALSE(model_object))) {
     stop("'model_object' must be a boolean.")
   }
-  if (isTRUE(surveydata) & !is.null(matchgroup)) {
+  if (isTRUE(surveydata) && !is.null(matchgroup)) {
     stop(
       "The combination of using surveydata and conditioning/matching is ",
       "not supported."
@@ -307,7 +307,7 @@ odds_ratio_function_repeated <- function(
                 )
               )
           }
-          if (k==1 & i==1 & j==1) {
+          if (k==1 && i==1 && j==1) {
             odds_ratio_table <- odds_ratio_tmp_table
           } else {
             odds_ratio_table <- dplyr::bind_rows(
@@ -315,7 +315,7 @@ odds_ratio_function_repeated <- function(
               odds_ratio_tmp_table
             )
           }
-        } else if (model_object == TRUE & odds_ratio_output$error == '') {
+        } else if (model_object == TRUE && odds_ratio_output$error == '') {
           if (k==1 & i==1 & j==1) {
             odds_ratio_table <- c(
               "By" = By_var_name,
@@ -334,7 +334,7 @@ odds_ratio_function_repeated <- function(
               odds_ratio_output$value
             )
           }
-        } else if (model_object == FALSE & odds_ratio_output$error != '') {
+        } else if (model_object == FALSE && odds_ratio_output$error != '') {
           odds_ratio_tmp_table <- odds_ratio_output$error |>
             dplyr::as_tibble() |>
             dplyr::rename(Error = 1) |>
@@ -352,7 +352,7 @@ odds_ratio_function_repeated <- function(
               odds_ratio_tmp_table
             )
           }
-        } else if (model_object == TRUE & odds_ratio_output$error != '') {
+        } else if (model_object == TRUE && odds_ratio_output$error != '') {
           if (k == 1 & i == 1 & j == 1) {
             odds_ratio_table <- c(
               "By" = By_var_name,

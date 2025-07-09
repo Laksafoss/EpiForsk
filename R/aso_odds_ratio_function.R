@@ -237,7 +237,7 @@ odds_ratio_function <- function(
   if (!(isTRUE(model_object) || isFALSE(model_object))) {
     stop("'model_object' must be a boolean.")
   }
-  if (isTRUE(surveydata) & !is.null(matchgroup)) {
+  if (isTRUE(surveydata) && !is.null(matchgroup)) {
     stop(
       "The combination of using surveydata and conditioning/matching is ",
       "not supported."
@@ -410,7 +410,7 @@ odds_ratio_function <- function(
     # "Normal" binomial logistic regression
     if (regtype == "logistic") {
 
-      if (surveydata == FALSE & is.null(matchgroup)) {
+      if (surveydata == FALSE && is.null(matchgroup)) {
 
         Regression_type <- c("logistic regression,") #Used to create information of model used
         Model_info <- c("glm(), stats package") #Used to create information of model used
