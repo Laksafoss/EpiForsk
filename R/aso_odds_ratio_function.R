@@ -254,7 +254,7 @@ odds_ratio_function <- function(
   # Only keeping relevant variables
   # Make sure interaction variables are also included in the final data
   # (splitting string)
-  new_expvars <- unlist(strsplit(unlist(strsplit(expvars, ":")), "[*]"))
+  new_expvars <- unlist(strsplit(expvars, "[:*]"))
 
   # Selecting all relevant variables from data
   # (effectively dropping all other variables)

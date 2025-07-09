@@ -226,7 +226,7 @@ odds_ratio_function_repeated <- function(
   normaldata_names <- unique(
     c(
       outcomevar,
-      unlist(strsplit(unlist(strsplit(expvars, ":")), "[*]")),
+      unlist(strsplit(expvars, "[:*]")),
       adjustment_fixed,
       by_var,
       weightvar,
