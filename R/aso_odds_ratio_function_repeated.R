@@ -234,15 +234,16 @@ odds_ratio_function_repeated <- function(
     )
   )
 
-  normaldata <- normaldata |>
-    dplyr::select(dplyr::all_of(normaldata_names))
+  normaldata <- dplyr::select(normaldata, dplyr::all_of(normaldata_names))
 
   if (is.null(by_var)) {
     by_var_level_count <- 1
   } else {
-    by_var_levels <- dplyr::pull(
-      unique(dplyr::distinct(dplyr::select(normaldata, {{ by_var }})))
-    )
+    by_var_levels <- normaldata |>
+      dplyr::select({{ by_var }}) |>
+      dplyr::distinct() |>
+      unique() |>
+      dplyr::pull()
     if (is.numeric(by_var_levels)) {
       by_var_levels <- by_var_levels[!is.na(by_var_levels)]
     }
@@ -292,15 +293,15 @@ odds_ratio_function_repeated <- function(
           character = TRUE
         )
         if (model_object == FALSE && odds_ratio_output$error == '') {
-          odds_ratio_tmp_table <- odds_ratio_output$value |>
-            dplyr::mutate(
+          odds_ratio_tmp_table <- dplyr::mutate(
+              odds_ratio_output$value,
               By_name = By_var_name,
               Outcome_name = outcomevar_name,
               Expvar_name = expvar_name
             )
           if (odds_ratio_output$warning != '') {
-            odds_ratio_tmp_table <- odds_ratio_tmp_table |>
-              dplyr::mutate(
+            odds_ratio_tmp_table <- dplyr::mutate(
+                odds_ratio_tmp_table,
                 Warning = dplyr::case_when(
                   .data$term == "(Intercept)" ~ paste0(odds_ratio_output$warning),
                   TRUE ~ ""

@@ -258,27 +258,29 @@ odds_ratio_function <- function(
 
   # Selecting all relevant variables from data
   # (effectively dropping all other variables)
-  normaldata <- normaldata |>
-    dplyr::select(
-      "Outc" = dplyr::all_of(outcomevar),
-      dplyr::all_of(new_expvars),
-      "matchID" = dplyr::all_of(matchgroup),
-      "weight_used" = dplyr::all_of(weightvar)
-    )
+  normaldata <- dplyr::select(
+    normaldata,
+    "Outc" = dplyr::all_of(outcomevar),
+    dplyr::all_of(new_expvars),
+    "matchID" = dplyr::all_of(matchgroup),
+    "weight_used" = dplyr::all_of(weightvar)
+  )
 
   # Setting weights (unless specified, weight will be 1)
   # Only selecting variables to use in OR estimation
   # (adjusted or not, with weights or not)
   if (is.null(weightvar)) {
-    normaldata <- normaldata |> dplyr::mutate(weight_used = as.numeric(1))
+    normaldata <- dplyr::mutate(normaldata, weight_used = as.numeric(1))
   } else {
     normaldata <- dplyr::filter(normaldata, .data$weight_used > 0)
   }
 
   # Removing observations with missing in ANY of the used variables
   used_var <- ls(normaldata)
-  normaldata <- normaldata |>
-    dplyr::filter(dplyr::if_all(dplyr::all_of(used_var), ~ !is.na(.x)))
+  normaldata <- dplyr::filter(
+    normaldata,
+    dplyr::if_all(dplyr::all_of(used_var), ~ !is.na(.x))
+  )
 
   # Removes specified observation values in any of the used variables IF the
   # option "values_to_remove" is given (as vector)
@@ -287,13 +289,13 @@ odds_ratio_function <- function(
   # In addition, all factor levels NOT existing in the present data are removed
   # (using the droplevels() function)
   if (!is.null(values_to_remove)) {
-    normaldata <- normaldata |>
-      dplyr::filter(
-        dplyr::if_all(
-          dplyr::all_of(used_var),
-          ~ !as.character(.x) %in% values_to_remove
-        )
+    normaldata <- dplyr::filter(
+      normaldata,
+      dplyr::if_all(
+        dplyr::all_of(used_var),
+        ~ !as.character(.x) %in% values_to_remove
       )
+    )
   }
   normaldata <- droplevels(normaldata)
 
@@ -357,26 +359,25 @@ odds_ratio_function <- function(
         )
       )
     )
-  counts_table <- as.data.frame(
+  counts_table <- counts_table_prp |>
+    dplyr::select("sortnr", "Part_") |>
+    tidyr::pivot_wider(
+      names_from = "sortnr",
+      values_from = c("Part_"),
+      names_prefix = "Outcome"
+    ) |>
+    as.vector() |>
+    paste(collapse = ", ") |>
     paste0(
-      counts_table_prp |>
-        dplyr::select("sortnr", "Part_") |>
-        tidyr::pivot_wider(
-          names_from = "sortnr",
-          values_from = c("Part_"),
-          names_prefix = "Outcome"
-        ) |>
-        as.vector() |>
-        paste(collapse = ", "),
-      ", Total: n=",
-      dplyr::summarize(counts_table_prp, Total = sum(.data$Freq)),
-      "/ weighted n=",
-      sprintf(
-        "%.2f",
-        dplyr::summarize(counts_table_prp, Total_weighted = sum(.data$Freqw))
-      )
+    ", Total: n=",
+    dplyr::summarize(counts_table_prp, Total = sum(.data$Freq)),
+    "/ weighted n=",
+    sprintf(
+      "%.2f",
+      dplyr::summarize(counts_table_prp, Total_weighted = sum(.data$Freqw))
     )
   ) |>
+    as.data.frame() |>
     dplyr::rename("N" = 1) |>
     dplyr::mutate(
       term = "(Intercept)",
@@ -436,7 +437,8 @@ odds_ratio_function <- function(
         result_table <- broom::tidy(model_output, exponentiate = FALSE)
 
         # Getting p-values for included components in model
-        pvalue_table <- drop1(model_output, test = "Chisq") |>
+        pvalue_table <- model_output |>
+          drop1(test = "Chisq") |>
           (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
@@ -485,7 +487,8 @@ odds_ratio_function <- function(
         result_table <- broom::tidy(model_output, exponentiate = FALSE)
 
         # Getting p-values for included components in model
-        pvalue_table <- drop1(model_output, test = "Chisq") |>
+        pvalue_table <- model_output |>
+          drop1(test = "Chisq") |>
           (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
@@ -555,7 +558,8 @@ odds_ratio_function <- function(
         result_table <- broom::tidy(model_output, exponentiate = FALSE)
 
         # Getting p-values for included components in model
-        pvalue_table <- drop1(model_output, test = "Chisq") |>
+        pvalue_table <- model_output |>
+          drop1(test = "Chisq") |>
           (\(tbl) dplyr::mutate(tbl, Variable = rownames(tbl), .before = 1))() |>
           dplyr::select("Variable", "P_anova" = "Pr(>Chi)") |>
           dplyr::filter(!is.na(.data$P_anova)) |>
@@ -654,14 +658,14 @@ odds_ratio_function <- function(
             Outcome_order = as.character(seq_along(model_output$fit@extra$colnames.y)),
             # standardized column/variable name
             Outcome_levels = model_output$fit@extra$colnames.y
-            ),
-          dplyr::tibble(refLevel = model_output$fit@extra$use.refLevel) |>
+          ),
+          dplyr::mutate(
+            dplyr::tibble(refLevel = model_output$fit@extra$use.refLevel),
             # Final adjustments, so the numeric levels used in function now have the
             # outcome level names instead
-            dplyr::mutate(
-              ref_indicator = .data$refLevel,
-              refLevel = paste0(.data$refLevel)
-            ),
+            ref_indicator = .data$refLevel,
+            refLevel = paste0(.data$refLevel)
+          ),
           by = c("Outcome_order" = "refLevel")
         ) |>
           dplyr::mutate(
@@ -834,9 +838,8 @@ odds_ratio_function <- function(
       dplyr::arrange(.data$sortnr, .data$term)
   }
 
-  Full_model_info <- as.data.frame(
-    paste(Outcome_type, Regression_type, Model_info, sep = " ")
-  ) |>
+  Full_model_info <- paste(Outcome_type, Regression_type, Model_info, sep = " ") |>
+    as.data.frame() |>
     dplyr::mutate(term = "(Intercept)", sortnr = 0) |>
     dplyr::select("term", "Model_info" = 1, "sortnr")
 
