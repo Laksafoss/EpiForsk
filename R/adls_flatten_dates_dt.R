@@ -8,6 +8,22 @@
 #' @param out_date One unquoted expression naming the end date variable in data.
 #' @param status One or more unquoted expressions naming a status variable in data, such as region or
 #'   hospitalization reason.
+#' @param overlap_handling A character naming the method for handling overlaps
+#'   within an individuals time when `status` has been specified.
+#'
+#'   * "none": No special handling of the overlapping time intervals within
+#'     person is done.
+#'   * "first": The `status` mentioned first, that is, has the smallest
+#'   `in_date`, dominates.
+#'   * "most_recent" (default): The most recent `status`, that is, the one with
+#'   the largest `in_date`, dominates. When the most recent `status` is fully
+#'   contained within an older (and different) `status` then the `out_date`
+#'   associated with the most recent `in_date` is kept, but the remaining time
+#'   from the older `status` is removed. See examples below.
+#'
+#'   We currently don't have a method that lets the most recent status dominate
+#'   and then potentially return to an older longer running status. If this is
+#'   needed, please contact ADLS.
 #' @param lag A numeric, giving the number of days allowed between time
 #'   intervals that should be collapsed into one.
 #'
@@ -25,7 +41,7 @@
 #'
 #'
 #' @author
-#' ADLS, EMTH & ASO
+#' ADLS, EMTH, ASO & KIJA
 #'
 #' @examples
 #'
@@ -71,7 +87,10 @@
 #'                      "2007-05-07", "2008-12-12")),
 #'    REGION = c("H", "H", "N", "S", "S", "M", "N", "S", "S"))
 #'
-#' dat |> FlattenDatesDT(ID, START, END, REGION)
+#' # Note the difference between the the different overlap_handling methods
+#' dat |> FlattenDatesDT(ID, START, END, REGION, "none")
+#' dat |> FlattenDatesDT(ID, START, END, REGION, "first")
+#' dat |> FlattenDatesDT(ID, START, END, REGION, "most_recent")
 #'
 #' @export
 FlattenDatesDT <- function(
@@ -80,8 +99,12 @@ FlattenDatesDT <- function(
     in_date,
     out_date,
     status = NULL,
+    overlap_handling = c("none", "first", "most_recent"),
     lag = 0
 ) {
+  # Input checks
+  overlap_handling <- match.arg(overlap_handling)
+
   # Copy data
   data <- data.table::copy(data)
 
@@ -96,22 +119,19 @@ FlattenDatesDT <- function(
   # Build grouping keys
   if(!missing(status)) {
     status <- deparse(substitute(status))
-    id <- c(id, status)
+    grp_key <- c(id, status)
+  } else {
+    grp_key <- id
   }
 
   # Order within each group
-  data.table::setorderv(data, c(id, in_date, out_date))
+  data.table::setorderv(data, c(grp_key, in_date, out_date))
 
   # Mark merge groups by cumsum of gaps > lag
   data[
     ,
-    merge_id := {
-      s <- get(in_date)
-      e <- get(out_date)
-      gaps <- c(FALSE, head(e, -1) + lag < tail(s, -1))
-      cumsum(gaps)
-    },
-    by = id
+    merge_id := cumsum(c(FALSE, head(get(out_date), -1) + lag < tail(get(in_date), -1))),
+    by = grp_key
   ]
 
   # Collapse each merge_id to [min(start), max(end)]
@@ -121,17 +141,38 @@ FlattenDatesDT <- function(
       tmp_start = min(get(in_date)),
       tmp_end = max(get(out_date))
     ),
-    by = c(id, "merge_id")
+    by = c(grp_key, "merge_id")
   ]
 
   # Update names by reference
-  data.table::setnames(result,
-           old = c("tmp_start", "tmp_end"),
-           new = c(in_date, out_date))
+  data.table::setnames(
+    result,
+    old = c("tmp_start", "tmp_end"),
+    new = c(in_date, out_date)
+  )
 
   # Remove merge_id column from result
   result[, merge_id := NULL]
 
-  # return
-  return(result)
+  # Arrange by id and in_date
+  result <- result[order(get(id), get(in_date))]
+
+  # Overlap handling
+  if (is.null(status) || overlap_handling == "none") {
+    return(result)
+  } else if (overlap_handling == "first") {
+    return(
+      result[
+        ,
+        (in_date) := do.call(pmax, c(list(get(in_date), data.table::shift(get(out_date))), na.rm = TRUE)),
+        by = id
+      ][get(in_date) <= get(out_date)]
+    )
+  } else if (overlap_handling == "most_recent") {
+    result[
+      ,
+      (out_date) := do.call(pmin, c(list(data.table::shift(get(in_date), type = "lead"), get(out_date)), na.rm = TRUE)),
+      by = id
+    ]
+  }
 }

@@ -4,7 +4,15 @@
 \alias{FlattenDatesDT}
 \title{Flatten Date Intervals}
 \usage{
-FlattenDatesDT(data, id, in_date, out_date, status = NULL, lag = 0)
+FlattenDatesDT(
+  data,
+  id,
+  in_date,
+  out_date,
+  status = NULL,
+  overlap_handling = c("none", "first", "most_recent"),
+  lag = 0
+)
 }
 \arguments{
 \item{data}{A list, A data frame, or a data frame extension (e.g. a tibble) coercible to data.table.}
@@ -17,6 +25,24 @@ FlattenDatesDT(data, id, in_date, out_date, status = NULL, lag = 0)
 
 \item{status}{One or more unquoted expressions naming a status variable in data, such as region or
 hospitalization reason.}
+
+\item{overlap_handling}{A character naming the method for handling overlaps
+within an individuals time when \code{status} has been specified.
+\itemize{
+\item "none": No special handling of the overlapping time intervals within
+person is done.
+\item "first": The \code{status} mentioned first, that is, has the smallest
+\code{in_date}, dominates.
+\item "most_recent" (default): The most recent \code{status}, that is, the one with
+the largest \code{in_date}, dominates. When the most recent \code{status} is fully
+contained within an older (and different) \code{status} then the \code{out_date}
+associated with the most recent \code{in_date} is kept, but the remaining time
+from the older \code{status} is removed. See examples below.
+}
+
+We currently don't have a method that lets the most recent status dominate
+and then potentially return to an older longer running status. If this is
+needed, please contact ADLS.}
 
 \item{lag}{A numeric, giving the number of days allowed between time
 intervals that should be collapsed into one.}
@@ -80,9 +106,12 @@ dat <- data.frame(
                      "2007-05-07", "2008-12-12")),
    REGION = c("H", "H", "N", "S", "S", "M", "N", "S", "S"))
 
-dat |> FlattenDatesDT(ID, START, END, REGION)
+# Note the difference between the the different overlap_handling methods
+dat |> FlattenDatesDT(ID, START, END, REGION, "none")
+dat |> FlattenDatesDT(ID, START, END, REGION, "first")
+dat |> FlattenDatesDT(ID, START, END, REGION, "most_recent")
 
 }
 \author{
-ADLS, EMTH & ASO
+ADLS, EMTH, ASO & KIJA
 }
