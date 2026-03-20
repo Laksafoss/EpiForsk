@@ -19,6 +19,7 @@
 #' @importFrom survival strata
 #' @importFrom survival Surv
 #' @importFrom utils install.packages
+#' @import CVXR
 #' @import stats
 "_PACKAGE"
 
@@ -35,6 +36,15 @@ malicious_compliance <- function() {
 globalVariables(c("y"))
 globalVariables(c(".SD"))
 globalVariables(c(".N"))
+
+# Fix issue with stub Rmosek CRAN package
+.onLoad <- function(libname, pkgname) {
+  CVXR::exclude_solvers("MOSEK")
+}
+.onUnload <- function(libname, pkgname) {
+  CVXR::include_solvers("MOSEK")
+}
+
 
 #' make package data table aware
 #'

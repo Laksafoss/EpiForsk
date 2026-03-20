@@ -32,6 +32,7 @@ RoxygenNote: 7.3.3
 Imports: 
     broom,
     cowplot,
+    CVXR,
     data.table,
     dplyr,
     forcats,
@@ -59,7 +60,6 @@ Depends:
 LazyData: true
 Suggests: 
     cli,
-    CVXR,
     furrr,
     future,
     ggsci,
