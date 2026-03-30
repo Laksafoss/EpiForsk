@@ -102,6 +102,9 @@ FlattenDatesDT <- function(
     overlap_handling = c("none", "first", "most_recent"),
     lag = 0
 ) {
+  # Avoid NSE notes in R CMD check
+  merge_id <- NULL
+
   # Input checks
   overlap_handling <- match.arg(overlap_handling)
 
@@ -130,14 +133,14 @@ FlattenDatesDT <- function(
   # Mark merge groups by cumsum of gaps > lag
   data[
     ,
-    merge_id := cumsum(c(FALSE, head(get(out_date), -1) + lag < tail(get(in_date), -1))),
+    merge_id := cumsum(c(FALSE, utils::head(get(out_date), -1) + lag < utils::tail(get(in_date), -1))),
     by = grp_key
   ]
 
   # Collapse each merge_id to [min(start), max(end)]
   result <- data[
     ,
-    .(
+    list(
       tmp_start = min(get(in_date)),
       tmp_end = max(get(out_date))
     ),
