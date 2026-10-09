@@ -1,6 +1,6 @@
 Package: EpiForsk
 Title: Code Sharing at the Department of Epidemiology Research at Statens Serum Institut 
-Version: 0.2.2
+Version: 0.2.3
 Authors@R: 
     c(person("Anders", "Husby", , "andh@ssi.dk", role = c("aut"),
              comment = c(ORCID = "0000-0002-7634-8455")),
@@ -28,7 +28,6 @@ BugReports: https://github.com/Laksafoss/EpiForsk/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Imports: 
     broom,
     cowplot,
@@ -69,3 +68,4 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1

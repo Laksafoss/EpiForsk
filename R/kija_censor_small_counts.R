@@ -46,6 +46,8 @@
 #' totals or other cells. It does not perform complementary (secondary) suppression or certify that a table is
 #' safe to release.
 #'
+#' @author KIJA
+#'
 #' @examples
 #' df <- data.frame(
 #'   group = c("A", "B", "C"),
