@@ -77,17 +77,21 @@
 #'
 #' @examples
 #' \donttest{
-#' n <- 800
-#' p <- 3
-#' X <- matrix(rnorm(n * p), n, p)
-#' W <- rbinom(n, 1, 0.5)
-#' event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
-#' Y <- rbinom(n, 1, event_prob)
-#' cf <- grf::causal_forest(X, Y, W)
-#' CB_out <- CForBenefit(
-#' forest = cf, CI = "bootstrap", n_bootstraps = 20L, verbose = TRUE,
-#' match_method = "nearest", match_distance = "mahalanobis"
-#' )
+#'   n <- 800
+#'   p <- 3
+#'   X <- matrix(rnorm(n * p), n, p)
+#'   W <- rbinom(n, 1, 0.5)
+#'   event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
+#'   Y <- rbinom(n, 1, event_prob)
+#'   cf <- grf::causal_forest(X, Y, W)
+#'   CB_out <- CForBenefit(
+#'     forest = cf,
+#'     CI = "bootstrap",
+#'     n_bootstraps = 20L,
+#'     verbose = TRUE,
+#'     match_method = "nearest",
+#'     match_distance = "mahalanobis"
+#'   )
 #' }
 #'
 #' @export
