@@ -888,6 +888,7 @@ odds_ratio_function <- function(
 #'
 #' @return
 #' A "summary.svy_vglm" object is returned.
+#' @exportS3Method
 
 summary.svy_vglm <- function(object, ...) {
   object$coeftable <- cbind(

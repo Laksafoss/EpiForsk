@@ -54,7 +54,7 @@ first argument. Only recommended if you require backward compatibility with
 older versions of R.
 \item A string, integer, or list, e.g. \code{"idx"}, \code{1}, or \code{list("idx", 1)} which
 are shorthand for \code{\(x) purrr::pluck(x, "idx")}, \code{\(x)
-  purrr::pluck(x, 1)}, and \code{\(x) purrr::pluck(x, "idx", 1)}
+purrr::pluck(x, 1)}, and \code{\(x) purrr::pluck(x, "idx", 1)}
 respectively. Optionally supply \code{.default} to set a default value if the
 indexed element is \code{NULL} or does not exist.
 }}
