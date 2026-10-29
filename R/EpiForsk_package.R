@@ -10,10 +10,12 @@
 #' testing with asymptotic Bayes factor, and several help functions for
 #' generalized random forest analysis using the grf package.
 #'
+#' @useDynLib EpiForsk, .registration = TRUE
 #' @importFrom gridExtra arrangeGrob
 #' @importFrom methods hasArg
 #' @importFrom dplyr .data
 #' @importFrom rlang :=
+#' @importFrom Rcpp evalCpp
 #' @importFrom survey svyglm
 #' @importFrom survival coxph
 #' @importFrom survival strata

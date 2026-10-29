@@ -88,6 +88,7 @@
 #'   warn = FALSE
 #' )
 #'
+#' @importFrom utils head
 #' @export
 
 CensorSmallCounts <- function(data,
