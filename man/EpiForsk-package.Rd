@@ -29,6 +29,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Kim Daniel Jakobsen \email{kija@ssi.dk} (\href{https://orcid.org/0000-0003-0086-9980}{ORCID})
   \item Anders Husby \email{andh@ssi.dk} (\href{https://orcid.org/0000-0002-7634-8455}{ORCID})
   \item Anna Laksafoss \email{adls@ssi.dk} (\href{https://orcid.org/0000-0002-9898-2924}{ORCID})
   \item Emilia Myrup Thiesson \email{emth@ssi.dk} (\href{https://orcid.org/0000-0001-6258-4177}{ORCID})

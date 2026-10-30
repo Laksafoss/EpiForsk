@@ -2,137 +2,242 @@
 % Please edit documentation in R/kija_c_for_benefit.R
 \name{CForBenefit}
 \alias{CForBenefit}
-\title{c-for-benefit}
+\alias{CForBenefit.default}
+\alias{CForBenefit.causal_forest}
+\alias{CForBenefit.causal_survival_forest}
+\alias{print.c_for_benefit}
+\title{C-for-benefit}
 \usage{
-CForBenefit(
-  forest,
-  match = c("covariates", "CATE"),
+CForBenefit(object, ...)
+
+\method{CForBenefit}{default}(
+  object,
+  match = c("none", "covariates", "CATE", "control_risk", "treated_risk",
+    "CATE_control_risk", "CATE_treated_risk", "combined_outcome_risk"),
   match_method = "nearest",
   match_distance = "mahalanobis",
-  tau_hat_method = c("risk_diff", "tau_avg"),
+  tau_hat_method = c("risk_diff", "tau_avg", "tau_treated", "tau_control"),
   CI = c("simple", "bootstrap", "none"),
   level = 0.95,
   n_bootstraps = 999L,
-  time_limit = Inf,
-  time_limit_CI = Inf,
-  verbose = TRUE,
-  Y = NULL,
-  W = NULL,
-  X = NULL,
-  p_0 = NULL,
-  p_1 = NULL,
-  tau_hat = NULL,
+  bootstrap_method = c("fixed", "evaluation", "full"),
+  bootstrap_refit = NULL,
+  bootstrap_data = NULL,
+  bootstrap_fail = c("error", "NA"),
   ...
 )
+
+\method{CForBenefit}{causal_forest}(
+  object,
+  validation_forest = NULL,
+  n_cores = 1L,
+  CI = c("simple", "bootstrap", "none"),
+  bootstrap_method = c("fixed", "evaluation", "full"),
+  bootstrap_refit = NULL,
+  bootstrap_data = NULL,
+  ...
+)
+
+\method{CForBenefit}{causal_survival_forest}(object, horizon, ...)
+
+\method{print}{c_for_benefit}(x, ...)
 }
 \arguments{
-\item{forest}{An object of class \code{causal_forest}, as returned by
-\link[grf]{causal_forest}().}
+\item{object}{For the default method, a named list or data.frame with the following components:
+\itemize{
+\item{\code{"tau_hat"} - vector with estimated treatment effect}
+\item{\code{"p_0"} - vector with estimated potential outcome given non-exposure}
+\item{\code{"p_1"} - vector with estimated potential outcome given exposure}
+\item{\code{"Y"} - (only if matching != 'none') vector with outcome data}
+\item{\code{"W"} - (only if matching != 'none') vector with exposure data}
+\item{\code{"X"} - (only if matching == 'covariates')list with covariate data}
+\item{\code{"sample_weights"} - (optional) vector with sample weights}
+}
+Otherwise a supported fitted model:
+\itemize{
+\item causal_forest
+}}
 
-\item{match}{character, \code{"covariates"} to match on covariates or \code{"CATE"} to
-match on estimated CATE.}
+\item{...}{additional arguments passed onto the method.}
 
-\item{match_method}{see \link[MatchIt]{matchit}.}
+\item{match}{Character string specifying the method used to construct matched groups. Options are:
+\itemize{
+\item{\code{"none"} - Use model-based c-for-benefit without matching.}
+\item{\code{"covariates"} - Match on the covariates in \code{object$X}.}
+\item{\code{"CATE"} - Match on predicted conditional average treatment effects (\code{tau_hat}).}
+\item{\code{"control_risk"} - Match on predicted outcome risk under control (\code{p_0}).}
+\item{\code{"treated_risk"} - Match on predicted outcome risk under treatment (\code{p_1}).}
+\item{\code{"CATE_control_risk"} - Match jointly on \code{tau_hat} and \code{p_0}.}
+\item{\code{"CATE_treated_risk"} - Match jointly on \code{tau_hat} and \code{p_1}.}
+\item{\code{"combined_outcome_risk"} - Match combined on predicted outcome risk under control for controls and
+under treatment for treated. Thus each individual in the sample is matched with an individual from the
+opposite treatment group.}
+}
+Defaults to \code{"none"}.}
 
-\item{match_distance}{see \link[MatchIt]{matchit}.}
+\item{match_method}{Character string specifying the matching algorithm passed to the \code{method} argument of
+\link[MatchIt]{matchit}. Defaults to \code{"nearest"}. Matching must produce subclasses containing both treated
+and control observations. Matching with replacement is not supported.}
 
-\item{tau_hat_method}{character, \code{"risk_diff"} to calculate the expected
-treatment effect in matched groups as the risk under treatment for the
-treated subject minus the risk under control for the untreated subject.
-\code{"tau_avg"} to calculate it as the average treatment effect of matched
-subject.}
+\item{match_distance}{Character string specifying the distance measure passed to the \code{distance} argument of
+\link[MatchIt]{matchit}. Defaults to \code{"mahalanobis"}.}
 
-\item{CI}{character, \code{"none"} for no confidence interval, \code{"simple"} to use a
-normal approximation, and \code{"bootstrap"} to use the bootstrap.}
+\item{tau_hat_method}{Character string specifying how predicted treatment effects are aggregated within matched
+subclasses. Options are:
+\itemize{
+\item{\code{"risk_diff"} - Difference between the weighted mean predicted outcome risk under treatment among treated
+observations and the weighted mean predicted outcome risk under control among controls.}
+\item{\code{"tau_avg"} - Average of the weighted mean predicted CATE among treated and control observations.}
+\item{\code{"tau_treated"} - Weighted mean predicted CATE among treated observations.}
+\item{\code{"tau_control"} - Weighted mean predicted CATE among control observations.}
+}
+Defaults to \code{"risk_diff"}. Ignored when \code{match = "none"}.}
 
-\item{level}{numeric, confidence level of the confidence interval.}
+\item{CI}{Character string specifying the confidence interval method. Options are:
+\itemize{
+\item{\code{"simple"} - A normal-approximation interval based on the estimated standard error}
+\item{\code{"bootstrap"} - A percentile bootstrap interval}
+\item{\code{"none"} - No interval}
+}
+Defaults to \code{"simple"}.}
 
-\item{n_bootstraps}{numeric, number of bootstraps to use for the bootstrap
-confidence interval computation.}
+\item{level}{Numeric scalar specifying the confidence level. Must be strictly between 0 and 1. Defaults to \code{0.95}.}
 
-\item{time_limit}{numeric, maximum allowed time to compute C-for-benefit. If
-limit is reached, execution stops.}
+\item{n_bootstraps}{Positive integer specifying the number of bootstrap replicates.
+Defaults to \code{999L}. Only used when \code{CI = "bootstrap"}.}
 
-\item{time_limit_CI}{numeric, maximum time allowed to compute the bootstrap
-confidence interval. If limit is reached, the user is asked if execution
-should continue or be stopped.}
+\item{bootstrap_method}{Character string specifying the bootstrap procedure. Options are:
+\itemize{
+\item{\code{"fixed"} - Resample observation-level prediction vectors for model-based c-for-benefit, or matched
+subclasses for matching-based c-for-benefit. Prediction models are not refitted.}
+\item{\code{"evaluation"} - Resample evaluation observations and invoke \code{bootstrap_refit} to refit evaluation nuisance
+models while keeping the treatment-effect model fixed.}
+\item{\code{"full"} - Resample observations and invoke \code{bootstrap_refit} to repeat the specified modelling and
+evaluation pipeline.}
+}
+Defaults to \code{"fixed"}. Only used when \code{CI = "bootstrap"}.}
 
-\item{verbose}{boolean, TRUE to display progress bar, FALSE to not display
-progress bar.}
+\item{bootstrap_refit}{Callback function(data, indices, replicate, mode) returning
+a complete named list for .cfb_compute(). Required for evaluation/full.
+In 'evaluation', the callback must keep the CATE model fixed and refit
+evaluation nuisance models; in 'full', it must repeat the intended pipeline.}
 
-\item{Y}{a vector of outcomes. If provided, replaces \code{forest$Y.orig}.}
+\item{bootstrap_data}{Raw data made available to the callback. Must have a
+meaningful nrow() or be a named list with Y; default is object.}
 
-\item{W}{a vector of treatment assignment; 1 for active treatment; 0 for
-control If provided, replaces \code{forest$W.orig}.}
+\item{bootstrap_fail}{Whether invalid replicates cause an error or return NA.}
 
-\item{X}{a matrix of patient characteristics. If provided, replaces
-\code{forest$X.orig}.}
+\item{validation_forest}{An object of class \code{causal_forest}.}
 
-\item{p_0}{a vector of outcome probabilities under control.}
+\item{n_cores}{integer, number of workers to use for parallel computation.}
 
-\item{p_1}{a vector of outcome probabilities under active treatment.}
+\item{horizon}{A positive scalar defining the estimand. See \link[grf]{causal_survival_forest}}
 
-\item{tau_hat}{a vector of individualized treatment effect predictions. If
-provided, replaces forest$predictions.}
-
-\item{...}{additional arguments for \link[MatchIt]{matchit}.}
+\item{x}{An object of class \code{c_for_benefit}}
 }
 \value{
-a list with the following components:
+an object of class c_for_benefit with the following components:
 \itemize{
-\item type: a list with the input provided to the function which determines
-how C-for-benefit is computed.
-\item matched_patients: a tibble containing the matched patients.
-\item c_for_benefit: the resulting C-for-benefit value.
-\item lower_CI: the lower bound of the confidence interval (if CI = TRUE).
-\item upper_CI: the upper bound of the confidence interval (if CI = TRUE).
+\item{\code{"c_for_benefit"} - the resulting C-for-benefit value}
+\item{\code{"C_for_benefit_se"} - the resulting C-for-benefit standard error}
+\item{\code{"lower_CI"} - the lower bound of the confidence interval (if CI = simple or CI = bootstrap)}
+\item{\code{"upper_CI"} - the upper bound of the confidence interval (if CI = simple or CI = bootstrap)}
+\item{\code{"matched_patients"} - a tibble containing the matched patients}
+\item{\code{"matched_pairs"} - a tibble containing observed and predicted treatment effects of matched patient pairs}
+\item{\code{"bootstrap_method"} - NULL if no bootstrap, else a character specifying the bootstrap method used}
+\item{\code{"n_bootstrap_valid"} - If CI = 'bootstrap', the number of valid bootstrap replications, else NULL}
+\item{\code{"method"} - The method used - either 'model-based' or a vector with the user-input to 'match',
+'match_method', and 'match_distance'}
 }
 }
 \description{
-Calculates the c-for-benefit, as proposed by D. van Klaveren et al. (2018),
-by matching patients based on patient characteristics.
+Calculates the C-for-benefit, as proposed by D. van Klaveren et al. (2018). Either using a model based approach as
+proposed by Hoogland et al. (2024) or by matching patients based on patient characteristics.
 }
 \details{
-The c-for-benefit statistic is inspired by the c-statistic used with
-prediction models to measure discrimination. The c-statistic takes all
-pairs of observations discordant on the outcome, and calculates the
-proportion of these where the subject with the higher predicted probability
-was the one who observed the outcome. In order to extend this to treatment
-effects, van Klaveren et al. suggest matching a treated subject to a
-control subject on the predicted treatments effect (or alternatively the
-covariates) and defining the observed effect as the difference between the
-outcomes of the treated subject and the control subject. The c-for-benefit
-statistic is then defined as the proportion of matched pairs with unequal
-observed effect in which the subject pair receiving greater treatment
-effect also has the highest expected treatment effect. \cr When calculating
-the expected treatment effect, van Klaveren et al. use the average CATE
-from the matched subjects in a pair (tau_hat_method = "mean"). However,
-this doesn't match the observed effect used, unless the baseline risks are
-equal. The observed effect is the difference between the observed outcome
-for the subject receiving treatment and the observed outcome for the
-subject receiving control. Their outcomes are governed by the exposed risk
-and the baseline risk respectively. The baseline risks are ideally equal
-when covariate matching, although instability of the forest estimates can
-cause significantly different baseline risks due to non-exact matching.
-When matching on CATE, we should not expect baseline risks to be equal.
-Instead, we can more closely match the observed treatment effect by using
-the difference between the exposed risk for the subject receiving treatment
-and the baseline risk of the subject receiving control (tau_hat_method =
-"treatment").
+The C-for-benefit statistic is inspired by the C-statistic used with prediction models to measure
+discrimination. The C-statistic takes all pairs of observations discordant on the outcome, and calculates the
+proportion of these where the subject with the higher predicted probability was the one who observed the outcome.
+In order to extend this to treatment effects, van Klaveren et al. suggest matching a treated subject to a control
+subject on the predicted treatments effect (or alternatively the covariates) and defining the observed effect as
+the difference between the outcomes of the treated subject and the control subject. The C-for-benefit statistic is
+then defined as the proportion of matched pairs with unequal observed effect in which the subject pair receiving
+greater treatment effect also has the highest expected treatment effect. \cr When calculating the expected
+treatment effect, van Klaveren et al. use the average CATE from the matched subjects in a pair (tau_hat_method =
+"tau_avg"). However, this doesn't match the observed effect used, unless the baseline risks are equal. The observed
+effect is the difference between the observed outcome for the subject receiving treatment and the observed outcome
+for the subject receiving control. Their outcomes are governed by the exposed risk and the baseline risk
+respectively. The baseline risks are ideally equal when covariate matching, although instability of e.g. causal
+forest estimates can cause significantly different baseline risks due to non-exact matching. When matching on CATE,
+we should not expect baseline risks to be equal. Instead, we can more closely match the observed treatment effect
+by using the difference between the exposed risk for the subject receiving treatment and the baseline risk of the
+subject receiving control (tau_hat_method = "risk_diff").
+Hoogland et al. has suggested a model-based approach to define the C-for-benefit, targeting a well-defined estimand
+and avoiding the need for matching. This method is the default and recommended method.
+Importantly, the C-for-benefit model assumes conditional independence between the potential outcomes Y(0) and Y(1)
+given covariates X, with binary outcomes.
 }
 \examples{
 \donttest{
-n <- 800
-p <- 3
-X <- matrix(rnorm(n * p), n, p)
-W <- rbinom(n, 1, 0.5)
-event_prob <- 1 / (1 + exp(2 * (pmax(2 * X[, 1], 0) * W - X[, 2])))
-Y <- rbinom(n, 1, event_prob)
-cf <- grf::causal_forest(X, Y, W)
-CB_out <- CForBenefit(
-forest = cf, CI = "bootstrap", n_bootstraps = 20L, verbose = TRUE,
-match_method = "nearest", match_distance = "mahalanobis"
-)
+  # Generate example data
+  set.seed(123)
+  n <- 800
+  X <- matrix(rnorm(n * 3), nrow = n)
+  W <- rbinom(n, 1, 0.5)
+  p_0 <- plogis(-1 + X[, 1])
+  p_1 <- plogis(-1 + X[, 1] - 0.5 * X[, 2])
+  Y <- rbinom(n, 1, ifelse(W == 1, p_1, p_0))
+
+  data <- list(
+    X = X, W = W, Y = Y,
+    p_0 = p_0, p_1 = p_1,
+    tau_hat = p_1 - p_0
+  )
+
+  # 1. Model-based C-for-benefit (default)
+    CForBenefit(data)
+
+  # 2. Matching on predicted treatment effects
+    CForBenefit(
+      data,
+      match = "CATE",
+      tau_hat_method = "tau_avg"
+    )
+
+  # 3. Covariate matching using predicted risk differences
+    CForBenefit(
+      data,
+      match = "covariates",
+      tau_hat_method = "risk_diff",
+      estimand = "ATT"
+    )
+
+  # 4. Model-based C-for-benefit with bootstrap CI
+    CForBenefit(
+      data,
+      CI = "bootstrap",
+      bootstrap_method = "fixed",
+      n_bootstraps = 100
+    )
+
+  # 5. C-for-benefit using a causal forest
+    cf <- grf::causal_forest(X, Y, W)
+    CForBenefit(cf)
+
+  # 6. Evaluation on an independent validation sample
+    idx <- sample.int(n, n / 2)
+    cf_train <- grf::causal_forest(
+      X[idx, , drop = FALSE], Y[idx], W[idx]
+    )
+    cf_validation <- grf::causal_forest(
+      X[-idx, , drop = FALSE], Y[-idx], W[-idx]
+    )
+    CForBenefit(
+      cf_train,
+      validation_forest = cf_validation,
+      match = "CATE",
+      CI = "none"
+  )
 }
 
 }
