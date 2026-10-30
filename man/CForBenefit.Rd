@@ -143,10 +143,11 @@ an object of class c_for_benefit with the following components:
 \item{\code{"lower_CI"} - the lower bound of the confidence interval (if CI = simple or CI = bootstrap)}
 \item{\code{"upper_CI"} - the upper bound of the confidence interval (if CI = simple or CI = bootstrap)}
 \item{\code{"matched_patients"} - a tibble containing the matched patients}
-\item{\code{"matched_pairs"} - }
+\item{\code{"matched_pairs"} - a tibble containing observed and predicted treatment effects of matched patient pairs}
 \item{\code{"bootstrap_method"} - NULL if no bootstrap, else a character specifying the bootstrap method used}
-\item{\code{"n_bootstrap_valid"} - }
-\item{\code{"method"} - either 'model-based' or 'matching'}
+\item{\code{"n_bootstrap_valid"} - If CI = 'bootstrap', the number of valid bootstrap replications, else NULL}
+\item{\code{"method"} - The method used - either 'model-based' or a vector with the user-input to 'match',
+'match_method', and 'match_distance'}
 }
 }
 \description{

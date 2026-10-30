@@ -13,7 +13,8 @@ cfb_fixture <- function(n = 80L) {
        p_0 = p_0, p_1 = p_1, sample_weights = rep(1, n))
 }
 
-cfb_expect_result <- function(z, matched = FALSE, interval = FALSE) {
+cfb_expect_result <- function(z, method = "model_based", matched = FALSE, interval = FALSE) {
+  if (length(method) == 1 && method == "none") method <- "model_based"
   expect_s3_class(z, "c_for_benefit")
   expect_named(z, c("c_for_benefit", "c_for_benefit_se", "lower_ci",
                     "upper_ci", "matched_patients", "matched_pairs",
@@ -24,7 +25,7 @@ cfb_expect_result <- function(z, matched = FALSE, interval = FALSE) {
     expect_gte(z$c_for_benefit, -1e-12)
     expect_lte(z$c_for_benefit, 1 + 1e-12)
   }
-  expect_identical(z$method, if (matched) "matching" else "model_based")
+  expect_identical(z$method, method)
   if (matched) {
     expect_s3_class(z$matched_pairs, "data.frame")
     expect_gt(nrow(z$matched_pairs), 1L)
@@ -143,7 +144,7 @@ test_that(
         expect_warning(CForBenefit(x, match = method, CI = "none"))
       }
       z <- suppressWarnings(CForBenefit(x, match = method, CI = "none"))
-      cfb_expect_result(z, matched = TRUE, interval = FALSE)
+      cfb_expect_result(z, method = c(method, "nearest", "mahalanobis"), matched = TRUE, interval = FALSE)
       expect_true(all(z$matched_pairs$sample_weight >= 0))
     }
   }
@@ -196,7 +197,7 @@ test_that(
     x <- cfb_fixture()
     for (target in c("ATT", "ATC")) {
       z <- CForBenefit(x, match = "CATE", estimand = target, CI = "none")
-      cfb_expect_result(z, matched = TRUE)
+      cfb_expect_result(z, method = c("CATE", "nearest", "mahalanobis"), matched = TRUE)
     }
   }
 )
@@ -223,7 +224,12 @@ test_that(
       expect_identical(a$bootstrap_method, "fixed")
       expect_gte(a$n_bootstrap_valid, 1)
       expect_lte(a$n_bootstrap_valid, 39)
-      cfb_expect_result(a, matched = m != "none", interval = TRUE)
+      cfb_expect_result(
+        a,
+        method = if (m == "none") m else c(m, "nearest", "mahalanobis"),
+        matched = m != "none",
+        interval = TRUE
+      )
     }
   }
 )

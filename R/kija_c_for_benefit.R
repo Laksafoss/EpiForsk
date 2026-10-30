@@ -24,10 +24,11 @@
 #'     \item{`"lower_CI"` - the lower bound of the confidence interval (if CI = simple or CI = bootstrap)}
 #'     \item{`"upper_CI"` - the upper bound of the confidence interval (if CI = simple or CI = bootstrap)}
 #'     \item{`"matched_patients"` - a tibble containing the matched patients}
-#'     \item{`"matched_pairs"` - }
+#'     \item{`"matched_pairs"` - a tibble containing observed and predicted treatment effects of matched patient pairs}
 #'     \item{`"bootstrap_method"` - NULL if no bootstrap, else a character specifying the bootstrap method used}
-#'     \item{`"n_bootstrap_valid"` - }
-#'     \item{`"method"` - either 'model-based' or 'matching'}
+#'     \item{`"n_bootstrap_valid"` - If CI = 'bootstrap', the number of valid bootstrap replications, else NULL}
+#'     \item{`"method"` - The method used - either 'model-based' or a vector with the user-input to 'match',
+#'     'match_method', and 'match_distance'}
 #'   }
 #'
 #' @details The C-for-benefit statistic is inspired by the C-statistic used with prediction models to measure
@@ -184,8 +185,8 @@ CForBenefit <- function(object,
     )
   }
 
-  # If x is a list, convert it to data.frame
-  df <- data.frame(
+  # If x is a list, convert it to tibble
+  df <- dplyr::tibble(
     W = x$W,
     Y = x$Y,
     tau_hat = x$tau_hat,
@@ -196,7 +197,7 @@ CForBenefit <- function(object,
   vars <- switch(
     match,
     covariates = {
-      cov <- as.data.frame(x$X)
+      cov <- dplyr::as_tibble(x$X, .name_repair = "unique")
       names(cov) <- paste0("cov_", seq_len(ncol(cov)))
       df <- cbind(df, cov)
       names(cov)
@@ -324,7 +325,7 @@ CForBenefit <- function(object,
         } else {
           c
         }
-        data.frame(
+        dplyr::tibble(
           matched_tau_hat = predicted,
           matched_tau_obs = observed,
           sample_weight = sum(focal$sample_weights)
@@ -558,7 +559,7 @@ CForBenefit.default <- function(object,
         matched_pairs = point$pairs,
         bootstrap_method = if (CI == "bootstrap") bootstrap_method else NULL,
         n_bootstrap_valid = if (is.null(boot)) NULL else sum(is.finite(boot)),
-        method = if (match == "none") "model_based" else "matching"
+        method = if (match == "none") "model_based" else c(match, match_method, match_distance)
       ),
       class = "c_for_benefit"
     )
